@@ -1,0 +1,4 @@
+3D double wishbone suspension sim that runs in the browser.
+Four corners, steering, springs and dampers, live camber / roll centre / load transfer.
+Set up as an NB Miata by default.
+Plain HTML + JS, no build step.
