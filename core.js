@@ -4,44 +4,65 @@
    Roll + = right side up, lateral g + = right turn, rack + = toward the right, steer angles + = right. ===== */
 const G=9.81, D2R=Math.PI/180;
 
-/* Default car: Mazda MX-5 / Roadster NB 1.8 (NB8C, 1998-2000), unladen, 195/50R15 tires on 15x6JJ +40 wheels.
+/* Two cars, both a Mazda MX-5 / Roadster NB 1.8 (NB8C): STOCK (as Mazda built it) and COEN'S (the one this tool was built for).
+   The Stock / Coen's buttons on the page load them. Both use the same arms, pivots and rack; Coen's changes the wheels, tires,
+   alignment, springs, dampers, ride height and the travel limits. Source of each number:
    PUBLISHED by Mazda: wheelbase 2265 mm, track 1415 / 1440 mm, mass 1030 kg, front camber 0°02', caster 5°40', kingpin 11°39',
      caster trail 17.5 mm, rear camber -0°42', toe-in 3 mm total per axle, roll centre height 41 / 120 mm, wheel stroke 82 bump / 93 droop
      (front) and 80 / 96 (rear), springs 2.9 / 2.1 kgf/mm, damper forces at 0.1 and 0.3 m/s (62 / 115 kgf rebound, 35 / 57 kgf bump front,
      35 / 77 kgf bump rear), rack stroke 121 mm, 2.6 turns lock to lock, full lock 38° inner / 33° outer.
+     Wheels 15x6JJ +40 and 195/50R15 tires at 180 kPa.
    MEASURED by others: spring motion ratios 0.686 / 0.721 (owner measurement on a 2000 car); static stability factor 1.59 (NHTSA),
      which puts the whole car's CG 449 mm above the ground.
    FROM THE NA DRAWING VALUES this file already had: front lower pivots 656 mm apart, upper pivots 756 mm apart, lower arm 350 mm,
      upper pivots 183 mm above the lower ones. Mazda lowered the lower pivots 5.8 mm for the NB, which makes it 188.8 mm.
-   Wheels 15x6JJ with +40 mm offset and 195/50R15 tires at 180 kPa are Mazda's.
-   FITTED so the model reproduces the numbers above (none of these is published): pivot heights above ground, front upper arm
+   FROM A BUSHING-KIT DRAWING of the four arms seen from above (scale 1.21 mm per drawing pixel, set by the front arms, whose
+     sideways lengths the drawing and this file agree on; the same scale is assumed for the rear arms): the rear lower arm reaches
+     386 mm sideways with inner pivots 306 mm apart and two outer pivots 132 mm apart; the rear upper arm reaches 186 mm sideways
+     with inner pivots 142 mm apart, centred on its outer end.
+   FITTED so the model reproduces the published numbers (none of these is published): pivot heights above ground, front upper arm
      length (261 mm, not 250), upright lengths, spindle and hub-face positions, kingpin offset, tie-rod joints, coilover mount
-     positions, and every rear length. The lower ball joint is assumed 160 mm above the ground.
+     positions. Rear: the two sideways lengths above are kept; the rear pivot positions, hub face and damper top mount are then
+     fitted to the 120 mm roll centre, 1440 mm track and 0.721 motion ratio. The lower ball joint is assumed 160 mm above the ground.
    ESTIMATES: unsprung mass, roll and pitch inertia, tire rate, anti-roll bar rates, front weight share, grip limit.
-   The rear "toe link" stands in for the wide outer pivot of the Miata's lower arm: same length as the arm and parallel to it. */
-function defaults(){
+   The Miata has no rear toe link. Its rear lower arm has two outer pivots; the model draws the arm as two legs (front leg to the
+   ball joint, rear leg to a second outer point ee behind it) and the rear leg holds the toe, so no rear tie-rod numbers are used.
+   COEN'S car, on top of stock: 8 / 6 kgf/mm springs with dampers scaled up by the square root of the spring ratio (a guess, his
+   real dampers are stiffer by an unknown amount), 15x7 +40 wheels, 185/50R15 tires at 240 kPa (loaded radius 265 mm, 235 N/mm, as he
+   entered them), front camber -4°, caster 4.5°, toe -0.1°, rear camber -1.5°, front tie-rod inner joint 180.2 mm, travel limits
+   100 / 120 mm front and 90 / 105 mm rear, ride height -2 mm front and -20 mm rear. */
+function stockCar(){
   return {
     veh:{M:902,mu:32,L:2.265,wf:0.523,h:0.474,Ixx:260,Iyy:1050},
     steer:{c:0.0465,rmax:0.0605,speed:60/3.6,grip:0.9,link:0},
     ax:[
-      {g:{Ll:0.35,Lu:0.2611,Lk:0.24,yli:0.328,zli:0.1325,yui:0.378,zui:0.3213,xlf:-0.0129,xlr:-0.3529,xuf:0.096,xur:-0.124,hsp:0.1054,hf:0.0931,xk:0.0086,rimD:0.381,rimW:0.1524,et:0.040,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
+      {g:{Ll:0.35,Lu:0.2611,Lk:0.24,yli:0.328,zli:0.1325,yui:0.378,zui:0.3213,xlf:-0.0129,xlr:-0.3529,xuf:0.096,xur:-0.124,ee:0.13,hsp:0.1054,hf:0.0931,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
           xto:0.0978,yto:0.6953,zto:0.215,xti:0.0978,yti:0.3609,zti:0.1734,fMount:0.757,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
-      {g:{Ll:0.42,Lu:0.30,Lk:0.251,yli:0.2402,zli:0.1828,yui:0.3402,zui:0.3699,xlf:0.16,xlr:-0.16,xuf:0.13,xur:-0.13,hsp:0.1086,hf:0.1069,xk:0,rimD:0.381,rimW:0.1524,et:0.040,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:-0.7,caster:0,toe:0.15,kt:185000,
-          xto:-0.120,yto:0.6596,zto:0.1599,xti:-0.120,yti:0.2402,zti:0.1828,fMount:0.893,ydm:0.3602,zdm:0.6128,bump:0.080,droop:0.096},
+      {g:{Ll:0.3872,Lu:0.1884,Lk:0.24,yli:0.2596,zli:0.185,yui:0.4549,zui:0.3808,xlf:0.091,xlr:-0.215,xuf:0.071,xur:-0.071,ee:0.132,hsp:0.105,hf:0.1125,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:-0.7,caster:0,toe:0.15,kt:185000,
+          xto:-0.132,yto:0.6464,zto:0.1675,xti:-0.215,yti:0.2596,zti:0.185,fMount:0.9,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
        s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0]
   };
 }
+function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
+       for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000});
+       Object.assign(P.ax[0].g,{cam0:-3.5,caster:3,toe:-0.5,zti:0.1802,sp:0.030});
+       Object.assign(P.ax[1].g,{cam0:-1.5,toe:0,sp:0.013});
+       P.ax[0].s.k=78450; P.ax[1].s.k=58840;
+       for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
+       P.dh=[-0.026,-0.026,-0.038,-0.038]; return P; }
+const PRESETS={stock:stockCar,coen:coensCar};
+function defaults(){return coensCar();}
 
 /* Field specs: [key, label, unit, scale to SI, step, min, max]; min and max are in the displayed unit. */
 const GEO=[
   ["Wishbones",[["Ll","Lower arm length","mm",1e-3,5,100,1000],["Lu","Upper arm length","mm",1e-3,5,80,1000],["Lk","Upright length in front view (ball joint to ball joint)","mm",1e-3,5,80,600]]],
   ["Chassis pivots",[["yli","Lower inner pivot, from centreline","mm",1e-3,5,0,800],["zli","Lower inner pivot, above ground","mm",1e-3,5,20,600],["yui","Upper inner pivot, from centreline","mm",1e-3,5,0,900],["zui","Upper inner pivot, above ground","mm",1e-3,5,60,900]]],
-  ["Pivots fore-aft / 3D only",[["xlf","Lower arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xlr","Lower arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xuf","Upper arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xur","Upper arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600]]],
+  ["Pivots fore-aft / 3D only",[["xlf","Lower arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xlr","Lower arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xuf","Upper arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xur","Upper arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["ee","Lower arm outer pivots: rear one this far behind the front one","mm",1e-3,5,20,400]]],
   ["Upright",[["hsp","Spindle height above lower ball joint","mm",1e-3,5,0,500],["hf","Hub face outboard of kingpin","mm",1e-3,5,0,400],["xk","Wheel centre ahead of kingpin axis, side view","mm",1e-3,1,-60,60]]],
-  ["Wheel",[["rimD","Rim diameter","in",0.0254,1,10,22],["rimW","Rim width","in",0.0254,0.5,4,12],["et","Offset (ET), + = wheel centre inboard of hub face","mm",1e-3,1,-60,90]]],
+  ["Wheel",[["rimD","Rim diameter","in",0.0254,1,10,22],["rimW","Rim width","in",0.0254,0.5,4,12],["et","Offset (ET), + = wheel centre inboard of hub face","mm",1e-3,1,-60,90],["sp","Wheel spacer, pushes the wheel outboard","mm",1e-3,1,0,100]]],
   ["TIRE",[["tw","Section width","mm",1e-3,5,125,355],["ar","Aspect ratio","%",1e-2,5,25,85],["pk","Pressure","kPa",1e3,5,100,350],["R","Loaded radius","mm",1e-3,5,150,500],["kt","Vertical rate","N/mm",1e3,10,50,1000]]],
   ["Alignment",[["cam0","Static camber","°",1,0.1,-10,10],["caster","Caster","°",1,0.5,-5,20],["toe","Static toe per wheel, + = toe-in","°",1,0.05,-5,5]]],
   ["TIE",[["xto","Outer joint, ahead of axle (− = behind)","mm",1e-3,5,-400,400],["yto","Outer joint, from centreline","mm",1e-3,5,100,1100],["zto","Outer joint, above ground","mm",1e-3,5,20,800],["xti","Inner joint, ahead of axle (− = behind)","mm",1e-3,5,-500,500],["yti","Inner joint, from centreline","mm",1e-3,5,0,800],["zti","Inner joint, above ground","mm",1e-3,0.1,20,800]]],
@@ -109,7 +130,7 @@ function tieSolve(D,LBJ,ax,p,r){
 /* ---- design position: the lower-arm angle that puts the tire's lowest point on the ground ---- */
 function design(g,name){
   const cz=g.R*Math.cos(g.cam0*D2R);
-  const ds=g.hf-g.et;                                             // wheel centre outboard of the kingpin axis: hub face minus wheel offset
+  const ds=g.hf-g.et+g.sp;                                             // wheel centre outboard of the kingpin axis: hub face minus wheel offset
   const f=a=>{const k=fv(g,a); return k? k.lz+g.hsp*k.vz-ds*k.vy-cz : NaN;};
   let best=null; const stp=0.002;
   for(let a=-1.2;a<1.2;a+=stp){
@@ -127,7 +148,8 @@ function design(g,name){
   const LBJ=[xl,k.ly,k.lz], UBJ=[xu,k.uy,k.uz], WC=[0,Sy+ds*k.vz,Sz-ds*k.vy];
   const c0=g.cam0*D2R, d0=-g.toe*D2R;                             // local steer angle is + outboard, so toe-in is negative
   const av0=[-Math.sin(d0)*Math.cos(c0),Math.cos(d0)*Math.cos(c0),-Math.sin(c0)];   // spindle direction, pointing outboard
-  const TRO=[g.xto,g.yto,g.zto], TRI=[g.xti,g.yti,g.zti], Lt=vlen(vsub(TRO,TRI));
+  const rear=name==="Rear";                                      // rear: the lower arm's second leg (rear inner pivot to a second outer pivot) holds the toe
+  const TRO=rear?[xl-g.ee,k.ly,k.lz]:[g.xto,g.yto,g.zto], TRI=rear?[g.xlr,g.yli,g.zli]:[g.xti,g.yti,g.zti], Lt=vlen(vsub(TRO,TRI));
   if(Lt<0.03) throw new Error(name+": the tie rod is shorter than 30 mm. Move its inner and outer joints apart.");
   const axis=vunit(vsub(UBJ,LBJ)), p0=vsub(TRO,LBJ), arm=vlen(vsub(p0,vscale(axis,vdot(p0,axis))));
   if(arm<0.02) throw new Error(name+": the tie rod's outer joint is within 20 mm of the kingpin axis, so it can't hold the wheel's steer angle. Move it forward or back.");

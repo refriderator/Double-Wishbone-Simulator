@@ -20,7 +20,7 @@
     <div class="simbar">
       <button class="btn primary" id="play">Pause</button>
       <button class="btn" id="reset">Settle</button>
-      <button class="btn ghost" id="defaults">Defaults</button>
+      <div class="seg rd" id="preset" role="group" aria-label="Car"><button aria-pressed="false" data-p="stock">Stock</button><button aria-pressed="false" data-p="coen">Coen's</button><button aria-pressed="false" data-p="session" title="Your edits, kept in this browser">Session</button></div>
     </div>
     <div class="simbar">
       <div class="seg rd" id="speed" role="group" aria-label="Simulation speed">
@@ -100,7 +100,7 @@
   <div class="pane" id="p-veh" role="tabpanel" hidden>
     <div id="vehFields" class="groups"></div>
     <p class="hint">Sprung mass is everything the springs carry. Unsprung mass is wheel, tire, upright, brake and about half the arms and coilover. Roll inertia is about the CG. The model adds the offset to the roll axis. CG height follows the ride height.</p>
-    <p class="hint">The setup saves in this browser. Defaults clears it.</p>
+    <p class="hint">The setup saves in this browser. Stock and Coen's reload that car. Any edit you make is kept as the Session setup; the Session button brings it back.</p>
   </div>
   <div class="status" id="status" role="status">Solved.</div>
 </aside>
@@ -159,9 +159,20 @@
     </section>
     <section class="card wide">
       <h2>Data / MX-5 NB8C</h2>
-      <p class="hint">Default car: Mazda MX-5 NB 1.8 (NB8C, 1998–2000), unladen, on 195/50R15. Each number is marked by where it comes from. Fitted and estimated values are not Mazda data.</p>
+      <p class="hint">Two cars, both a Mazda MX-5 NB 1.8 (NB8C): the Stock button loads the car as Mazda built it, the Coen's button loads the same car as Coen has it, and the Session button loads whatever you last edited. Each number is marked by where it comes from. Fitted and estimated values are not Mazda data.</p>
       <div class="tw"><table class="wrap src">
-        <tr><th>Published by Mazda</th><th>Value</th><th>Basis</th></tr>
+        <tr><th>Coen's car, on top of stock</th><th>Value</th><th>Basis</th></tr>
+        <tr><td>Springs, front / rear</td><td>8 / 6 kgf/mm = 78.5 / 58.8 N/mm</td><td class="u k">Set</td></tr>
+        <tr><td>Dampers</td><td>Stock slopes × 1.66 front, × 1.69 rear (square root of the spring ratio)</td><td class="u k">Guess</td></tr>
+        <tr><td>Wheels and tires</td><td>15×7 ET35, 185/45R15 at 240 kPa, loaded radius 260 mm, 235 N/mm; wheel spacers 30 mm front and 13 mm rear (effective offset ET5 front, ET22 rear)</td><td class="u k">Set</td></tr>
+        <tr><td>Alignment, front</td><td>Camber −3.5°, caster 3°, toe −0.5° per wheel</td><td class="u k">Set</td></tr>
+        <tr><td>Alignment, rear</td><td>Camber −1.5°, toe 0°</td><td class="u k">Set</td></tr>
+        <tr><td>Ride height</td><td>−26 mm front, −38 mm rear from stock height (Heights tab, same zero as Stock)</td><td class="u k">Set</td></tr>
+        <tr><td>Travel limits, bump / droop</td><td>Same as stock: 82 / 93 mm front, 80 / 96 mm rear</td><td class="u k">Set</td></tr>
+        <tr><td>Rack, inner joint height</td><td>180.2 mm</td><td class="u k">Set</td></tr>
+        <tr><td>Track, front / rear</td><td>1522 / 1483 mm (the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
+        <tr><td>Roll centre height, front / rear</td><td>22 / 100 mm</td><td class="u k">Follows</td></tr>
+        <tr><th>Stock car, published by Mazda</th><th></th><th></th></tr>
         <tr><td>Wheelbase</td><td>2265 mm</td><td class="u k">Published</td></tr>
         <tr><td>Track, front / rear</td><td>1415 / 1440 mm</td><td class="u k">Published</td></tr>
         <tr><td>Mass, unladen</td><td>1030 kg</td><td class="u k">Published</td></tr>
@@ -174,7 +185,7 @@
         <tr><td>Springs, front / rear</td><td>2.9 / 2.1 kgf/mm = 28.4 / 20.6 N/mm</td><td class="u k">Published</td></tr>
         <tr><td>Damper force at 0.1 and 0.3 m/s</td><td>Rebound 62 / 115 kgf. Bump 35 / 57 kgf front, 35 / 77 kgf rear</td><td class="u k">Published</td></tr>
         <tr><td>Steering</td><td>Rack stroke 121 mm, 2.6 turns, full lock 38° inner / 33° outer</td><td class="u k">Published</td></tr>
-        <tr><td>Wheels and tires</td><td>15×6JJ, offset +40 mm, 195/50R15 at 180 kPa</td><td class="u k">Published</td></tr>
+        <tr><td>Wheels and tires</td><td>Mazda lists 15×6JJ, offset +40 mm, 195/50R15 at 180 kPa. The Stock button uses 16 in rims (Coen's car came with 16s) so wheel sizes can be compared; loaded radius stays 274 mm</td><td class="u k">Published, rim set</td></tr>
         <tr><th>Measured by others</th><th></th><th></th></tr>
         <tr><td>Motion ratio, front / rear</td><td>0.686 / 0.721</td><td class="u k">Owner measurement</td></tr>
         <tr><td>CG height, whole car</td><td>449 mm, from static stability factor 1.59</td><td class="u k">NHTSA</td></tr>
@@ -187,7 +198,8 @@
         <tr><td>Front upper arm</td><td>261.1 mm</td><td class="u k">Fitted</td></tr>
         <tr><td>Front upright, ball joint to ball joint</td><td>240 mm</td><td class="u k">Fitted</td></tr>
         <tr><td>Hub face position, kingpin offset, tie rod joints, coilover mounts</td><td>See the Geometry tab</td><td class="u k">Fitted</td></tr>
-        <tr><td>Rear arms, pivots and upright</td><td>All lengths</td><td class="u k">Fitted</td></tr>
+        <tr><td>Rear arms, seen from above</td><td>Lower arm reaches 386 mm sideways (inner pivots 306 mm apart, two outer pivots 132 mm apart). Upper arm reaches 186 mm (inner pivots 142 mm apart). Scale taken from the front arms in the same drawing.</td><td class="u k">Bushing-kit drawing</td></tr>
+        <tr><td>Rear pivot positions, hub face, damper top mount</td><td>Fitted to roll centre 120 mm, track 1440 mm, motion ratio 0.721. See the Geometry tab.</td><td class="u k">Fitted</td></tr>
         <tr><th>Estimates</th><th></th><th></th></tr>
         <tr><td>Lower ball joint height</td><td>160 mm</td><td class="u k">Estimate</td></tr>
         <tr><td>Unsprung mass per corner</td><td>32 kg</td><td class="u k">Estimate</td></tr>
@@ -223,7 +235,7 @@
         <li>Steering lifts or lowers each front tire relative to its arm (caster and kingpin inclination), which shifts load diagonally. Springs, bump stops and anti-roll bars act on arm travel.</li>
         <li>Coil springs cannot pull: they unseat at full droop. Anti-roll bar links are assumed adjusted for zero preload at the target heights.</li>
         <li>Bump stops engage at the end of the published wheel stroke. The real car's stops touch earlier and build up progressively.</li>
-        <li>The Miata's rear lower arm holds the upright at two points. The model's rear toe link stands in for that: it is as long as the lower arm and parallel to it.</li>
+        <li>The Miata has no rear toe link. Its rear lower arm holds the upright at two outer pivots. The model draws that arm as two legs, the front leg to the ball joint and the rear leg to a second outer point, and the rear leg holds the toe. Both legs swing about the same axis, so the rear has no toe change by construction.</li>
         <li>Left and right sides share one geometry, and the CG is on the centreline.</li>
       </ul></details>
     </section>

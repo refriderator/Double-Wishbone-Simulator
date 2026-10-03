@@ -1,17 +1,21 @@
 /* ===== UI ===== */
 const $=id=>document.getElementById(id);
-const KEY="dws.setup.nb1", CN=["FL","FR","RL","RR"];
+const KEY="dws.setup.nb1", SKEY="dws.session.nb1", CN=["FL","FR","RL","RR"];
 function merge(def,src){
   if(Array.isArray(def)) return def.map((d,i)=>merge(d,src&&src[i]));
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
   return (typeof src==="number"&&Number.isFinite(src))?src:def;
 }
-function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; const p=merge(defaults(),JSON.parse(t)); makeModel(p); return p;}catch(e){return null;}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(P));}catch(e){}}
-let P=loadSaved(); const restored=!!P; if(!P) P=defaults();
+function noSp(p,j){for(let i=0;i<2;i++) if(!j.ax||!j.ax[i]||!j.ax[i].g||j.ax[i].g.sp===undefined) p.ax[i].g.sp=0; return p;}      // setups saved before the spacer field existed have none
+function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; const j=JSON.parse(t), p=noSp(merge(defaults(),j),j); makeModel(p); return p;}catch(e){return null;}}
+let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.preset")||null;}catch(e){}      // which car button is lit; any edit clears it
+function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}   // an edit makes the current setup the session setup
+function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
+let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="coen";}
 let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0};
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
+const BODY_LIFT=0.038;      // the Assetto Corsa shell is a lowered car: raise it 38 mm on the wheels so it sits right at stock height (drawing only, no effect on the numbers)
 let bodyOn=true; try{bodyOn=localStorage.getItem("dws.body")!=="box";}catch(e){}      // 3D view: the car body, or the plain chassis box
 /* Colours and fonts come from the OL! tokens in style.css. The palette is closed (black, greys, midnight, ice),
    so parts and data series differ by lightness, line weight and dash, never by hue. */
@@ -49,18 +53,21 @@ function buildFields(host,groups,getObj,prefix,who,titleOf){
     host.appendChild(fsEl);
   }
 }
+/* The rear has no tie rod (its lower arm has two outer pivots, field "ee"); the front has no second outer pivot. */
+const geoFor=a=>GEO.filter(([t])=>!(a&&t==="TIE")).map(([t,fs])=>[t,fs.filter(f=>a||f[0]!=="ee")]);
 function renderForms(){
   const who=editAxle?"Rear: ":"Front: ";
-  buildFields($("geoFields"),GEO,()=>P.ax[editAxle].g,"g",who,t=>t==="TIE"?(editAxle?"Toe link / to chassis":"Tie rod / to rack"):t==="TIRE"?"Tire":t);
+  buildFields($("geoFields"),geoFor(editAxle),()=>P.ax[editAxle].g,"g",who,t=>t==="TIE"?"Tie rod / to rack":t==="TIRE"?"Tire":t);
   {const tf=$("geoFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div"), t=tireFromSize(P,editAxle);
    r2.className="rowbtns"; r2.innerHTML='<button class="btn" id="fitTire">Estimate from size</button>'; tf.appendChild(r2);
    const h2=document.createElement("p"); h2.className="hint";
    h2.textContent="Free radius "+(t.free*1000).toFixed(0)+" mm from the size. The button sets the rate from Rhyne's empirical formula and the loaded radius as free radius − static load ÷ rate. An estimate.";
    tf.appendChild(h2); $("fitTire").onclick=fitTire;}
-  const tie=$("geoFields").querySelector('fieldset[data-g="TIE"]'), row=document.createElement("div");
-  row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
-  const th=document.createElement("p"); th.className="hint"; th.textContent="Moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
-  $("fitTie").onclick=fitTie;
+  const tie=$("geoFields").querySelector('fieldset[data-g="TIE"]');
+  if(tie){const row=document.createElement("div");
+    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
+    const th=document.createElement("p"); th.className="hint"; th.textContent="Moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
+    $("fitTie").onclick=fitTie;}
   buildFields($("sprFields"),SPR,()=>P.ax[editAxle].s,"s",who);
   buildFields($("vehFields"),VEH,()=>P.veh,"v","");
   buildFields($("strFields"),[STEER[0]],()=>P.steer,"st","");
@@ -105,11 +112,23 @@ $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!
 $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"Run";};
 function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear();}
 $("reset").onclick=()=>resettle(4);
-$("defaults").onclick=()=>{
-  P=defaults(); model=makeModel(P); try{localStorage.removeItem(KEY);}catch(e){}
+function loadPreset(name){
+  const label=name==="stock"?"Stock":name==="session"?"Session":"Coen's";
+  try{
+    let q;
+    if(name==="session"){
+      let t=null; try{t=localStorage.getItem(SKEY);}catch(e){}
+      if(!t){setStatus("No session setup yet. Edit any field and it is kept here.",true); return;}
+      const j=JSON.parse(t); q=noSp(merge(defaults(),j),j);
+    } else q=PRESETS[name]();
+    makeModel(q); P=q;
+  }catch(e){setStatus(e.message,true); return;}
+  model=makeModel(P); presetLock=true; presetName=name; save(); presetLock=false; try{localStorage.setItem("dws.preset",name);}catch(e){} markPreset();
   ["ay","ax","fp"].forEach(id=>$(id).value=0); swDeg=0; inp.rack=0; $("sw").value=0; ayManual=0;
-  renderForms(); refreshStatic(); syncLink(); resettle(3); setStatus("Defaults restored.",false);
-};
+  renderForms(); refreshStatic(); syncLink(); resettle(3); setStatus(name==="session"?"Session setup loaded.":label+" car loaded.",false);
+}
+$("preset").addEventListener("click",e=>{const b=e.target.closest("button"); if(b) loadPreset(b.dataset.p);});
+markPreset();
 $("viewAxle").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; viewAxle=+b.dataset.a;
   $("viewAxle").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); curveStatic();});
 
@@ -320,15 +339,16 @@ function init3D(){
     const v=P.veh, key=[model.a,model.b,P.ax[0].g.yli,P.ax[1].g.yli].join();
     if(key!==chKey){buildChassis(); chKey=key;}
     const showCar=!!car&&bodyOn; chassis.visible=chassisEdge.visible=!showCar;
-    if(car){car.visible=showCar; car.position.set((model.a-model.b)/2,P.ax[0].g.R,0); car.scale.setScalar(v.L/window.BODY_MODEL.wheelbase);}   // wheel arches follow the wheelbase
+    if(car){car.visible=showCar; car.position.set((model.a-model.b)/2,P.ax[0].g.R+BODY_LIFT,0); car.scale.setScalar(v.L/window.BODY_MODEL.wheelbase);}   // wheel arches follow the wheelbase
     pivot.position.set(0,v.h+S.z,0); pivot.rotation.set(-S.ph,0,S.th); bodyG.position.set(0,-v.h,0); cgMesh.position.set(0,v.h,0);
     for(let i=0;i<4;i++){
       const c=corners[i], side=i%2===0?-1:1, g=P.ax[i<2?0:1].g, x0=model.xs[i], p=FR.p[i];
       const L=V(x0,p.LBJ,side), U=V(x0,p.UBJ,side), Wc=V(x0,p.WC,side), TO=V(x0,p.TRO,side);
-      place(c.lf,V(x0,[g.xlf,g.yli,g.zli],side),L); place(c.lr,V(x0,[g.xlr,g.yli,g.zli],side),L);
+      const rearAx=i>=2;      // rear lower arm: front leg to the ball joint, rear leg to the second outer pivot (TO); no tie rod
+      place(c.lf,V(x0,[g.xlf,g.yli,g.zli],side),L); place(c.lr,V(x0,[g.xlr,g.yli,g.zli],side),rearAx?TO:L); c.tie.visible=!rearAx;
       place(c.uf,V(x0,[g.xuf,g.yui,g.zui],side),U); place(c.ur,V(x0,[g.xur,g.yui,g.zui],side),U);
       place(c.up,L,U); place(c.sp,V(x0,p.S,side),Wc);
-      place(c.sarm,V(x0,vadd(p.LBJ,vscale(p.ax,vdot(vsub(p.TRO,p.LBJ),p.ax))),side),TO); place(c.tie,TO,V(x0,p.TRI,side));
+      place(c.sarm,V(x0,vadd(p.LBJ,vscale(p.ax,vdot(vsub(p.TRO,p.LBJ),p.ax))),side),TO); if(!rearAx) place(c.tie,TO,V(x0,p.TRI,side));
       const Dm=V(x0,p.dm,side), Tm=V(x0,[0,g.ydm,g.zdm],side); place(c.dmp,Dm,Tm); helix(c.helix,Dm,Tm);
       c.wheel.position.copy(Wc); nv.set(side*p.av[0],side*p.av[2],p.av[1]).normalize(); c.wheel.quaternion.setFromUnitVectors(ZA,nv);
       c.tire.scale.set(g.R/0.3,g.tw/0.2,g.R/0.3); c.rim.scale.set(g.rimD/0.4,g.tw/0.2,g.rimD/0.4);      // tire: loaded radius and section width; rim: its diameter
@@ -427,7 +447,7 @@ function drawRear(){
     if(ic){dir=[side*ic[0]-C[0],ic[1]-C[1]]; if(Math.hypot(ic[0],ic[1])<30){const I=PX(side*ic[0],ic[1]); seg(Q(p.LBJ),I,COL.ghost,1,[4,4]); seg(Q(p.UBJ),I,COL.ghost,1,[4,4]);}}
     else dir=[side*(p.k.uy-g.yui),p.k.uz-g.zui];
     con[side]={C,dir}; tri[side]=Q(p.TRI);
-    seg(Q(p.dm),PX(side*g.ydm,g.zdm),COL.ice,5); seg(Q(p.TRO),tri[side],COL.ice,2);
+    seg(Q(p.dm),PX(side*g.ydm,g.zdm),COL.ice,5); if(ax===0) seg(Q(p.TRO),tri[side],COL.ice,2);
     seg(Q(p.LBJ),Q(p.UBJ),COL.dim,4); seg(Q(p.S),Q(p.WC),COL.dim,2);
     seg(PX(side*g.yli,g.zli),Q(p.LBJ),COL.armL,3); seg(PX(side*g.yui,g.zui),Q(p.UBJ),COL.armU,3);
     x.fillStyle=COL.vinyl; for(const q of [PX(side*g.yli,g.zli),PX(side*g.yui,g.zui),PX(side*g.ydm,g.zdm)]){x.fillRect(q[0]-3,q[1]-3,6,6);}
