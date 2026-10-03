@@ -49,7 +49,7 @@ function stockCar(){
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
        for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000});
        Object.assign(P.ax[0].g,{cam0:-3.5,caster:3,toe:-0.5,zti:0.1802,sp:0.030});
-       Object.assign(P.ax[1].g,{cam0:-1.5,toe:0,sp:0.013});
+       Object.assign(P.ax[1].g,{cam0:-1.5,toe:0,sp:0.012});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
        P.dh=[-0.026,-0.026,-0.038,-0.038]; return P; }
