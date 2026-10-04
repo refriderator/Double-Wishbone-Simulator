@@ -87,7 +87,8 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 ## Grip and handling
 
 - **Telemetry** shows each tire's slip angle and the share of its grip in use.
-- **Setup sheet** shows the cornering limit of the front and rear tires, which end runs out first, and the understeer gradient.
+- **Setup sheet** runs from everyday numbers to detail: alignment at ride height, wheels and ride height, springs and dampers, then roll, pitch and grip (the cornering limit of the front and rear tires, which end runs out first, and the understeer gradient), steering, and geometry detail.
+- The **space bar** runs and pauses the simulation from anywhere on the page.
 - **Curve → Grip in use** plots both axles against lateral g. The line that reaches 100 % first sets the limit.
 - **Steering → Drive** runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. It is a mode, not part of a setup: it is off every time the page opens or a car is loaded, and switching it does not change which car button is lit. **Step steer** (only while it is on) centers the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
 - While Drive is on, the floor grid in the 3D view moves under the car: it streams back at the car's speed, turns as the car yaws and drifts sideways when the car slides. `GND` in `ui.js` holds the car's heading and position.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Double Wishbone Simulator</title>
-<link rel="stylesheet" href="style.css?v=95f137e8">
+<link rel="stylesheet" href="style.css?v=dc6198d0">
 </head>
 <body>
 <div class="app">
@@ -18,7 +18,7 @@
       </div>
     </div>
     <div class="simbar">
-      <button class="btn primary" id="play">Pause</button>
+      <button class="btn primary" id="play" title="Run or pause (space bar)">Pause</button>
       <button class="btn" id="reset">Settle</button>
       <div class="seg rd" id="preset" role="group" aria-label="Car"><button aria-pressed="false" data-p="stock">Stock</button><button aria-pressed="false" data-p="coen">Coen's</button><button aria-pressed="false" data-p="session" title="Your edits, kept in this browser">Session</button></div>
     </div>
@@ -177,7 +177,7 @@
     </section>
     <section class="card wide">
       <h2>Data / MX-5 NB8C</h2>
-      <p class="hint">Two cars, both a Mazda MX-5 NB 1.8 (NB8C): the Stock button loads the car as Mazda built it, the Coen's button loads the same car as Coen has it, and the Session button loads whatever you last edited. Each number is marked by where it comes from. Fitted and estimated values are not Mazda data.</p>
+      <p class="hint">Two Mazda MX-5 NB 1.8 (NB8C) setups: Stock button loads the car as Mazda built it, Coen's button loads my setup, and the Session button loads whatever you last edited. Each number is marked by where it comes from. Fitted and estimated values are not Mazda data.</p>
       <div class="tw"><table class="wrap src">
         <tr><th>Coen's car, on top of stock</th><th>Value</th><th>Basis</th></tr>
         <tr><td>Springs, front / rear</td><td>8 / 6 kgf/mm = 78.5 / 58.8 N/mm</td><td class="u k">Set</td></tr>
@@ -286,6 +286,6 @@
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=5b8c0312"></script>
 <script src="core.js?v=7219f528"></script>
-<script src="ui.js?v=0cd4b159"></script>
+<script src="ui.js?v=8e497509"></script>
 </body>
 </html>

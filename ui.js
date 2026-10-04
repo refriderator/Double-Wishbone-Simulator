@@ -137,6 +137,10 @@ $("copySpr").onclick=()=>applyEdit(()=>{P.ax[1-editAxle].s=JSON.parse(JSON.strin
 $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; speed=+b.dataset.v;
   $("speed").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); $("oSpeed").textContent=b.textContent;});
 $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"Run";};
+/* Space bar runs and pauses from anywhere on the page, whatever has the focus (so it never presses a focused button or ticks a box). */
+{const sp=e=>(e.code==="Space"||e.key===" ")&&!e.ctrlKey&&!e.metaKey&&!e.altKey;
+ document.addEventListener("keydown",e=>{if(!sp(e)) return; e.preventDefault(); if(!e.repeat) $("play").click();},true);
+ document.addEventListener("keyup",e=>{if(sp(e)) e.preventDefault();},true);}
 function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear(); GND.psi=GND.x=GND.y=0;}
 $("reset").onclick=()=>resettle(4);
 function loadPreset(name,q0){
@@ -227,36 +231,52 @@ function refreshStatic(){
   const row=(lab,f,u)=>`<tr><td>${lab}</td><td>${f(A[0])}</td><td>${f(A[1])}</td><td class="u">${u}</td></tr>`;
   const one=(lab,val,u)=>`<tr><td>${lab}</td><td colspan="2">${val}</td><td class="u">${u}</td></tr>`;
   const fin=(v,d)=>Number.isFinite(v)?num(v,d):"unstable";
+  const grp=t=>`<tr class="grp"><th colspan="4">${t}</th></tr>`;
+  const inch=v=>{const t=(v/0.0254).toFixed(1); return t.endsWith(".0")?t.slice(0,-2):t;};
+  const G_=a=>P.ax[A.indexOf(a)].g, S_=a=>P.ax[A.indexOf(a)].s, ht=a=>{const k=A.indexOf(a)*2; return (P.dh[k]+P.dh[k+1])/2;};
+  /* everyday setup numbers first (alignment, wheels, heights, springs), then how the car behaves, then the geometry detail */
   $("sheet").innerHTML=`<tr><th></th><th>Front</th><th>Rear</th><th></th></tr>`+
-    row("Motion ratio",a=>a.MR.toFixed(3),"")+
+    grp("Alignment at ride height")+
+    row("Camber",a=>num(a.cam,2),"°")+
+    row("Toe-in per wheel",a=>num(a.toe,2),"°")+
+    row("Caster",a=>num(a.caster,2),"°")+
+    grp("Wheels and ride height")+
+    row("Wheel",a=>inch(G_(a).rimD)+"×"+inch(G_(a).rimW)+" ET"+num(mm(G_(a).et),0),"in, mm")+
+    row("Tire",a=>(G_(a).tw*1000).toFixed(0)+"/"+(G_(a).ar*100).toFixed(0)+"R"+inch(G_(a).rimD),"")+
+    row("Wheel spacer",a=>mm(G_(a).sp).toFixed(0),"mm")+
+    row("Track",a=>mm(a.t).toFixed(0),"mm")+
+    row("Ride height from design height",a=>num(mm(ht(a)),0),"mm")+
+    grp("Springs and dampers")+
+    row("Spring rate",a=>(S_(a).k/1000).toFixed(1),"N/mm")+
+    row("Anti-roll bar rate at wheel",a=>(S_(a).arb/1000).toFixed(1),"N/mm")+
     row("Wheel rate",a=>(a.kw/1000).toFixed(1),"N/mm")+
     row("Ride frequency",a=>a.fr.toFixed(2),"Hz")+
     row("Damping ratio, bump LS",a=>a.zb.toFixed(2),"ζ")+
     row("Damping ratio, rebound LS",a=>a.zr.toFixed(2),"ζ")+
-    row("Roll center height",a=>num(mm(a.rch),0),"mm")+
-    row("Camber",a=>num(a.cam,2),"°")+
-    row("Camber gain in bump",a=>num(a.camGain,3),"°/10 mm")+
-    row("Toe-in per wheel",a=>num(a.toe,2),"°")+
-    row("Bump steer (toe-in)",a=>num(a.bumpSteer,3),"°/10 mm")+
-    row("Kingpin inclination",a=>num(a.kpi,2),"°")+
-    row("Caster",a=>num(a.caster,2),"°")+
-    row("Scrub radius",a=>num(mm(a.scrub),1),"mm")+
-    row("Mechanical trail",a=>num(mm(a.trail),1),"mm")+
-    row("Track",a=>mm(a.t).toFixed(0),"mm")+
+    grp("Roll, pitch and grip")+
     one("Roll gradient",fin(r.rollGrad,2),"°/g")+
-    one("Roll frequency",Number.isFinite(r.rollFreq)?r.rollFreq.toFixed(2):"unstable","Hz")+
     one("Pitch gradient",fin(r.pitchGrad,2),"°/g")+
     one("Front lateral load transfer",(r.lltd*100).toFixed(1),"%")+
-    one("CG above roll axis",mm(r.hp).toFixed(0),"mm")+
     `<tr><td>Cornering limit, front / rear tires</td><td colspan="2" id="balLim">…</td><td class="u">g</td></tr>`+
     `<tr><td>Runs out of grip first</td><td colspan="2" id="balEnd">…</td><td class="u"></td></tr>`+
     `<tr><td>Understeer gradient, 0.2 to 0.4 g</td><td colspan="2" id="balK">…</td><td class="u">°/g</td></tr>`+
-    one("Steering ratio on center",r.ratio.toFixed(1),": 1")+
+    one("Roll frequency",Number.isFinite(r.rollFreq)?r.rollFreq.toFixed(2):"unstable","Hz")+
+    grp("Steering")+
     one("Steering wheel, lock to lock",(2*r.swMax/360).toFixed(2),"turns")+
     one("Full lock, inner / outer wheel",r.lock.di.toFixed(1)+" / "+r.lock.dout.toFixed(1),"°")+
-    one("Ackermann at full lock",Number.isFinite(r.lock.ack)?r.lock.ack.toFixed(0):"–","%")+
     one("Turn radius at full lock, at the CG",Number.isFinite(r.lock.R)?r.lock.R.toFixed(2):"–","m")+
-    one("Turn radius at full lock, outer front tire",Number.isFinite(r.lock.Ro)?r.lock.Ro.toFixed(2):"–","m");
+    one("Turn radius at full lock, outer front tire",Number.isFinite(r.lock.Ro)?r.lock.Ro.toFixed(2):"–","m")+
+    one("Steering ratio on center",r.ratio.toFixed(1),": 1")+
+    one("Ackermann at full lock",Number.isFinite(r.lock.ack)?r.lock.ack.toFixed(0):"–","%")+
+    grp("Geometry detail")+
+    row("Roll center height",a=>num(mm(a.rch),0),"mm")+
+    one("CG above roll axis",mm(r.hp).toFixed(0),"mm")+
+    row("Camber gain in bump",a=>num(a.camGain,3),"°/10 mm")+
+    row("Bump steer (toe-in)",a=>num(a.bumpSteer,3),"°/10 mm")+
+    row("Motion ratio",a=>a.MR.toFixed(3),"")+
+    row("Kingpin inclination",a=>num(a.kpi,2),"°")+
+    row("Scrub radius",a=>num(mm(a.scrub),1),"mm")+
+    row("Mechanical trail",a=>num(mm(a.trail),1),"mm");
   $("zeta").innerHTML=`<span>ζ bump LS, front <b>${A[0].zb.toFixed(2)}</b></span><span>rear <b>${A[1].zb.toFixed(2)}</b></span><span>ζ rebound LS, front <b>${A[0].zr.toFixed(2)}</b></span><span>rear <b>${A[1].zr.toFixed(2)}</b></span><span style="grid-column:1/-1">ζ = c·MR² ⁄ 2√(wheel rate · corner mass)</span>`;
   let ph=`<tr><th>Corner</th><th>Perch vs design</th><th>Spring force at design length</th></tr>`;
   for(let i=0;i<4;i++){
