@@ -51,7 +51,7 @@ Both are a Mazda MX-5 NB 1.8 (NB8C). The **Stock** button loads the car as Mazda
 | Fitted so the model reproduces the numbers above | Front: pivots 646 / 736 mm apart and 171.8 / 360.6 mm above ground, upright 217.2 mm (the measured heights leaned to Mazda's 11°39′ kingpin), spindle and hub-face positions, tie rod outer joint 103 mm ahead of the ball joint axis (full lock 38° / 33°; a rough 135 mm measurement gave 27° / 25° and was not used), rack height 200.2 mm (zero bump steer), coilover mount. Rear: upright 240 mm (a rough 230 mm estimate could not give the roll centre with enough droop reach), lower pivot 186.4 mm above ground, hub face 137.9 mm, damper mount 0.874 along the arm, fitted to the 120 mm roll centre, 1440 mm track and 0.721 motion ratio |
 | Estimates | Unsprung mass 32 kg per corner, front weight share 52 %, inertias, tire rate 185 N/mm, anti-roll bar rates 8.0 / 1.4 N/mm, grip limit 0.9 g |
 
-Checks that were not used in the fit: with the lower pivot 5.8 mm higher (the NA position) the model's front roll centre is 62.9 mm (Mazda's NA figure: 61 mm), and with the NA's 4°26′ caster the trail is 11.6 mm (Mazda: 11.6 mm). The turning radius at the outer front tire is 4.49 m (Mazda: 4.6 m).
+Checks that were not used in the fit: with the lower pivot 5.8 mm higher (the NA position) the model's front roll centre is 62.5 mm (Mazda's NA figure: 61 mm), and with the NA's 4°26′ caster the trail is 11.6 mm (Mazda: 11.6 mm). The turning radius at the outer front tire is 4.49 m (Mazda: 4.6 m).
 
 ### The rear arms
 
