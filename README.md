@@ -11,7 +11,7 @@ Open `index.html` in a browser. Everything it needs is in this folder, so it wor
 | `core.js` | Physics: linkage geometry, lookup tables, equations of motion, setup-sheet formulas |
 | `ui.js` | Input forms, 3D view, charts, main loop |
 | `*.woff2` | Michroma, Chakra Petch and VT323 from the OL! design system |
-| `ol-racing-factory-white.png`, `body-model.js` | The OL! Racing Factory logo, and the car body shown in the 3D view |
+| `ol-racing-factory-white.png`, `body-model.js` | The OL! Racing Factory logo, and the car bodies and wheel rims shown in the 3D view |
 | `three.min.js`, `OrbitControls.js` | three.js r128 and its OrbitControls (library code, leave as is) |
 
 ## `core.js`
@@ -59,12 +59,24 @@ Checks that were not used in the fit: with the lower pivot 5.8 mm higher (the NA
 
 The Miata has no rear toe link. Its rear lower arm holds the upright at two outer pivots. The model draws the arm as two legs: the front leg from the front inner pivot to the ball joint, and the rear leg from the rear inner pivot to a second outer point `ee` behind the ball joint. The rear leg holds the toe. Both legs swing about the same axis, so the model's rear has no toe change by construction. A real rear end has some; the model does not. The "pivots fore-aft" fields only change the drawing, except `ee`, which also places the second outer point.
 
-## The car body in the 3D view
+## The car bodies and wheels in the 3D view
 
-- `body-model.js` holds the body mesh. It was converted from `mazda_roadster_lod_d.kn5` in the Assetto Corsa mod "Mazda Roadster (NB8C) Garage Vary" (author listed as Sam S.). The wheels were left out because the simulator draws its own.
-- The BOX / BODY switch on the display chooses between the body and the plain chassis box. The choice is remembered in the browser.
-- The body's look (see-through fill, lit edges) is set by the `car` materials in `init3D` in `ui.js`. Its color comes from `--arm-upper` in `style.css`.
-- The model is someone else's work. Check the mod's terms before sharing a copy of this page that includes it. Without `body-model.js` the page still works and shows the box.
+- Each setup carries a `look` (0 or 1) that picks the body and the rim the 3D view draws. Stock is 0 and Coen's is 1. An edited (Session) or exported setup keeps the look of the car it started from; a setup saved before the looks existed gets 0. `LOOKS` in `ui.js` maps each look to a body and a rim in `body-model.js`. The look has no effect on the numbers.
+- `body-model.js` holds two bodies and two rims, reduced from Assetto Corsa car models:
+
+| Mesh | Drawn for | Taken from |
+|---|---|---|
+| Body `rs` | Stock | `mazda_roadster.kn5` in the mod "Mazda Roadster 1.8 RS (NB)" by Sam S.: the exterior with the soft top up, reduced to 4,110 triangles |
+| Body `gv` | Coen's | `mazda_roadster_lod_d.kn5` in the mod "Mazda Roadster (NB8C) Garage Vary" (author listed as Sam S.) |
+| Rim `rs`, five spokes | Stock | The same Roadster RS model |
+| Rim `gl`, six spokes | Coen's | `rim.kn5` in the mod "ADC Mazda MX-5 NB Stock" by Aussie Drift Co |
+
+- Credits as the mods list them. Roadster RS: base model Microsoft Studios, 1.8 RS parts DeathRace / Tousan / HUM3D, Assetto Corsa adaptation Sam S. / RKGaming. ADC Mazda MX-5 NB Stock: model Turn 10 / Forza, conversion BCV and JTSDG.
+- These models are other people's work. Sam S. allows edits of the Roadster RS mod and asks to be credited; the ADC mod states no terms. Check before sharing a copy of this page that includes them. Without `body-model.js` the page still works: it shows the box and plain rim discs.
+- The BOX / BODY switch on the display chooses between the body and the plain chassis box. The choice is remembered in the browser. The wheels are drawn either way.
+- A body is a see-through shell with lit edges (the `car` materials in `init3D` in `ui.js`; the color comes from `--arm-upper` in `style.css`). It rides on the sprung mass. Its heights are measured from the hub line of the stock car at stock height (`HUB0` in `ui.js`), plus the body's own `lift` in `body-model.js`: 0 for the Roadster RS and 0.038 m for the Garage Vary shell, which is a lowered car. The lift changes the drawing only.
+- The wheels are drawn from each axle's numbers. The tire is a section turned about the axle: bead on the rim, widest (the section width) at half height, tread at the loaded radius, so it touches the ground. The rim mesh is scaled so its lip matches the rim diameter and its width matches the rim width, and its center is set so the mounting face sits at the wheel offset. The center keeps the depth it has in the model unless the outer lip is nearer than that, so how deep the face sits is a rule, not a measured wheel.
+- While Drive is on, the wheels turn with the distance covered. The turn is limited to 80 mm of travel per frame (`ROLL_MAX` in `ui.js`) so that at speed the spokes turn steadily forward instead of seeming to stand still or run backwards.
 
 ## Tabs
 
@@ -83,7 +95,7 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 - **Camber comes from the arms.** The wheel is fixed on the knuckle: camber = knuckle angle (`inc`, kingpin inclination + camber, 11.71° front and 8.05° rear on the NB) − the kingpin inclination the arms give + the adjuster (`cadj`, a slider from +1° to −3°). Shortening an upper arm adds negative camber and the same amount of kingpin inclination, as on the car. A setup saved before version 41 had a free camber field; it is converted to the adjuster on load, limited to the adjuster's range.
 - **A tire radius change moves the car, not the suspension.** Editing the loaded radius (or "Estimate from size") shifts that axle's height targets by the change and moves the bump and droop limits the other way, so the stops stay with the dampers.
 - The hub is fixed on the upright. Wheel offset and a spacer slide the wheel along the spindle from there, as on the car, so a smaller offset or a spacer widens the track and adds scrub radius without moving the suspension. `ET_FIT` in `core.js` (40 mm) is the offset the hub position was fitted with.
-- "Estimate from size" fills in the tire's vertical rate (Rhyne's empirical formula) and loaded radius (free radius − static load ÷ rate). Both stay editable. Rim width only appears in the setup sheet's Wheel row; it does not enter the physics or the drawing.
+- "Estimate from size" fills in the tire's vertical rate (Rhyne's empirical formula) and loaded radius (free radius − static load ÷ rate). Both stay editable. Rim width is used for the drawing and the setup sheet's Wheel row only; it does not enter the physics.
 - **Tire grip**: five numbers per axle (peak grip, grip lost with load, cornering stiffness, camber thrust, best camber into the turn). "Kind of tire" fills them with typical values for a street, sporty street or semi-slick tire. Tire makers do not publish these, so they are not measured data: trust the direction of a change more than its size.
 
 ## Grip and handling
@@ -99,7 +111,6 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 
 ## Good to know
 
-- The car shell in the 3D view comes from a lowered Assetto Corsa car. `BODY_LIFT` in `ui.js` (0.038 m) raises it on the wheels so it sits right at stock height. It changes the drawing only, not the numbers.
 - The page saves the setup in the browser. After editing `stockCar()` or `coensCar()`, click Stock or Coen's on the page to see the change.
 - If the page stops working after an edit, open the browser console (F12, then Console) to see the error and its line number.
 - The look follows the OL! design system: night only, a closed palette (black, grays, midnight blue, ice), square corners. Change colors through the tokens at the top of `style.css`, not in the rules below them.

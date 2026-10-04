@@ -6,9 +6,12 @@ function merge(def,src){
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
   return (typeof src==="number"&&Number.isFinite(src))?src:def;
 }
+/* What the 3D view draws for a setup's look (0: the stock car, 1: Coen's): a body shell and a rim, both from body-model.js. The shells' heights
+   are measured from the hub line of the stock car at stock height, which is HUB0 above the ground in body coordinates. */
+const LOOKS=[{body:"rs",rim:"rs"},{body:"gv",rim:"gl"}], HUB0=stockCar().ax[0].g.R;
 /* A stored or imported setup laid over the defaults. One saved before version 41 has a free camber field; fromOldCamber turns it into the adjuster. */
 let camNote="";
-function fromSaved(j){const p=merge(defaults(),j), cut=fromOldCamber(p,j); camNote=cut.length?" Its "+cut.join(" and ")+" camber was more than the adjuster allows and is held at the adjuster's limit; shorten the upper arm for more.":""; return p;}
+function fromSaved(j){const p=merge(defaults(),j), cut=fromOldCamber(p,j); if(!LOOKS[p.look]) p.look=0; camNote=cut.length?" Its "+cut.join(" and ")+" camber was more than the adjuster allows and is held at the adjuster's limit; shorten the upper arm for more.":""; return p;}
 function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; const p=fromSaved(JSON.parse(t)); makeModel(p); return p;}catch(e){return null;}}
 const CAR={stock:["Stock","stock"],coen:["Coen's","coens"],session:["Session","session"]};      // [name shown, name in file names]
 const stamp=(d,time)=>{const p2=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+(time?" "+p2(d.getHours())+":"+p2(d.getMinutes()):"");};
@@ -21,9 +24,10 @@ let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
 /* Where the car is on the ground while it is driven (Drive): heading psi (+ = turned right) and position, wrapped to the floor grid's
-   coarsest spacing. The 3D view keeps the car still and moves the floor the opposite way. d is the distance covered in the last drawn frame. */
-const GND={psi:0,x:0,y:0,d:0}, GWRAP=4;
-const BODY_LIFT=0.038;      // the Assetto Corsa shell is a lowered car: raise it 38 mm on the wheels so it sits right at stock height (drawing only, no effect on the numbers)
+   coarsest spacing. The 3D view keeps the car still and moves the floor the opposite way. d is the distance covered in the last drawn frame.
+   roll is how far the wheels have rolled. It gains at most ROLL_MAX a frame, so at speed the spokes turn steadily forward instead of seeming
+   to stand still or run backwards. */
+const GND={psi:0,x:0,y:0,d:0,roll:0}, GWRAP=4, ROLL_MAX=0.08;
 let bodyOn=false; try{bodyOn=localStorage.getItem("dws.body")==="car";}catch(e){}      // 3D view: the plain chassis box (the start-up view), or the car body
 /* Colors and fonts come from the OL! tokens in style.css. The palette is closed (black, grays, midnight, ice),
    so parts and data series differ by lightness, line weight and dash, never by hue. */
@@ -182,7 +186,7 @@ $("viewAxle").addEventListener("click",e=>{const b=e.target.closest("button"); i
   $("viewAxle").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); curveStatic();});
 
 {const sel=$("bodySel"), sync=()=>sel.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",(x.dataset.b==="car")===bodyOn));
- if(!window.BODY_MODEL){bodyOn=false; sel.hidden=true;}
+ if(!window.CAR_MODELS){bodyOn=false; sel.hidden=true;}
  sel.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; bodyOn=b.dataset.b==="car"; try{localStorage.setItem("dws.body",bodyOn?"car":"box");}catch(e2){} sync();});
  sync();}
 
@@ -354,7 +358,7 @@ function init3D(){
   const sun=new THREE.DirectionalLight(0xffffff,0.8); sun.position.set(3,6,4); scene.add(sun);
   const std=o=>new THREE.MeshStandardMaterial(o);
   const M={lower:std({metalness:0.1,roughness:0.6}),upper:std({metalness:0.1,roughness:0.6}),upright:std({metalness:0.1,roughness:0.6}),coil:std({metalness:0.1,roughness:0.6}),
-    tie:std({metalness:0.1,roughness:0.6}),tire:std({roughness:0.9}),rim:std({metalness:0.2,roughness:0.5}),body:std({transparent:true,opacity:0.30,depthWrite:false}),cg:std({}),bumpm:std({roughness:0.8}),
+    tie:std({metalness:0.1,roughness:0.6}),tire:std({roughness:0.9,flatShading:true}),rim:std({metalness:0.2,roughness:0.5,flatShading:true,side:THREE.DoubleSide}),body:std({transparent:true,opacity:0.30,depthWrite:false}),cg:std({}),bumpm:std({roughness:0.8}),
     car:std({transparent:true,opacity:0.09,depthWrite:false,flatShading:true,side:THREE.DoubleSide,metalness:0,roughness:0.8})};
   const LM={edge:new THREE.LineBasicMaterial({transparent:true,opacity:0.9}),coil:new THREE.LineBasicMaterial({}),axis:new THREE.LineDashedMaterial({dashSize:0.06,gapSize:0.04}),car:new THREE.LineBasicMaterial({transparent:true,opacity:0.55})};
   let grid=null, gridLv=[], chassis=null, chassisEdge=null, chKey="";
@@ -372,22 +376,52 @@ function init3D(){
   }
   const cgMesh=new THREE.Mesh(new THREE.SphereGeometry(0.035,16,12),M.cg); bodyG.add(cgMesh);
   const axisGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]), axisLine=new THREE.Line(axisGeo,LM.axis); bodyG.add(axisLine);
-  /* Optional car body from body-model.js: a see-through shell with lit edges that rides on the sprung mass.
-     Its frame is x forward, y up, z right, origin at mid-wheelbase at wheel-center height. */
-  let car=null;
-  if(window.BODY_MODEL){
-    const bm=window.BODY_MODEL, bytes=t=>Uint8Array.from(atob(t),ch=>ch.charCodeAt(0)), q=new Uint16Array(bytes(bm.pos).buffer), pos=new Float32Array(q.length);
-    for(let i=0;i<q.length;i++) pos[i]=bm.min[i%3]+q[i]/65535*bm.size[i%3];
-    const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.BufferAttribute(pos,3)); geo.setIndex(new THREE.BufferAttribute(new Uint16Array(bytes(bm.idx).buffer),1));
-    car=new THREE.Group(); car.add(new THREE.Mesh(geo,M.car)); car.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,24),LM.car)); bodyG.add(car);
+  /* Meshes from body-model.js (optional: without the file the view shows the box and plain rim discs). */
+  const MD=window.CAR_MODELS||null, bytes=t=>Uint8Array.from(atob(t),ch=>ch.charCodeAt(0));
+  const unpack=m=>{const q=new Uint16Array(bytes(m.pos).buffer), pos=new Float32Array(q.length);      // 16-bit coordinates back to meters
+    for(let i=0;i<q.length;i++) pos[i]=m.min[i%3]+q[i]/65535*m.size[i%3];
+    return {pos,idx:new Uint16Array(bytes(m.idx).buffer)};};
+  const meshGeo=(pos,idx)=>{const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.BufferAttribute(pos,3)); geo.setIndex(new THREE.BufferAttribute(idx,1)); return geo;};
+  /* Car body: a see-through shell with lit edges that rides on the sprung mass. Each one is built the first time its car is shown. */
+  const shells={};
+  function shell(name){
+    if(!shells[name]){
+      const m=MD.body[name], u=unpack(m), geo=meshGeo(u.pos,u.idx), s=new THREE.Group();
+      s.add(new THREE.Mesh(geo,M.car)); s.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,m.edge),LM.car)); bodyG.add(s); shells[name]=s;
+    }
+    return shells[name];
+  }
+  /* Wheels, built per axle from its numbers and rebuilt when one of them changes. The wheel's frame has z along the spin axis.
+     Tire: a section turned about the axis. It starts on the bead seat, is widest (the section width) at half height and reaches the loaded
+     radius at the tread, so it touches the ground. Rim: the look's rim mesh with its lip scaled to the rim diameter and its width to the rim
+     width. Its center is then set along the axis so the mounting face sits at the wheel offset, and the spokes lean to follow; the center
+     keeps its own depth unless the outer lip is nearer than that, so a high offset flattens the face and a low one leaves a dish. */
+  const FLANGE=0.0175, LIPW=0.0127;      // a rim's lip stands this far above the bead seat and this far outside the nominal width, each side (m)
+  const rims={}, wheels=[{key:""},{key:""}];
+  function tireGeo(g){
+    const rb=Math.min(g.rimD/2,g.R-0.01), hb=g.rimW/2, H=g.R-rb, h=g.tw/2;      // bead radius (held under the tread if the rim entered is larger than the tire), bead and section half widths, section height
+    const half=[[hb,rb],[hb+(h-hb)*0.75,rb+0.25*H],[h,rb+0.5*H],[0.985*h,rb+0.72*H],[0.9*h,rb+0.9*H],[0.78*h,rb+0.975*H],[0.4*h,g.R-0.002],[0,g.R]];      // [along the axis, radius]: bead to crown
+    const pts=half.map(([a,r])=>[-a,r]).concat(half.slice(0,-1).reverse()).map(([a,r])=>new THREE.Vector2(r,a));      // inboard bead, crown, outboard bead: in this order the faces point outward
+    return new THREE.LatheGeometry(pts,48).rotateX(Math.PI/2);
+  }
+  function rimGeo(name,g){
+    const lip=g.rimD/2+FLANGE, half=g.rimW/2+LIPW;
+    if(!MD) return new THREE.CylinderGeometry(lip,lip,2*half,24).rotateX(Math.PI/2);
+    const m=MD.rim[name], b=rims[name]||(rims[name]=unpack(m)), pos=new Float32Array(b.pos.length), sr=lip/m.lip, sa=half/m.half;
+    const k=Math.max(0.25*sa,Math.min(sa,(half-0.002-g.et)/(m.face-m.pad)));      // depth scale of the center: its own, or less to stay inside the lip
+    for(let i=0;i<pos.length;i+=3){
+      const x=b.pos[i], y=b.pos[i+1], a=b.pos[i+2], t=Math.min(1,Math.max(0,(m.barrel-Math.hypot(x,y))/(m.barrel-m.hub)));      // 1 at the hub, 0 at the barrel
+      pos[i]=x*sr; pos[i+1]=y*sr; pos[i+2]=a*sa+t*t*(3-2*t)*(g.et+(a-m.pad)*k-a*sa);
+    }
+    return meshGeo(pos,b.idx);
   }
   const corners=[];
   for(let i=0;i<4;i++){
     const c={lf:rod(M.lower,0.012),lr:rod(M.lower,0.012),uf:rod(M.upper,0.011),ur:rod(M.upper,0.011),up:rod(M.upright,0.018),sp:rod(M.upright,0.015),
              sarm:rod(M.tie,0.011),tie:rod(M.tie,0.009),dmp:rod(M.coil,0.014)};
-    c.wheel=new THREE.Group(); bodyG.add(c.wheel);
-    c.tire=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.2,40),M.tire); c.tire.rotation.x=Math.PI/2; c.wheel.add(c.tire);
-    c.rim=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.205,24),M.rim); c.rim.rotation.x=Math.PI/2; c.wheel.add(c.rim);
+    c.wheel=new THREE.Group(); bodyG.add(c.wheel); c.roll=new THREE.Group(); c.wheel.add(c.roll);      // wheel: where the spin axis points; roll: the turn about it
+    c.tire=new THREE.Mesh(undefined,M.tire); c.roll.add(c.tire); c.rim=new THREE.Mesh(undefined,M.rim); c.roll.add(c.rim);
+    if(i%2===0) c.rim.rotation.y=Math.PI;      // the wheel group's z axis points to the car's right, so a left wheel's rim is turned to face outboard
     const hg=new THREE.BufferGeometry(); hg.setAttribute("position",new THREE.BufferAttribute(new Float32Array(3*160),3));
     c.helix=new THREE.Line(hg,LM.coil); c.helix.frustumCulled=false; bodyG.add(c.helix);
     c.arrow=new THREE.ArrowHelper(UP,new THREE.Vector3(),0.3,0x00ff00,0.06,0.04);
@@ -399,7 +433,7 @@ function init3D(){
   swG.add(new THREE.Mesh(new THREE.TorusGeometry(0.17,0.012,8,36),M.tie));
   const spk=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.022,0.012),M.tie); swG.add(spk);
   const spk2=new THREE.Mesh(new THREE.BoxGeometry(0.022,0.17,0.012),M.tie); spk2.position.y=-0.085; swG.add(spk2);
-  const hub=new THREE.Vector3(), pin=new THREE.Vector3(), axV=new THREE.Vector3(), q1=new THREE.Quaternion(), q2=new THREE.Quaternion();
+  const hub=new THREE.Vector3(), pin=new THREE.Vector3(), axV=new THREE.Vector3(), padV=new THREE.Vector3(), q1=new THREE.Quaternion(), q2=new THREE.Quaternion();
   const hv=new THREE.Vector3(), e1=new THREE.Vector3(), e2=new THREE.Vector3(), hx=new THREE.Vector3();
   function helix(line,a,b){
     const pos=line.geometry.attributes.position.array, n=pos.length/3;
@@ -441,8 +475,16 @@ function init3D(){
   function update(){
     const v=P.veh, key=[model.a,model.b,P.ax[0].g.yli,P.ax[1].g.yli].join();
     if(key!==chKey){buildChassis(); chKey=key;}
-    const showCar=!!car&&bodyOn; chassis.visible=chassisEdge.visible=!showCar;
-    if(car){car.visible=showCar; car.position.set((model.a-model.b)/2,P.ax[0].g.R+BODY_LIFT,0); car.scale.setScalar(v.L/window.BODY_MODEL.wheelbase);}   // wheel arches follow the wheelbase
+    const lk=LOOKS[P.look], showCar=!!MD&&bodyOn; chassis.visible=chassisEdge.visible=!showCar;
+    for(const k in shells) shells[k].visible=false;
+    if(showCar){const bm=MD.body[lk.body], s=shell(lk.body); s.visible=true; s.position.set((model.a-model.b)/2,HUB0+bm.lift,0); s.scale.setScalar(v.L/bm.wheelbase);}   // wheel arches follow the wheelbase
+    for(let ax=0;ax<2;ax++){
+      const g=P.ax[ax].g, w=wheels[ax], wk=[lk.rim,g.rimD,g.rimW,g.et,g.R,g.tw].join();
+      if(wk===w.key) continue;
+      if(w.tire){w.tire.dispose(); w.rim.dispose();}
+      w.key=wk; w.tire=tireGeo(g); w.rim=rimGeo(lk.rim,g);
+      for(const c of corners.slice(2*ax,2*ax+2)){c.tire.geometry=w.tire; c.rim.geometry=w.rim;}
+    }
     pivot.position.set(0,v.h+S.z,0); pivot.rotation.set(-S.ph,0,S.th); bodyG.position.set(0,-v.h,0); cgMesh.position.set(0,v.h,0);
     for(let i=0;i<4;i++){
       const c=corners[i], side=i%2===0?-1:1, g=P.ax[i<2?0:1].g, x0=model.xs[i], p=FR.p[i];
@@ -450,11 +492,10 @@ function init3D(){
       const rearAx=i>=2;      // rear lower arm: front leg to the ball joint, rear leg to the second outer pivot (TO); no tie rod
       place(c.lf,V(x0,[g.xlf,g.yli,g.zli],side),L); place(c.lr,V(x0,[g.xlr,g.yli,g.zli],side),rearAx?TO:L); c.tie.visible=!rearAx;
       place(c.uf,V(x0,[g.xuf,g.yui,g.zui],side),U); place(c.ur,V(x0,[g.xur,g.yui,g.zui],side),U);
-      place(c.up,L,U); place(c.sp,V(x0,p.S,side),Wc);
+      c.wheel.position.copy(Wc); nv.set(side*p.av[0],side*p.av[2],p.av[1]).normalize(); c.wheel.quaternion.setFromUnitVectors(ZA,nv); c.roll.rotation.z=-GND.roll/g.R;
+      place(c.up,L,U); place(c.sp,V(x0,p.S,side),padV.copy(Wc).addScaledVector(nv,side*g.et));      // the spindle ends at the wheel's mounting face, the offset outboard of the wheel center
       place(c.sarm,V(x0,vadd(p.LBJ,vscale(p.ax,vdot(vsub(p.TRO,p.LBJ),p.ax))),side),TO); if(!rearAx) place(c.tie,TO,V(x0,p.TRI,side));
       const Dm=V(x0,p.dm,side), Tm=V(x0,[0,g.ydm,g.zdm],side); place(c.dmp,Dm,Tm); helix(c.helix,Dm,Tm);
-      c.wheel.position.copy(Wc); nv.set(side*p.av[0],side*p.av[2],p.av[1]).normalize(); c.wheel.quaternion.setFromUnitVectors(ZA,nv);
-      c.tire.scale.set(g.R/0.3,g.tw/0.2,g.R/0.3); c.rim.scale.set(g.rimD/0.4,g.tw/0.2,g.rimD/0.4);      // tire: loaded radius and section width; rim: its diameter
       const zg=S.out[i].zg||0, Ft=S.out[i].Ft||0;
       c.arrow.position.set(x0+p.CP[0],zg+0.002,side*(p.CP[1]+g.tw/2+0.07));
       c.arrow.visible=Ft>5; if(Ft>5) c.arrow.setLength(Math.max(0.08,Ft/8000),0.06,0.04);
@@ -829,7 +870,7 @@ function frame(now){
       }
       if(++hAcc>=40){hAcc=0; histPush();}
     }
-    GND.x-=GWRAP*Math.round(GND.x/GWRAP); GND.y-=GWRAP*Math.round(GND.y/GWRAP); GND.d+=(moved-GND.d)*0.3;
+    GND.x-=GWRAP*Math.round(GND.x/GWRAP); GND.y-=GWRAP*Math.round(GND.y/GWRAP); GND.d+=(moved-GND.d)*0.3; GND.roll+=Math.min(moved,ROLL_MAX);
     if(S.spun||!finite(S)) recStop();                         // a recording keeps what led up to a spin; the reset below does not wipe it
     if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centered.",true);}
     else if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
