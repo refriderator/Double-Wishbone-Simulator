@@ -743,7 +743,7 @@ function frame(now){
  box.addEventListener("click",e=>{if(e.target===box) show(false);});
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!box.hidden) show(false);});
  let seen=false; try{seen=!!localStorage.getItem("dws.intro");}catch(e){}
- if(!seen&&!restored) show(true);}
+ if(!seen) show(true);}
 
 /* boot */
 settle(model,S,inp,3); S.t=0;
