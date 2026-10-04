@@ -78,6 +78,7 @@ h1{margin:0;font:400 28px/1.15 var(--font-display);letter-spacing:.04em;text-tra
   font:400 18px/24px var(--font-osd);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 
 /* ---- tabs and panes ---- */
+.btn:disabled,.f input:disabled{opacity:.4;cursor:not-allowed}
 .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid var(--hairline)}
 .tab{min-height:44px;padding:var(--space-1);border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--vinyl-dim);
   font:400 12px/16px var(--font-display);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}

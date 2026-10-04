@@ -92,13 +92,19 @@ function renderForms(){
    $("fitTie").onclick=fitTie;}
   buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Drive");
   const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
-  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Drive the car at this speed'; lf.insertBefore(chk,lf.children[1]);
+  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Drive the car'; lf.insertBefore(chk,lf.children[1]);
   const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="On: the tires make the side force from their slip angles, the car slides and yaws, and lateral g comes out of that. Off: you set lateral g on the Forces tab."; lf.appendChild(hint);
+  hint.id="linkNote"; lf.appendChild(hint);
   $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; save(); syncLink();};
   buildHeights();
 }
-function syncLink(){const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual; readLoads();}
+function syncLink(){
+  const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
+  $("ssGo").disabled=$("ssA").disabled=!on;
+  $("linkNote").textContent=on?"On: the car runs at this speed and the steering wheel below turns it. The tires set the lateral g, so the Forces tab's lateral slider is locked."
+    :"Off: the car stands still. The steering wheel only turns the front wheels, and you set lateral g on the Forces tab. Tick this to use Step steer.";
+  readLoads();
+}
 function applyEdit(fn,msg){
   const backup=JSON.stringify(P);
   try{fn(); model=makeModel(P); save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}
@@ -185,7 +191,7 @@ const rackTarget=()=>Math.max(-P.steer.rmax,Math.min(P.steer.rmax,model.T[0].sgn
 const swNow=()=>inp.rack/(model.T[0].sgn*P.steer.c)*360;
 $("ssGo").onclick=()=>{
   const a=parseFloat($("ssA").value); if(!Number.isFinite(a)){setStatus("Step steer needs an angle in degrees.",true); return;}
-  if(!P.steer.link){P.steer.link=1; $("link").checked=true; save(); syncLink();}
+  if(!P.steer.link) return;
   setSw(0); inp.rack=0; inp.U=P.steer.speed; resettle(1.5); setSw(a);
   setStatus("Step steer to "+sgnTxt(swDeg,0)+"° at "+(P.steer.speed*3.6).toFixed(0)+" km/h. The History panel shows the response.",false);
 };

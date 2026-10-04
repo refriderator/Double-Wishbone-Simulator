@@ -70,13 +70,14 @@
   </div>
 
   <div class="pane" id="p-str" role="tabpanel" hidden>
+    <div id="linkFields" class="groups"></div>
     <fieldset><legend>Steering wheel</legend>
       <div class="sl"><label for="sw">Angle, + = right</label><output id="swO"></output><input type="range" id="sw" min="-468" max="468" step="1" value="0"></div>
       <div class="rowbtns"><button class="btn" id="swL">Full left</button><button class="btn" id="swC">Centre</button><button class="btn" id="swR">Full right</button></div>
       <div class="f"><label for="ssA">Step steer to</label><input id="ssA" type="number" value="30" step="5" min="-400" max="400"><span class="u">°</span></div>
       <div class="rowbtns"><button class="btn" id="ssGo">Step steer</button></div>
+      <p class="hint" id="ssNote">Step steer centres the wheel, lets the car settle, then turns the wheel to this angle. The History panel shows the response.</p>
     </fieldset>
-    <div id="linkFields" class="groups"></div>
     <table id="steerOut" class="wrap"></table>
     <div id="strFields" class="groups"></div>
     <div id="tieFields" class="groups"></div>
