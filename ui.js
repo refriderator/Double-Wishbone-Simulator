@@ -6,7 +6,10 @@ function merge(def,src){
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
   return (typeof src==="number"&&Number.isFinite(src))?src:def;
 }
-function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; const j=JSON.parse(t), p=merge(defaults(),j); makeModel(p); return p;}catch(e){return null;}}
+/* A stored or imported setup laid over the defaults. One saved before version 41 has a free camber field; fromOldCamber turns it into the adjuster. */
+let camNote="";
+function fromSaved(j){const p=merge(defaults(),j), cut=fromOldCamber(p,j); camNote=cut.length?" Its "+cut.join(" and ")+" camber was more than the adjuster allows and is held at the adjuster's limit; shorten the upper arm for more.":""; return p;}
+function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; const p=fromSaved(JSON.parse(t)); makeModel(p); return p;}catch(e){return null;}}
 const CAR={stock:["Stock","stock"],coen:["Coen's","coens"],session:["Session","session"]};      // [name shown, name in file names]
 const stamp=(d,time)=>{const p2=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+(time?" "+p2(d.getHours())+":"+p2(d.getMinutes()):"");};
 let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.preset")||null;}catch(e){}      // which car button is lit; any edit clears it
@@ -44,14 +47,18 @@ function buildFields(host,groups,getObj,prefix,who,titleOf,mode){      // mode: 
   for(const [title,fs] of groups){
     const fsEl=document.createElement("fieldset"), lg=document.createElement("legend");
     lg.textContent=titleOf?titleOf(title):title; fsEl.appendChild(lg); fsEl.dataset.g=title;
-    for(const [k,lab,u,sc,stp,mn,mx] of fs){
-      const id=prefix+"-"+k, row=document.createElement("div"); row.className="f";
-      row.innerHTML=`<label for="${id}">${lab}</label><input id="${id}" type="number" step="${stp}" min="${mn}" max="${mx}"><span class="u">${u}</span>`;
-      const el=row.querySelector("input"); el.value=fmtIn(getObj()[k],sc);
+    for(const [k,lab,u,sc,stp,mn,mx,kind] of fs){
+      const id=prefix+"-"+k, row=document.createElement("div"), slider=kind==="slider"; row.className=slider?"sl":"f";
+      row.innerHTML=slider?`<label for="${id}">${lab}</label><output id="${id}O"></output><input id="${id}" type="range" step="${stp}" min="${mn}" max="${mx}">`
+        :`<label for="${id}">${lab}</label><input id="${id}" type="number" step="${stp}" min="${mn}" max="${mx}"><span class="u">${u}</span>`;
+      const el=row.querySelector("input"), show=()=>{if(slider) row.querySelector("output").textContent=sgnTxt(+el.value,2)+unitTxt(u);}; el.value=fmtIn(getObj()[k],sc); show();
+      if(slider) el.addEventListener("input",show);      // the read-out follows the thumb; the car is re-solved when it is let go
       el.addEventListener("change",()=>{
         const x=parseFloat(el.value);
         if(!Number.isFinite(x)||x<mn||x>mx){setStatus(who+lab+" must be between "+mn+" and "+mx+(u?" "+u:"")+". Value not changed.",true); el.value=fmtIn(getObj()[k],sc); return;}
-        if(!applyEdit(()=>{getObj()[k]=x*sc;},null,mode)) el.value=fmtIn(getObj()[k],sc);
+        const old=getObj()[k], tire=k==="R"&&Math.abs(x*sc-old)>1e-9;
+        if(!applyEdit(()=>{getObj()[k]=x*sc; if(tire) tireMoved(editAxle,x*sc-old);},tire?tireMsg(editAxle,x*sc-old):null,mode)){el.value=fmtIn(getObj()[k],sc); show();}
+        else if(tire) renderForms();
       });
       fsEl.appendChild(row);
     }
@@ -65,6 +72,7 @@ const TIRE_KINDS=[["street","Street"],["sport","Sporty street"],["semi","Semi-sl
 function renderForms(){
   const who=editAxle?"Rear: ":"Front: ", gObj=()=>P.ax[editAxle].g;
   buildFields($("geoFields"),geoFor(editAxle,GEO_TABS.geo),gObj,"g",who);
+  {const al=$("geoFields").querySelector('fieldset[data-g="Alignment"]'), p=document.createElement("p"); p.className="hint"; p.id="camNow"; al.insertBefore(p,al.children[2]);}      // filled by refreshStatic
   buildFields($("whlFields"),geoFor(editAxle,GEO_TABS.whl),gObj,"g",who,t=>t==="TIRE"?"Tire":t==="GRIP"?"Tire grip / typical, not measured":t);
   {const tf=$("whlFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div"), t=tireFromSize(P,editAxle);
    r2.className="rowbtns"; r2.innerHTML='<button class="btn" id="fitTire">Estimate from size</button>'; tf.appendChild(r2);
@@ -98,8 +106,9 @@ function renderForms(){
   buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"*Drive",true);      // on the Forces tab, under the lateral slider that Drive takes over
   const lf=$("linkFields").querySelector("fieldset"), hint=document.createElement("p"); hint.className="hint";
   hint.textContent="Turns off the lateral slider above. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[1]);
-  buildHeights();
+  buildHeights(); camNow();
 }
+function camNow(cam){if($("camNow")) $("camNow").textContent="Camber at ride height now: "+num(cam===undefined?sheet(model).ax[editAxle].cam:cam,2)+"°. The wheel is fixed on the knuckle, so the arms set the camber: a shorter upper arm adds negative camber and kingpin angle. The adjuster adds up to +1° or −3° on top.";}
 function syncLink(){
   const on=!!P.steer.link; $("ay").disabled=on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
   $("driveOn").setAttribute("aria-pressed",on);                     // the header button lights up
@@ -109,6 +118,10 @@ function syncLink(){
   readLoads();
 }
 $("driveOn").onclick=()=>{P.steer.link=P.steer.link?0:1; syncLink(); setStatus(P.steer.link?"Drive on: the tires make the lateral g. Speed and steering are on the Forces tab.":"Drive off.",false);};
+/* A different loaded radius raises or lowers the car on that axle and leaves the suspension where it was, as a tire change does:
+   the height targets move by the change. The travel limits move the other way, because the bump and droop stops stay with the dampers. */
+function tireMoved(ax,dR){const g=P.ax[ax].g, lim=v=>Math.min(0.2,Math.max(0.01,v)); P.dh[ax*2]+=dR; P.dh[ax*2+1]+=dR; g.bump=lim(g.bump-dR); g.droop=lim(g.droop+dR);}
+const tireMsg=(ax,dR)=>"Loaded radius changed by "+sgnTxt(dR*1000,1)+" mm: the "+(ax?"rear":"front")+" of the car sits "+Math.abs(dR*1000).toFixed(1)+" mm "+(dR<0?"lower":"higher")+". Travel limits moved with it.";
 function applyEdit(fn,msg,mode){
   const backup=JSON.stringify(P);
   try{fn(); model=makeModel(P); if(!mode) save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}
@@ -116,7 +129,8 @@ function applyEdit(fn,msg,mode){
 }
 function fitTire(){
   const t=tireFromSize(P,editAxle), kt=Math.round(t.kt/100)*100, R=Math.round(t.R*1e4)/1e4;
-  if(applyEdit(()=>{const g=P.ax[editAxle].g; g.kt=kt; g.R=R;},"Tire set from its size: rate "+(kt/1000).toFixed(1)+" N/mm, loaded radius "+(R*1000).toFixed(1)+" mm.")) renderForms();
+  const dR=R-P.ax[editAxle].g.R;
+  if(applyEdit(()=>{const g=P.ax[editAxle].g; g.kt=kt; g.R=R; tireMoved(editAxle,dR);},"Tire set from its size: rate "+(kt/1000).toFixed(1)+" N/mm, loaded radius "+(R*1000).toFixed(1)+" mm. "+(Math.abs(dR)>1e-9?tireMsg(editAxle,dR):""))) renderForms();
 }
 function fitTie(){
   let z;
@@ -135,7 +149,7 @@ document.querySelectorAll(".axleSel").forEach(sg=>sg.addEventListener("click",e=
   renderForms(); refreshStatic();
 }));
 const TIE_KEYS=GEO.find(([t])=>t==="TIE")[1].map(f=>f[0]);      // the front tie rod's six numbers stay with the front
-$("copyGeo").onclick=()=>{if(applyEdit(()=>{const src=P.ax[editAxle].g, dst=P.ax[1-editAxle].g; for(const k in src) if(!TIE_KEYS.includes(k)) dst[k]=src[k];},"Geometry copied to the "+(editAxle?"front":"rear")+" axle.")) buildHeights();};
+$("copyGeo").onclick=()=>{if(applyEdit(()=>{const src=P.ax[editAxle].g, dst=P.ax[1-editAxle].g, dR=src.R-dst.R; for(const k in src) if(!TIE_KEYS.includes(k)) dst[k]=src[k]; P.dh[(1-editAxle)*2]+=dR; P.dh[(1-editAxle)*2+1]+=dR;},"Geometry copied to the "+(editAxle?"front":"rear")+" axle.")) buildHeights();};
 $("copySpr").onclick=()=>applyEdit(()=>{P.ax[1-editAxle].s=JSON.parse(JSON.stringify(P.ax[editAxle].s));},"Springs and dampers copied to the "+(editAxle?"front":"rear")+" axle.");
 $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; speed=+b.dataset.v;
   $("speed").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); $("oSpeed").textContent=b.textContent;});
@@ -154,13 +168,13 @@ function loadPreset(name,q0){
     else if(name==="session"){
       let t=null; try{t=localStorage.getItem(SKEY);}catch(e){}
       if(!t) q=defaults();                                               // no session saved yet: it starts as the start-up car
-      else {const j=JSON.parse(t); q=merge(defaults(),j);}
+      else q=fromSaved(JSON.parse(t));
     } else q=PRESETS[name]();
     makeModel(q); q.steer.link=0; q.steer.speed=P.steer.speed; P=q;      // Drive and its speed are a mode, not part of a car
   }catch(e){setStatus(e.message,true); return;}
   model=makeModel(P); presetLock=true; presetName=name; save(); presetLock=false; try{localStorage.setItem("dws.preset",name);}catch(e){} markPreset();
   ["ay","ax","fp"].forEach(id=>$(id).value=0); swDeg=0; inp.rack=0; $("sw").value=0; ayManual=0;
-  renderForms(); refreshStatic(); syncLink(); resettle(3); setStatus(name==="session"?"Session setup loaded.":label+" car loaded.",false);
+  renderForms(); refreshStatic(); syncLink(); resettle(3); setStatus((name==="session"?"Session setup loaded.":label+" car loaded.")+(name==="session"&&!q0?camNote:""),false);
 }
 $("preset").addEventListener("click",e=>{const b=e.target.closest("button"); if(b) loadPreset(b.dataset.p);});
 markPreset();
@@ -291,6 +305,7 @@ function refreshStatic(){
   const pr=(lab,v)=>`<tr><td>${lab}</td><td>${f(v[0])}</td><td>${f(v[1])}</td><td>${f(v[2])}</td></tr>`;
   $("pts").innerHTML=`<tr><th>mm</th><th>Ahead</th><th>From center</th><th>Height</th></tr>`+pr("Lower ball joint",p.LBJ)+pr("Upper ball joint",p.UBJ)+pr("Wheel center",p.WC)+pr("Contact patch",p.CP)+
     pr("Kingpin axis at ground",[T.kp[0],T.kp[1],0])+`<tr><td>Tie rod length</td><td colspan="3">${f(T.D.Lt)}</td></tr><tr><td>Steering arm length</td><td colspan="3">${f(T.D.arm)}</td></tr>`;
+  camNow(A[editAxle].cam);
   const mx=swMax(); for(const sw of [$("sw"),$("sw2")]){sw.min=-mx; sw.max=mx;} setSw(swDeg);
   scheduleBalance();
   curveStatic();
@@ -858,9 +873,9 @@ function importSetup(f){
       let j; try{j=JSON.parse(rd.result);}catch(e){throw new Error("the file is not a setup file.");}
       const src=j&&j.setup?j.setup:j;
       if(!src||typeof src!=="object"||!Array.isArray(src.ax)||!src.veh) throw new Error("the file is not a setup file.");
-      const q=merge(defaults(),src); makeModel(q);                // throws if the geometry in the file cannot be built
+      const q=fromSaved(src), note=camNote; makeModel(q);                // throws if the geometry in the file cannot be built
       try{localStorage.setItem(SKEY,JSON.stringify(q));}catch(e){}
-      loadPreset("session",q); setStatus("Setup imported from "+f.name+". It is now the session setup.",false);
+      loadPreset("session",q); setStatus("Setup imported from "+f.name+". It is now the session setup."+note,false);
     }catch(e){setStatus("Import failed: "+e.message,true);}
   };
   rd.readAsText(f);
@@ -879,7 +894,7 @@ $("impFile").onchange=()=>{const f=$("impFile").files[0]; $("impFile").value="";
 /* boot */
 settle(model,S,inp,3); S.t=0;
 renderForms(); readLoads(); refreshStatic(); syncLink(); applyTheme(); resize();
-setStatus(restored?"Last setup restored from this browser.":"Solved.",false);
+setStatus(restored?"Last setup restored from this browser."+camNote:"Solved.",false);
 if(document.fonts&&document.fonts.load) document.fonts.load("18px VT323").catch(()=>{});      // the canvases draw their labels in the read-out face
 requestAnimationFrame(frame);
 /* If the host restored control values after an update, bring the model and the controls back in step. */

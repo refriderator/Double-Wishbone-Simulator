@@ -22,17 +22,22 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
    The Miata has no rear toe link. Its rear lower arm has two outer pivots; the model draws the arm as two legs (front leg to the
    ball joint, rear leg to a second outer point ee behind it) and the rear leg holds the toe, so no rear tie-rod numbers are used.
    COEN'S car, on top of stock: 8 / 6 kgf/mm springs with dampers scaled up by the square root of the spring ratio (a guess),
-   15x7 ET35 wheels with 30 / 12 mm spacers, 185/45R15 tires, alignment held at ride height (front camber -4.67°, caster 3°,
-   toe -0.5°; rear camber -3.17°, toe 0°), rack 6.8 mm higher, ride height -26 mm front and -38 mm rear. */
+   15x7 ET35 wheels with 30 / 12 mm spacers, 185/45R15 tires, ride height -26 mm front and -38 mm rear (measured at the body, so
+   it includes the 14 mm smaller tire radius), rack 6.8 mm higher, caster 3°, toe -0.5° front and 0° rear at ride height.
+   Camber: the adjusters give -2° front and -1.5° rear at ride height on uncut arms (Coen's alignment); the front upper arm is then
+   10.5 mm shorter (239.5 mm), which brings the front to -4.64°. 10.5 mm is the smallest cut that keeps either front wheel from going
+   to positive camber at full lock; Coen's real cut is not measured. Travel limits are the stock dampers' stops, which sit 14 mm
+   further from ride height on the smaller tire (96 / 79 mm front, 94 / 82 mm rear).
+   The wheel is fixed on the knuckle (version 41): camber = knuckle angle (inc) - kingpin inclination + adjuster (cadj, +1 to -3°). */
 function stockCar(){
   return {
     veh:{M:902,mu:32,L:2.265,wf:0.523,h:0.474,Ixx:260,Iyy:1050,Izz:1400},
     steer:{c:0.0465,rmax:0.0605,speed:60/3.6,link:0,cut:0,cutL:0.020},
     ax:[
-      {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
+      {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:11.712479,cadj:0,caster:5.6667,toe:0.15,kt:185000,
           xto:0.0987,yto:0.6846,zto:0.215,xti:0.0987,yti:0.3609,zti:0.2002,fMount:0.777,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
-      {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,cam0:-0.7,caster:0,toe:0.15,kt:185000,
+      {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:8.046475,cadj:0,caster:0,toe:0.15,kt:185000,
           fMount:0.8735,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
        s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
@@ -43,8 +48,8 @@ function stockCar(){
 const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
        for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000},TIRE_PRESETS.sport);
-       Object.assign(P.ax[0].g,{cam0:-3.9830,caster:3,toe:-0.8154,zti:0.207,sp:0.030});
-       Object.assign(P.ax[1].g,{cam0:-1.9125,toe:0,sp:0.012});
+       Object.assign(P.ax[0].g,{Lu:0.2395,cadj:-1.7,caster:3,toe:-0.9112,zti:0.207,sp:0.030,bump:0.096,droop:0.079});
+       Object.assign(P.ax[1].g,{cadj:0.05,toe:0,sp:0.012,bump:0.094,droop:0.082});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
        P.dh=[-0.026,-0.026,-0.038,-0.038]; return P; }
@@ -56,12 +61,13 @@ const GEO=[
   ["Wishbones",[["Ll","Lower arm length","mm",1e-3,5,100,1000],["Lu","Upper arm length","mm",1e-3,5,80,1000],["Lk","Upright length in front view (ball joint to ball joint)","mm",1e-3,5,80,600]]],
   ["Chassis pivots",[["yli","Lower inner pivot, from centerline","mm",1e-3,5,0,800],["zli","Lower inner pivot, above ground","mm",1e-3,5,20,600],["yui","Upper inner pivot, from centerline","mm",1e-3,5,0,900],["zui","Upper inner pivot, above ground","mm",1e-3,5,60,900]]],
   ["Pivots fore-aft / 3D only",[["xlf","Lower arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xlr","Lower arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xuf","Upper arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xur","Upper arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["ee","Lower arm outer pivots: rear one this far behind the front one","mm",1e-3,5,20,400]]],
-  ["Upright",[["hsp","Spindle height above lower ball joint","mm",1e-3,5,0,500],["hf","Hub face outboard of kingpin","mm",1e-3,5,0,400],["xk","Wheel center ahead of kingpin axis, side view","mm",1e-3,1,-60,60]]],
+  ["Upright",[["hsp","Spindle height above lower ball joint","mm",1e-3,5,0,500],["hf","Hub face outboard of kingpin","mm",1e-3,5,0,400],["xk","Wheel center ahead of kingpin axis, side view","mm",1e-3,1,-60,60],
+              ["inc","Knuckle angle: kingpin inclination + camber","°",1,0.1,-10,40]]],
   ["Wheel",[["rimD","Rim diameter","in",0.0254,1,10,22],["rimW","Rim width","in",0.0254,0.5,4,12],["et","Offset (ET), + = wheel center inboard of hub face","mm",1e-3,1,-60,90],["sp","Wheel spacer, pushes the wheel outboard","mm",1e-3,1,0,100]]],
   ["TIRE",[["tw","Section width","mm",1e-3,5,125,355],["ar","Aspect ratio","%",1e-2,5,25,85],["pk","Pressure","kPa",1e3,5,100,350],["R","Loaded radius","mm",1e-3,5,150,500],["kt","Vertical rate","N/mm",1e3,10,50,1000]]],
   ["GRIP",[["tmu","Peak grip at 2.5 kN of load","",1,0.05,0.3,2.5],["tls","Grip lost per kN of extra load","/kN",1e-3,0.01,0,0.2],["tca","Cornering stiffness, share of load per degree of slip","/°",1,0.01,0.05,0.6],
            ["tcg","Camber thrust, share of load per degree","/°",1,0.001,0,0.06],["tgo","Camber into the turn that gives the most grip","°",1,0.5,0,8]]],
-  ["Alignment",[["cam0","Static camber","°",1,0.1,-10,10],["caster","Caster","°",1,0.5,-5,20],["toe","Static toe per wheel, + = toe-in","°",1,0.05,-5,5]]],
+  ["Alignment",[["cadj","Camber adjuster, added to what the arms give","°",1,0.05,-3,1,"slider"],["caster","Caster","°",1,0.5,-5,20],["toe","Static toe per wheel, + = toe-in","°",1,0.05,-5,5]]],
   ["TIE",[["xto","Outer joint, ahead of axle (− = behind)","mm",1e-3,5,-400,400],["yto","Outer joint, from centerline","mm",1e-3,5,100,1100],["zto","Outer joint, above ground","mm",1e-3,5,20,800],["xti","Inner joint, ahead of axle (− = behind)","mm",1e-3,5,-500,500],["yti","Inner joint, from centerline","mm",1e-3,5,0,800],["zti","Inner joint, above ground","mm",1e-3,0.1,20,800]]],
   ["Coilover",[["fMount","Mount on lower arm (fraction from inner pivot)","",1,0.05,0.2,1],["ydm","Top mount, from centerline","mm",1e-3,5,0,900],["zdm","Top mount, above ground","mm",1e-3,5,100,1200]]],
   ["Travel limits",[["bump","Bump travel (to bump stop)","mm",1e-3,5,10,200],["droop","Droop travel (to limit)","mm",1e-3,5,10,200]]]
@@ -127,14 +133,16 @@ function tieSolve(D,LBJ,ax,p,r){
 
 /* ---- design position: the lower-arm angle that puts the tire's lowest point on the ground ---- */
 function design(g,name){
-  const cz=g.R*Math.cos(g.cam0*D2R);
-  const c0=g.cam0*D2R, d0=-g.toe*D2R;                             // local steer angle is + outboard, so toe-in is negative
-  const av0=[-Math.sin(d0)*Math.cos(c0),Math.cos(d0)*Math.cos(c0),-Math.sin(c0)];   // spindle direction, pointing outboard
+  /* The wheel is fixed on the knuckle: its camber is the knuckle's own angle (inc, kingpin inclination + camber, which no setting changes)
+     minus the kingpin inclination the arms give, plus the adjuster (cadj, +1 to -3 deg, the one place the wheel may tilt on the knuckle).
+     So arm lengths and pivots set the camber, as on the car. beta is the kingpin's lean, + = top outboard, so inclination = -beta. */
+  const ka=(g.inc+g.cadj)*D2R, d0=-g.toe*D2R;                     // local steer angle is + outboard, so toe-in is negative
+  const spin=c=>[-Math.sin(d0)*Math.cos(c),Math.cos(d0)*Math.cos(c),-Math.sin(c)];   // spindle direction, pointing outboard, for camber c
   /* The hub is fixed on the upright where the fit put the center of the ET40 wheel: hf - 40 mm out from the kingpin axis, square to it.
      Any other offset, and a spacer, slide the wheel along the spindle from there, as on the car. (Before version 40 they slid it
      square to the kingpin, which also lifted it 0.2 mm per mm.) */
   const dsR=g.hf-ET_FIT, dw=ET_FIT-g.et+g.sp;
-  const f=a=>{const k=fv(g,a); return k? k.lz+g.hsp*k.vz-dsR*k.vy+dw*av0[2]-cz : NaN;};
+  const f=a=>{const k=fv(g,a); if(!k) return NaN; const c=ka+k.beta; return k.lz+g.hsp*k.vz-dsR*k.vy-dw*Math.sin(c)-g.R*Math.cos(c);};
   let best=null; const stp=0.002;
   for(let a=-1.2;a<1.2;a+=stp){
     const f1=f(a), f2=f(a+stp);
@@ -145,7 +153,7 @@ function design(g,name){
     }
   }
   if(best===null) throw new Error(name+": the linkage can't put the tire on the ground at design height. Check arm lengths, upright length and pivot heights.");
-  const k=fv(g,best), tk=Math.tan(g.caster*D2R), xk=g.xk||0;
+  const k=fv(g,best), av0=spin(ka+k.beta), tk=Math.tan(g.caster*D2R), xk=g.xk||0;
   const Sy=k.ly+g.hsp*k.vy, Sz=k.lz+g.hsp*k.vz;                  // spindle root on the kingpin axis; the wheel center sits xk ahead of it
   const xl=(Sz-k.lz)*tk-xk, xu=-(k.uz-Sz)*tk-xk;                  // ball-joint x offsets that give the caster angle
   const LBJ=[xl,k.ly,k.lz], UBJ=[xu,k.uy,k.uz], WC=[dw*av0[0],Sy+dsR*k.vz+dw*av0[1],Sz-dsR*k.vy+dw*av0[2]];
@@ -232,7 +240,6 @@ function buildAxle(g,name,rmax){
   T.P0=P0; T.tHalf=P0.CP[1]; T.L0=P0.L; T.MR0=lk2(T,T.MR,0,0);
   const t=-P0.LBJ[2]/(P0.UBJ[2]-P0.LBJ[2]);
   T.kp=[P0.LBJ[0]+t*(P0.UBJ[0]-P0.LBJ[0]),P0.LBJ[1]+t*(P0.UBJ[1]-P0.LBJ[1])];      // kingpin axis at ground level
-  T.kpi=Math.atan2(P0.LBJ[1]-P0.UBJ[1],P0.UBJ[2]-P0.LBJ[2])/D2R; T.scrub=P0.CP[1]-T.kp[1]; T.trail=T.kp[0]-P0.CP[0];
   T.sgn=nr>1?(lk2(T,T.steer,0,dR)>=lk2(T,T.steer,0,0)?1:-1):1;                     // rack direction that steers right
   if(T.MR0<0.05) throw new Error(name+": the coilover barely moves with the wheel (motion ratio "+T.MR0.toFixed(3)+"). Move its mount further out on the arm or align it with wheel travel.");
   if(T.tHalf<=0.05) throw new Error(name+": the contact patch ends up at or past the centerline.");
@@ -279,6 +286,17 @@ function tireFromSize(P,ax){
   const kt=(0.00028*(g.pk/1000)*Math.sqrt((1.03-0.004*AR)*SN*OD)+3.45)*9.80665*1000;         // N/m
   const load=(v.M*(ax===0?v.wf:1-v.wf)/2+v.mu)*G;
   return {free:OD/2000,kt,R:OD/2000-load/kt};
+}
+
+/* A setup saved before version 41 carries a free camber field (cam0) instead of the adjuster. Give it the adjuster that reproduces that
+   camber on its own arms, limited to the adjuster's range. Returns the axles whose camber had to be limited. */
+function fromOldCamber(P,src){
+  const cut=[];
+  for(let a=0;a<2;a++){const o=src&&src.ax&&src.ax[a]&&src.ax[a].g; if(!o||typeof o.cam0!=="number"||typeof o.cadj==="number") continue;
+    const g=P.ax[a].g; g.cadj=0;
+    for(let it=0;it<4;it++){let D; try{D=design(g,a?"Rear":"Front");}catch(e){break;} g.cadj=o.cam0-(g.inc+D.beta0/D2R);}
+    const lim=Math.max(-3,Math.min(1,g.cadj)); if(Math.abs(lim-g.cadj)>1e-6) cut.push(a?"rear":"front"); g.cadj=+lim.toFixed(4);}
+  return cut;
 }
 
 /* Front geometry as built: with cut knuckles on, the steering arm is shorter by steer.cutL. */
@@ -471,9 +489,10 @@ function sheet(m){
     const Ks=(kw/2+s.arb)*t*t, Kt=g.kt*t*t/2, Kax=1/(1/Ks+1/Kt), rch=lk1(T,T.rch,st);
     const Mg=v.M*(ax===0?v.wf:1-v.wf)*rch+2*v.mu*g.R;                             // link + unsprung load-transfer moment per unit lateral acceleration
     Kr+=Kax; Kth+=2*kr*m.xs[i]*m.xs[i]; Kz+=2*kr; Kzx+=2*kr*m.xs[i];
+    const pr=pose(ax?g:frontG(P),T.D,lk2(T,T.al,st,0),0)||T.P0, tk=(pr.CP[2]-pr.LBJ[2])/(pr.UBJ[2]-pr.LBJ[2]);      // the corner at ride height, and where its kingpin axis meets the ground
     r.ax.push({MR,kw,kr,fr,zb:s.cbl*MR*MR/cc,zr:s.crl*MR*MR/cc,rch,t,Kax,Kt,Mg,cam:lk2(T,T.cam,st,0),toe:-lk2(T,T.steer,st,0),
       camGain:(lk2(T,T.cam,st+e,0)-lk2(T,T.cam,st-e,0))/(2*e)*0.01, bumpSteer:-(lk2(T,T.steer,st+e,0)-lk2(T,T.steer,st-e,0))/(2*e)*0.01,
-      kpi:T.kpi,caster:g.caster,scrub:T.scrub,trail:T.trail});
+      kpi:Math.atan2(pr.LBJ[1]-pr.UBJ[1],pr.UBJ[2]-pr.LBJ[2])/D2R,caster:g.caster,scrub:pr.CP[1]-(pr.LBJ[1]+tk*(pr.UBJ[1]-pr.LBJ[1])),trail:pr.LBJ[0]+tk*(pr.UBJ[0]-pr.LBJ[0])-pr.CP[0]});
   }
   const A=r.ax, hra=A[0].rch*v.wf+A[1].rch*(1-v.wf), hp=hs-hra, MgH=v.M*G*hp, MgHs=v.M*G*hs;
   Kth-=Kzx*Kzx/Kz;                                               // the body is free to heave, which softens pitch slightly
