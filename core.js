@@ -3,6 +3,7 @@
    Vehicle frame: x forward, y to the right, z up. Corners FL, FR, RL, RR; side = -1 on the left, +1 on the right.
    Roll + = right side up, lateral g + = right turn, rack + = toward the right, steer angles + = right. ===== */
 const G=9.81, D2R=Math.PI/180;
+const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (Mazda's ET40): see design()
 
 /* Two cars, both a Mazda MX-5 / Roadster NB 1.8 (NB8C): STOCK (as Mazda built it) and COEN'S (the one this tool was built for).
    The Stock / Coen's buttons on the page load them. Both use the same arms, pivots and rack. Source of each number:
@@ -32,7 +33,7 @@ function stockCar(){
           xto:0.0987,yto:0.6846,zto:0.215,xti:0.0987,yti:0.3609,zti:0.2002,fMount:0.777,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,cam0:-0.7,caster:0,toe:0.15,kt:185000,
-          xto:-0.132,yto:0.6464,zto:0.1675,xti:-0.215,yti:0.2596,zti:0.185,fMount:0.8735,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
+          fMount:0.8735,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
        s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0]
@@ -42,8 +43,8 @@ function stockCar(){
 const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
        for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000},TIRE_PRESETS.sport);
-       Object.assign(P.ax[0].g,{cam0:-4.0037,caster:3,toe:-0.9703,zti:0.207,sp:0.030});
-       Object.assign(P.ax[1].g,{cam0:-1.9437,toe:0,sp:0.012});
+       Object.assign(P.ax[0].g,{cam0:-3.9830,caster:3,toe:-0.8154,zti:0.207,sp:0.030});
+       Object.assign(P.ax[1].g,{cam0:-1.9125,toe:0,sp:0.012});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
        P.dh=[-0.026,-0.026,-0.038,-0.038]; return P; }
@@ -83,7 +84,7 @@ function check(P){
   const one=(obj,groups,who)=>{for(const [,fs] of groups) for(const [k,lab,u,sc,,mn,mx] of fs){
     const x=obj[k]/sc; if(!(Number.isFinite(x)&&x>=mn-1e-9&&x<=mx+1e-9)) throw new Error(who+lab+" must be between "+mn+" and "+mx+(u?" "+u:"")+".");}};
   one(P.veh,VEH,""); one(P.steer,STEER,"");
-  for(let a=0;a<2;a++){const who=a?"Rear: ":"Front: "; one(P.ax[a].g,GEO,who); one(P.ax[a].s,SPR,who);}
+  for(let a=0;a<2;a++){const who=a?"Rear: ":"Front: "; one(P.ax[a].g,a?GEO.filter(([t])=>t!=="TIE"):GEO,who); one(P.ax[a].s,SPR,who);}      // the rear has no tie rod
   for(const d of P.dh) if(!Number.isFinite(d)) throw new Error("Ride-height targets must be numbers.");
 }
 
@@ -127,8 +128,13 @@ function tieSolve(D,LBJ,ax,p,r){
 /* ---- design position: the lower-arm angle that puts the tire's lowest point on the ground ---- */
 function design(g,name){
   const cz=g.R*Math.cos(g.cam0*D2R);
-  const ds=g.hf-g.et+g.sp;                                             // wheel center outboard of the kingpin axis: hub face minus wheel offset
-  const f=a=>{const k=fv(g,a); return k? k.lz+g.hsp*k.vz-ds*k.vy-cz : NaN;};
+  const c0=g.cam0*D2R, d0=-g.toe*D2R;                             // local steer angle is + outboard, so toe-in is negative
+  const av0=[-Math.sin(d0)*Math.cos(c0),Math.cos(d0)*Math.cos(c0),-Math.sin(c0)];   // spindle direction, pointing outboard
+  /* The hub is fixed on the upright where the fit put the center of the ET40 wheel: hf - 40 mm out from the kingpin axis, square to it.
+     Any other offset, and a spacer, slide the wheel along the spindle from there, as on the car. (Before version 40 they slid it
+     square to the kingpin, which also lifted it 0.2 mm per mm.) */
+  const dsR=g.hf-ET_FIT, dw=ET_FIT-g.et+g.sp;
+  const f=a=>{const k=fv(g,a); return k? k.lz+g.hsp*k.vz-dsR*k.vy+dw*av0[2]-cz : NaN;};
   let best=null; const stp=0.002;
   for(let a=-1.2;a<1.2;a+=stp){
     const f1=f(a), f2=f(a+stp);
@@ -142,9 +148,7 @@ function design(g,name){
   const k=fv(g,best), tk=Math.tan(g.caster*D2R), xk=g.xk||0;
   const Sy=k.ly+g.hsp*k.vy, Sz=k.lz+g.hsp*k.vz;                  // spindle root on the kingpin axis; the wheel center sits xk ahead of it
   const xl=(Sz-k.lz)*tk-xk, xu=-(k.uz-Sz)*tk-xk;                  // ball-joint x offsets that give the caster angle
-  const LBJ=[xl,k.ly,k.lz], UBJ=[xu,k.uy,k.uz], WC=[0,Sy+ds*k.vz,Sz-ds*k.vy];
-  const c0=g.cam0*D2R, d0=-g.toe*D2R;                             // local steer angle is + outboard, so toe-in is negative
-  const av0=[-Math.sin(d0)*Math.cos(c0),Math.cos(d0)*Math.cos(c0),-Math.sin(c0)];   // spindle direction, pointing outboard
+  const LBJ=[xl,k.ly,k.lz], UBJ=[xu,k.uy,k.uz], WC=[dw*av0[0],Sy+dsR*k.vz+dw*av0[1],Sz-dsR*k.vy+dw*av0[2]];
   const rear=name==="Rear";                                      // rear: the lower arm's second leg (rear inner pivot to a second outer pivot) holds the toe
   let TRO=rear?[xl-g.ee,k.ly,k.lz]:[g.xto,g.yto,g.zto]; const TRI=rear?[g.xlr,g.yli,g.zli]:[g.xti,g.yti,g.zti];
   if(!rear&&g.cutL>0){                                            // cut knuckle: the outer joint moves straight toward the kingpin axis; the tie rod is re-set below, so static toe holds
@@ -197,8 +201,8 @@ function buildAxle(g,name,rmax){
   for(let i=0;i<NA;i++){aG[i]=D.a0+(i-nDn)*da; s0[i]=pose(g,D,aG[i],0).CP[2];}
   const armTravel=al=>{let x=(al-aG[0])/da; if(x<0)x=0; else if(x>NA-1)x=NA-1; let i=x|0; if(i>NA-2)i=NA-2; return s0[i]+(s0[i+1]-s0[i])*(x-i);};
   const nr=rmax>0?41:1, ns=241, dS=(sHi-sLo)/(ns-1), rLo=-rmax, dR=nr>1?2*rmax/(nr-1):1, j0=(nr-1)/2, N=nr*ns;
-  const T={D,g,nr,ns,sLo,sHi,dS,rLo,dR,j0,rmax,L:new Float64Array(N),MR:new Float64Array(N),cam:new Float64Array(N),steer:new Float64Array(N),
-           cpx:new Float64Array(N),cpy:new Float64Array(N),al:new Float64Array(N),sa:new Float64Array(N),rch:new Float64Array(ns),dtr:new Float64Array(ns)};
+  const T={D,nr,ns,sLo,sHi,dS,rLo,dR,L:new Float64Array(N),MR:new Float64Array(N),cam:new Float64Array(N),steer:new Float64Array(N),
+           al:new Float64Array(N),sa:new Float64Array(N),rch:new Float64Array(ns),dtr:new Float64Array(ns)};
   const sj=new Float64Array(NA); let bind=Infinity;
   for(let j=0;j<nr;j++){
     const r=nr>1?rLo+j*dR:0;
@@ -213,7 +217,7 @@ function buildAxle(g,name,rmax){
       const sl=(sj[i+1]-sj[i])/da; let al=aG[i]+(sc-sj[i])/sl, p=pose(g,D,al,r);
       if(p){const al2=al+(sc-p.CP[2])/sl, p2=pose(g,D,al2,r); if(p2){al=al2;p=p2;}} else {al=aG[i]; p=pose(g,D,al,r);}
       const o=j*ns+q;
-      T.L[o]=p.L; T.cam[o]=p.cam/D2R; T.steer[o]=p.steer/D2R; T.cpx[o]=p.CP[0]; T.cpy[o]=p.CP[1]; T.al[o]=al; T.sa[o]=armTravel(al);
+      T.L[o]=p.L; T.cam[o]=p.cam/D2R; T.steer[o]=p.steer/D2R; T.al[o]=al; T.sa[o]=armTravel(al);
     }
   }
   if(bind<Infinity) throw new Error(name+": the steering binds at "+Math.round(bind*1000)+" mm of rack travel (the tie rod runs out of reach somewhere in the suspension travel). Reduce rack travel each way, or lengthen the steering arm or tie rod.");
@@ -246,9 +250,9 @@ function cv(arr){const c=_c, v0=arr[c.o0]+(arr[c.o0+1]-arr[c.o0])*c.f; if(c.g===
 function lk2(T,arr,s,r){cell(T,s,r);return cv(arr);}
 function lk1(T,arr,s){let x=(s-T.sLo)/T.dS; if(!(x>0))x=0; else if(x>T.ns-1)x=T.ns-1; let i=x|0; if(i>T.ns-2)i=T.ns-2; return arr[i]+(arr[i+1]-arr[i])*(x-i);}
 
-const kinCache=[null,null];
+const kinCache=[null,null], NOT_KIN=["rimD","rimW","tw","ar","pk","kt","tmu","tls","tca","tcg","tgo"];      // fields of g that the linkage does not use
 function tables(g,name,rmax,slot){
-  const key=JSON.stringify(g)+"|"+rmax, c=kinCache[slot];
+  const key=JSON.stringify(g,(k,v)=>NOT_KIN.includes(k)?undefined:v)+"|"+rmax, c=kinCache[slot];
   if(c&&c.key===key) return c.T;
   const T=buildAxle(g,name,rmax); kinCache[slot]={key,T}; return T;
 }
@@ -285,7 +289,7 @@ function makeModel(P){
   check(P);
   const T=[tables(frontG(P),"Front",P.steer.rmax,0),tables(P.ax[1].g,"Rear",0,1)];
   const v=P.veh, a=v.L*(1-v.wf), b=v.L*v.wf;
-  const m={P,T,a,b,xs:[a,a,-b,-b],ys:[-T[0].tHalf,T[0].tHalf,-T[1].tHalf,T[1].tHalf],W:[],Ws:[],d0:[],Fpre:[],FpreDesign:[],st:[],zt:[],arbOff:[0,0],zs:0};
+  const m={P,T,a,b,xs:[a,a,-b,-b],ys:[-T[0].tHalf,T[0].tHalf,-T[1].tHalf,T[1].tHalf],W:[],d0:[],Fpre:[],FpreDesign:[],st:[],zt:[],arbOff:[0,0],zs:0};
   const yF=T[0].tHalf, yR=T[1].tHalf, zt=m.zt;
   for(let i=0;i<4;i++){const g=P.ax[i<2?0:1].g; zt[i]=Math.min(g.droop-0.002,Math.max(-(g.bump-0.002),P.dh[i]));}   // target body height at each corner
   /* Body attitude at the targets (best-fit plane). A tilted body carries its CG off-center over the wheels,
@@ -298,14 +302,14 @@ function makeModel(P){
     const ax=i<2?0:1, g=P.ax[ax].g, s=P.ax[ax].s, Tx=T[ax], side=i%2===0?-1:1;
     const Wn=v.M*G*(ax===0?v.wf:1-v.wf)/2, W=(ax===0?WF:WR)*(0.5+side*ycg/(2*(ax===0?yF:yR)));
     const st=(Wn-W)/g.kt-zt[i];                                 // wheel travel at the target, allowing for the tire's deflection change
-    m.W[i]=Wn; m.Ws[i]=W; m.d0[i]=(Wn+v.mu*G)/g.kt; m.st[i]=st;
+    m.W[i]=Wn; m.d0[i]=(Wn+v.mu*G)/g.kt; m.st[i]=st;
     m.Fpre[i]=W/lk2(Tx,Tx.MR,st,0)-s.k*(Tx.L0-lk2(Tx,Tx.L,st,0));
     m.FpreDesign[i]=Wn/Tx.MR0;
   }
   m.arbOff=[m.st[0]-m.st[1],m.st[2]-m.st[3]];
   return m;
 }
-function newState(){return {t:0,z:0,zd:0,th:0,thd:0,ph:0,phd:0,zw:[0,0,0,0],zwd:[0,0,0,0],vy:0,r:0,ay:0,al:[0,0,0,0],spun:false,ev:[],out:[{},{},{},{}],hrc:[0,0],hp:0};}
+function newState(){return {t:0,z:0,zd:0,th:0,thd:0,ph:0,phd:0,zw:[0,0,0,0],zwd:[0,0,0,0],vy:0,r:0,ay:0,al:[0,0,0,0],spun:false,ev:[],out:[{},{},{},{}],hrc:[0,0]};}
 
 function damperF(s,v){
   if(v>=0) return v<=s.vkb?s.cbl*v:s.cbl*s.vkb+s.cbh*(v-s.vkb);
@@ -335,7 +339,7 @@ function step(m,st,inp,dt,extraDamp){
     let F=(Fs+Fd)*MR;
     if(sa[i]>g.bump){const e=sa[i]-g.bump; F+=KBS*e+KBS2*e*e+CBS*sd[i];}
     if(sa[i]<-g.droop){const e=-g.droop-sa[i]; F+=-KTOP*e+CBS*sd[i];}
-    Fw[i]=F; const o=out[i]; o.s=s[i]; o.sa=sa[i]; o.vd=vd; o.Fs=Fs;
+    Fw[i]=F; const o=out[i]; o.s=s[i]; o.vd=vd;
     if(inp.U>0){                                               // slip angle from the wheel's own path over the ground, with a short lag (relaxation length)
       const side=i%2===0?-1:1, de=side*cv(Tx.steer)*D2R, lean=side*(cv(Tx.cam)-side*st.ph/D2R);
       const vx=Math.max(0.5,inp.U-y*st.r), al=de-Math.atan2(st.vy+x*st.r,vx);
@@ -358,7 +362,6 @@ function step(m,st,inp,dt,extraDamp){
   const hrcF=lk1(T[0],T[0].rch,(sa[0]+sa[1])/2), hrcR=lk1(T[1],T[1].rch,(sa[2]+sa[3])/2);
   st.hrc[0]=hrcF; st.hrc[1]=hrcR;
   const hra=hrcF+(hrcR-hrcF)*m.a/v.L, hcg=v.h+st.z, hp=hcg-hra;   // CG height follows the body; hp = CG above the roll axis
-  st.hp=hp;
   let Fz=-v.M*G-inp.Fp;
   let Mth=v.M*axl*hcg+v.M*G*hcg*st.th-inp.xp*inp.Fp;              // pitching shifts the CG back over the wheels by h*theta
   let Mph=v.M*ay*hp+v.M*G*hp*st.ph-inp.yp*inp.Fp;                 // rolling shifts the CG sideways by hp*phi
@@ -372,7 +375,7 @@ function step(m,st,inp,dt,extraDamp){
     let Ft=g.kt*(m.d0[i]+gr[0]-st.zw[i]);
     if(Ft>0){Ft+=CT*(gr[1]-st.zwd[i]); if(Ft<0)Ft=0;} else Ft=0;
     st.zwd[i]+=(Ft-Fw[i]-v.mu*G-dF)/v.mu*dt;
-    const o=out[i]; o.Ft=Ft; o.Fw=Fw[i]; o.zg=gr[0];
+    const o=out[i]; o.Ft=Ft; o.zg=gr[0];
   }
   st.zd+=Fz/v.M*dt; st.thd+=Mth/v.Iyy*dt; st.phd+=Mph/(v.Ixx+v.M*hp*hp)*dt;   // the body rolls about the roll axis (parallel-axis term)
   if(extraDamp){const f=1-extraDamp; st.zd*=f; st.thd*=f; st.phd*=f; for(let i=0;i<4;i++) st.zwd[i]*=f;}
@@ -462,8 +465,8 @@ function sheet(m){
   const P=m.P, v=P.veh, r={ax:[]}, hs=v.h+m.zs; let Kr=0, Kth=0, Kz=0, Kzx=0;
   for(let ax=0;ax<2;ax++){
     const T=m.T[ax], s=P.ax[ax].s, g=P.ax[ax].g, t=2*T.tHalf, ms=m.W[ax*2]/G, i=ax*2, st=(m.st[i]+m.st[i+1])/2, e=0.002;
-    const Fw=x=>Math.max(0,m.Fpre[i]+s.k*(T.L0-lk2(T,T.L,x,0)))*lk2(T,T.MR,x,0);
-    const MR=lk2(T,T.MR,st,0), kw=(Fw(m.st[i]+e)-Fw(m.st[i]-e))/(2*e);          // tangent wheel rate: k*MR^2 plus the motion-ratio change term
+    const Fw=(j,x)=>Math.max(0,m.Fpre[j]+s.k*(T.L0-lk2(T,T.L,x,0)))*lk2(T,T.MR,x,0);
+    const MR=lk2(T,T.MR,st,0), kw=(Fw(i,m.st[i]+e)-Fw(i,m.st[i]-e)+Fw(i+1,m.st[i+1]+e)-Fw(i+1,m.st[i+1]-e))/(4*e);   // tangent wheel rate (k*MR^2 plus the motion-ratio change term), mean of left and right
     const kr=kw*g.kt/(kw+g.kt), fr=Math.sqrt(kr/ms)/(2*Math.PI), cc=2*Math.sqrt(kw*ms);
     const Ks=(kw/2+s.arb)*t*t, Kt=g.kt*t*t/2, Kax=1/(1/Ks+1/Kt), rch=lk1(T,T.rch,st);
     const Mg=v.M*(ax===0?v.wf:1-v.wf)*rch+2*v.mu*g.R;                             // link + unsprung load-transfer moment per unit lateral acceleration
@@ -474,7 +477,7 @@ function sheet(m){
   }
   const A=r.ax, hra=A[0].rch*v.wf+A[1].rch*(1-v.wf), hp=hs-hra, MgH=v.M*G*hp, MgHs=v.M*G*hs;
   Kth-=Kzx*Kzx/Kz;                                               // the body is free to heave, which softens pitch slightly
-  r.hra=hra; r.hs=hs; r.hp=hp; r.Kr=Kr; r.Kth=Kth;
+  r.hp=hp;
   const stable=Kr>MgH;
   const phi=stable?(v.M*hp+A[0].Kax/A[0].Kt*A[0].Mg+A[1].Kax/A[1].Kt*A[1].Mg)/(Kr-MgH):Infinity;     // roll per unit lateral acceleration
   r.rollGrad=phi*G/D2R;

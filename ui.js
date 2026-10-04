@@ -6,12 +6,13 @@ function merge(def,src){
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
   return (typeof src==="number"&&Number.isFinite(src))?src:def;
 }
-function noSp(p,j){for(let i=0;i<2;i++) if(!j.ax||!j.ax[i]||!j.ax[i].g||j.ax[i].g.sp===undefined) p.ax[i].g.sp=0; return p;}      // setups saved before the spacer field existed have none
-function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; const j=JSON.parse(t), p=noSp(merge(defaults(),j),j); makeModel(p); return p;}catch(e){return null;}}
+function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; const j=JSON.parse(t), p=merge(defaults(),j); makeModel(p); return p;}catch(e){return null;}}
+const CAR={stock:["Stock","stock"],coen:["Coen's","coens"],session:["Session","session"]};      // [name shown, name in file names]
+const stamp=(d,time)=>{const p2=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+(time?" "+p2(d.getHours())+":"+p2(d.getMinutes()):"");};
 let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.preset")||null;}catch(e){}      // which car button is lit; any edit clears it
 function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}   // an edit makes the current setup the session setup
 function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
-let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="stock";}
+let P=PRESETS[presetName]?PRESETS[presetName]():loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="stock";}      // a lit Stock or Coen's button means that car as defined now, not a copy an older page saved
 P.steer.link=0;                                                        // Drive is a mode, not part of a setup: every load starts with it off (floor still)
 let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
@@ -21,7 +22,7 @@ let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayM
 const GND={psi:0,x:0,y:0,d:0}, GWRAP=4;
 const BODY_LIFT=0.038;      // the Assetto Corsa shell is a lowered car: raise it 38 mm on the wheels so it sits right at stock height (drawing only, no effect on the numbers)
 let bodyOn=false; try{bodyOn=localStorage.getItem("dws.body")==="car";}catch(e){}      // 3D view: the plain chassis box (the start-up view), or the car body
-/* Colours and fonts come from the OL! tokens in style.css. The palette is closed (black, greys, midnight, ice),
+/* Colors and fonts come from the OL! tokens in style.css. The palette is closed (black, grays, midnight, ice),
    so parts and data series differ by lightness, line weight and dash, never by hue. */
 let COL={};
 function readColors(){
@@ -38,7 +39,7 @@ const num=(v,d)=>{const t=v.toFixed(d); return (+t===0?Math.abs(+t).toFixed(d):t
 
 /* ---- forms ---- */
 function fmtIn(v,sc){return String(+(v/sc).toFixed(4));}
-function buildFields(host,groups,getObj,prefix,who,titleOf){
+function buildFields(host,groups,getObj,prefix,who,titleOf,mode){      // mode: the fields are not part of a setup, so an edit is not saved as one
   host.textContent="";
   for(const [title,fs] of groups){
     const fsEl=document.createElement("fieldset"), lg=document.createElement("legend");
@@ -50,7 +51,7 @@ function buildFields(host,groups,getObj,prefix,who,titleOf){
       el.addEventListener("change",()=>{
         const x=parseFloat(el.value);
         if(!Number.isFinite(x)||x<mn||x>mx){setStatus(who+lab+" must be between "+mn+" and "+mx+(u?" "+u:"")+". Value not changed.",true); el.value=fmtIn(getObj()[k],sc); return;}
-        if(!applyEdit(()=>{getObj()[k]=x*sc;})) el.value=fmtIn(getObj()[k],sc);
+        if(!applyEdit(()=>{getObj()[k]=x*sc;},null,mode)) el.value=fmtIn(getObj()[k],sc);
       });
       fsEl.appendChild(row);
     }
@@ -94,7 +95,7 @@ function renderForms(){
    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
    const th=document.createElement("p"); th.className="hint"; th.textContent="The outer joint moves with the upright; the inner joint sits on the rack. The button moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
    $("fitTie").onclick=fitTie;}
-  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"*Drive");      // on the Forces tab, under the lateral slider that Drive takes over
+  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"*Drive",true);      // on the Forces tab, under the lateral slider that Drive takes over
   const lf=$("linkFields").querySelector("fieldset"), hint=document.createElement("p"); hint.className="hint";
   hint.textContent="Turns off the lateral slider above. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[1]);
   buildHeights();
@@ -108,9 +109,9 @@ function syncLink(){
   readLoads();
 }
 $("driveOn").onclick=()=>{P.steer.link=P.steer.link?0:1; syncLink(); setStatus(P.steer.link?"Drive on: the tires make the lateral g. Speed and steering are on the Forces tab.":"Drive off.",false);};
-function applyEdit(fn,msg){
+function applyEdit(fn,msg,mode){
   const backup=JSON.stringify(P);
-  try{fn(); model=makeModel(P); save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}
+  try{fn(); model=makeModel(P); if(!mode) save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}
   catch(e){P=JSON.parse(backup); setStatus(e.message+" Change reverted.",true); return false;}
 }
 function fitTire(){
@@ -133,7 +134,8 @@ document.querySelectorAll(".axleSel").forEach(sg=>sg.addEventListener("click",e=
   $("copyGeo").textContent=$("copySpr").textContent="Copy to "+(editAxle?"front":"rear");
   renderForms(); refreshStatic();
 }));
-$("copyGeo").onclick=()=>{if(applyEdit(()=>{P.ax[1-editAxle].g=JSON.parse(JSON.stringify(P.ax[editAxle].g));},"Geometry copied to the "+(editAxle?"front":"rear")+" axle.")) buildHeights();};
+const TIE_KEYS=GEO.find(([t])=>t==="TIE")[1].map(f=>f[0]);      // the front tie rod's six numbers stay with the front
+$("copyGeo").onclick=()=>{if(applyEdit(()=>{const src=P.ax[editAxle].g, dst=P.ax[1-editAxle].g; for(const k in src) if(!TIE_KEYS.includes(k)) dst[k]=src[k];},"Geometry copied to the "+(editAxle?"front":"rear")+" axle.")) buildHeights();};
 $("copySpr").onclick=()=>applyEdit(()=>{P.ax[1-editAxle].s=JSON.parse(JSON.stringify(P.ax[editAxle].s));},"Springs and dampers copied to the "+(editAxle?"front":"rear")+" axle.");
 $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; speed=+b.dataset.v;
   $("speed").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); $("oSpeed").textContent=b.textContent;});
@@ -145,16 +147,16 @@ $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"
 function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear(); GND.psi=GND.x=GND.y=0;}
 $("reset").onclick=()=>resettle(4);
 function loadPreset(name,q0){
-  const label=name==="stock"?"Stock":name==="session"?"Session":"Coen's";
+  const label=CAR[name][0];
   try{
     let q;
     if(q0) q=q0;                                                         // a setup read from a file
     else if(name==="session"){
       let t=null; try{t=localStorage.getItem(SKEY);}catch(e){}
       if(!t) q=defaults();                                               // no session saved yet: it starts as the start-up car
-      else {const j=JSON.parse(t); q=noSp(merge(defaults(),j),j);}
+      else {const j=JSON.parse(t); q=merge(defaults(),j);}
     } else q=PRESETS[name]();
-    makeModel(q); q.steer.link=0; P=q;
+    makeModel(q); q.steer.link=0; q.steer.speed=P.steer.speed; P=q;      // Drive and its speed are a mode, not part of a car
   }catch(e){setStatus(e.message,true); return;}
   model=makeModel(P); presetLock=true; presetName=name; save(); presetLock=false; try{localStorage.setItem("dws.preset",name);}catch(e){} markPreset();
   ["ay","ax","fp"].forEach(id=>$(id).value=0); swDeg=0; inp.rack=0; $("sw").value=0; ayManual=0;
@@ -355,7 +357,7 @@ function init3D(){
   }
   const cgMesh=new THREE.Mesh(new THREE.SphereGeometry(0.035,16,12),M.cg); bodyG.add(cgMesh);
   const axisGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]), axisLine=new THREE.Line(axisGeo,LM.axis); bodyG.add(axisLine);
-  /* Optional car body from assets/body-model.js: a see-through shell with lit edges that rides on the sprung mass.
+  /* Optional car body from body-model.js: a see-through shell with lit edges that rides on the sprung mass.
      Its frame is x forward, y up, z right, origin at mid-wheelbase at wheel-center height. */
   let car=null;
   if(window.BODY_MODEL){
@@ -398,7 +400,7 @@ function init3D(){
     const c=n=>new THREE.Color(COL[n]);
     scene.background=c("midnight");                                   // the brand field: white vinyl on dark blue
     M.lower.color=c("armL").multiplyScalar(0.3); M.upper.color=c("armU").multiplyScalar(0.3); M.upright.color=c("dim");
-    M.lower.emissive=c("armL"); M.lower.emissiveIntensity=0.9; M.upper.emissive=c("armU"); M.upper.emissiveIntensity=0.8;   // the arms glow in their own colour instead of washing out under the lights
+    M.lower.emissive=c("armL"); M.lower.emissiveIntensity=0.9; M.upper.emissive=c("armU"); M.upper.emissiveIntensity=0.8;   // the arms glow in their own color instead of washing out under the lights
     M.coil.color=c("ice"); M.tie.color=c("ice");
     M.tire.color=c("gunmetal"); M.rim.color=c("edge"); M.body.color=c("gunmetal"); M.cg.color=c("vinyl"); M.bumpm.color=c("edge");
     LM.edge.color=c("edge"); LM.coil.color=c("vinyl"); LM.axis.color=c("dim"); M.car.color=c("armU"); LM.car.color=c("armU");
@@ -464,7 +466,7 @@ let R3=null;
 try{R3=init3D();}catch(e){
   const d=document.createElement("div"); d.className="nogl";
   const noLib=typeof THREE==="undefined"||!THREE.OrbitControls;      // the library files are missing, as opposed to the browser lacking WebGL
-  d.textContent=(noLib?"The 3D library did not load. Check that the lib folder (three.min.js and OrbitControls.js) sits next to index.html.":"The 3D view needs WebGL, which is not available here.")+" The rear view and read-outs below still work.";
+  d.textContent=(noLib?"The 3D library did not load. Check that three.min.js and OrbitControls.js sit next to index.html.":"The 3D view needs WebGL, which is not available here.")+" The rear view and read-outs below still work.";
   view.insertBefore(d,view.firstChild); console.error(e);
 }
 
@@ -732,23 +734,22 @@ function recSync(){
 function recStart(){REC.on=true; REC.n=0; REC.meta=null; recSync(); setStatus(running?"Recording. Press Stop to review and export it; it stops itself at "+RMAX+" s.":"Recording starts when the simulation runs (it is paused).",false);}
 function recStop(msg){
   if(!REC.on) return; REC.on=false;
-  REC.meta={car:presetName==="stock"?"Stock":presetName==="coen"?"Coen's":"Session",drive:P.steer.link?"Drive "+(P.steer.speed*3.6).toFixed(0)+" km/h":"Drive off",when:new Date()};
+  REC.meta={car:presetName in CAR?presetName:"session",drive:P.steer.link?"Drive "+(P.steer.speed*3.6).toFixed(0)+" km/h":"Drive off",when:new Date()};
   recSync(); histTable();
   setStatus(REC.n>0?(msg||"Recorded "+recDur().toFixed(1)+" s. Export it as a graph or as numbers, or discard it."):"Nothing was recorded: the simulation was paused.",false);
 }
 $("recBtn").onclick=()=>REC.on?recStop():recStart();
 $("recX").onclick=()=>{REC.n=0; REC.meta=null; recSync(); histTable(); setStatus("Recording discarded. History is live again.",false);};
-function recName(ext){const d=REC.meta.when, p2=n=>String(n).padStart(2,"0"), car=REC.meta.car==="Coen's"?"coens":REC.meta.car.toLowerCase();
-  return "dws-recording-"+car+"-"+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+"-"+p2(d.getHours())+p2(d.getMinutes())+"."+ext;}
+const recName=ext=>"dws-recording-"+CAR[REC.meta.car][1]+"-"+stamp(REC.meta.when,true).replace(" ","-").replace(":","")+"."+ext;
 /* The graph: the same rows as the panel, on the panel's ground, with a title line that says which car, the Drive speed, how long and when. */
 $("recPng").onclick=()=>{
   if(!recHeld()) return;
   const W=1000, H=760, pad=24, top=84, sc=2, c=document.createElement("canvas"); c.width=W*sc; c.height=H*sc;
-  const x=c.getContext("2d"), m=REC.meta, d=m.when, p2=n=>String(n).padStart(2,"0"); x.scale(sc,sc);
+  const x=c.getContext("2d"), m=REC.meta; x.scale(sc,sc);
   x.fillStyle=COL.glass; x.fillRect(0,0,W,H);
   x.textAlign="left"; x.fillStyle=COL.vinyl; x.font=OSD(30); x.fillText("DOUBLE WISHBONE SIMULATOR / HISTORY",pad,pad+22);
   x.fillStyle=COL.dim; x.font=OSD(20);
-  x.fillText((m.car+" / "+m.drive+" / "+recDur().toFixed(1)+" s / "+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+" "+p2(d.getHours())+":"+p2(d.getMinutes())).toUpperCase(),pad,pad+48);
+  x.fillText((CAR[m.car][0]+" / "+m.drive+" / "+recDur().toFixed(1)+" s / "+stamp(m.when,true)).toUpperCase(),pad,pad+48);
   const lx=W-pad-250, ly=pad+16;      // key: solid = left wheel, dashed = right wheel
   x.lineWidth=2; x.strokeStyle=COL.vinyl; x.beginPath(); x.moveTo(lx,ly); x.lineTo(lx+24,ly); x.stroke(); x.fillText("LEFT WHEEL",lx+32,ly+6);
   x.strokeStyle=COL.ice; x.setLineDash(DASH); x.beginPath(); x.moveTo(lx,ly+24); x.lineTo(lx+24,ly+24); x.stroke(); x.setLineDash([]); x.fillText("RIGHT WHEEL",lx+32,ly+30);
@@ -846,8 +847,7 @@ async function saveFile(file,data,what){
   }catch(e){setStatus("Export failed: "+e.message,true);}
 }
 function exportSetup(){
-  const d=new Date(), p2=n=>String(n).padStart(2,"0"), name=presetName==="coen"?"coens":(presetName||"session");
-  const file="dws-"+name+"-"+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+".json";
+  const d=new Date(), name=(CAR[presetName]||CAR.session)[1], file="dws-"+name+"-"+stamp(d)+".json";
   saveFile(file,new Blob([JSON.stringify({app:"double-wishbone-simulator",format:1,name,saved:d.toISOString(),setup:P},null,1)],{type:"application/json"}),"Setup");
 }
 function importSetup(f){
@@ -858,7 +858,7 @@ function importSetup(f){
       let j; try{j=JSON.parse(rd.result);}catch(e){throw new Error("the file is not a setup file.");}
       const src=j&&j.setup?j.setup:j;
       if(!src||typeof src!=="object"||!Array.isArray(src.ax)||!src.veh) throw new Error("the file is not a setup file.");
-      const q=noSp(merge(defaults(),src),src); makeModel(q);                // throws if the geometry in the file cannot be built
+      const q=merge(defaults(),src); makeModel(q);                // throws if the geometry in the file cannot be built
       try{localStorage.setItem(SKEY,JSON.stringify(q));}catch(e){}
       loadPreset("session",q); setStatus("Setup imported from "+f.name+". It is now the session setup.",false);
     }catch(e){setStatus("Import failed: "+e.message,true);}

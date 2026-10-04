@@ -14,18 +14,18 @@ img{max-width:100%}
    (midnight field, read-out bar, scanlines) and stays pinned while the panels scroll under it. One look, night only. */
 :root{
   color-scheme:dark;
-  /* OL! Racing Factory tokens, copied from the design system. The palette is closed: do not add colours. */
+  /* OL! Racing Factory tokens, copied from the design system. The palette is closed: do not add colors. */
   --void:#000000;          /* backdrop */
   --glass:#121418;         /* panels and cards */
   --glass-raised:#1c1f24;  /* inputs and anything sitting on glass */
-  --gunmetal:#3b4048;      /* the main grey: blocks, pressed segments */
+  --gunmetal:#3b4048;      /* the main gray: blocks, pressed segments */
   --hairline:#2b2f36;      /* decorative dividers and card outlines */
   --edge:#6c727c;          /* borders of anything interactive */
   --vinyl:#f4f5f7;         /* primary text */
   --vinyl-dim:#a9aeb7;     /* secondary text */
   --vinyl-ghost:#818791;   /* tertiary text */
   --midnight:#081141;      /* brand field: the 3D frame */
-  --ice:#8f969e;           /* signal colour, small areas: primary button, links, focus ring */
+  --ice:#8f969e;           /* signal color, small areas: primary button, links, focus ring */
   --on-ice:var(--void);
   --rec:#ff2233;           /* error text only */
   --chroma-bleed-sm:-1px 0 0 #a4b9d0, 1px 0 0 #6c727c;
@@ -33,7 +33,7 @@ img{max-width:100%}
   --lift:0 16px 40px rgba(0,0,0,0.6);
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px;
   --scanline-alpha:0.43;   /* the design system says 0.45; turned down about 5 % on request */
-  --arm-lower:#6e9cff;     /* display colours for the control arms, outside the closed palette on request */
+  --arm-lower:#6e9cff;     /* display colors for the control arms, outside the closed palette on request */
   --arm-upper:#a4b9d0;
   --font-display:Michroma,"Eurostile Extended","Arial Black",sans-serif;   /* uppercase, tracked: headings, labels, buttons */
   --font-sans:"Chakra Petch","Helvetica Neue",Arial,sans-serif;            /* reading text */
@@ -164,7 +164,7 @@ main{min-width:0;min-height:0;overflow:auto;display:grid;gap:var(--space-6);alig
 .tip .tr b{font:400 18px/22px var(--font-osd);letter-spacing:.04em;text-align:right}
 .tip .tr span{color:var(--vinyl-dim)}
 .tip .tr i,.lg i{height:2px;background:var(--vinyl)}
-.tip .tr i.k2,.lg i.k2{background:repeating-linear-gradient(90deg,var(--ice) 0 5px,transparent 5px 8px)}   /* second series: dashed, so it never depends on colour */
+.tip .tr i.k2,.lg i.k2{background:repeating-linear-gradient(90deg,var(--ice) 0 5px,transparent 5px 8px)}   /* second series: dashed, so it never depends on color */
 .lg{display:flex;gap:var(--space-1) var(--space-4);flex-wrap:wrap;color:var(--vinyl-dim)}
 .lg i{display:inline-block;width:18px;vertical-align:middle;margin-right:var(--space-2)}
 .lg i.m1{width:11px;height:11px;border-radius:50%}
@@ -173,12 +173,11 @@ main{min-width:0;min-height:0;overflow:auto;display:grid;gap:var(--space-6);alig
 table{border-collapse:collapse;width:100%}
 th,td{padding:var(--space-1) var(--space-2);border-bottom:1px solid var(--hairline);text-align:right;white-space:nowrap}
 td{font:400 18px/22px var(--font-osd);letter-spacing:.04em}
-th,td:first-child,td.u,td.t{font:400 14px/20px var(--font-sans);letter-spacing:0}
+th,td:first-child,td.u{font:400 14px/20px var(--font-sans);letter-spacing:0}
 th:first-child,td:first-child{text-align:left;padding-left:0}
 th{color:var(--vinyl-dim);white-space:normal;vertical-align:bottom}
 tr.grp th{padding-top:var(--space-4);padding-left:0;text-align:left;color:var(--vinyl);font:400 12px/16px var(--font-display);letter-spacing:.14em;text-transform:uppercase}
 td.u{color:var(--vinyl-dim);text-align:left}
-td.t{text-align:left;white-space:normal}
 table.wrap td:first-child,table.wrap th:first-child{white-space:normal}
 table.pts td,table.pts th{padding:3px var(--space-1)}
 table.src td{font:400 14px/20px var(--font-sans);letter-spacing:0;text-align:left;white-space:normal;vertical-align:top}
@@ -211,7 +210,7 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
   .btn{transition:none}
 }
 
-/* ---- quick start: one window, three steps, shown on a first visit ---- */
+/* ---- quick start: one window, three steps, opens on every load ---- */
 .intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:var(--space-4);background:rgba(0,0,0,0.72)}
 .intro[hidden]{display:none}
 .introBox{position:relative;width:min(1040px,100%);max-height:100%;overflow:auto;padding:var(--space-6);border:1px solid var(--edge);background:var(--void);box-shadow:var(--lift)}

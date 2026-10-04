@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Double Wishbone Simulator</title>
-<link rel="stylesheet" href="style.css?v=e5b67592">
+<link rel="stylesheet" href="style.css?v=bc7053e8">
 </head>
 <body>
 <div class="app">
@@ -94,7 +94,7 @@
         <div class="sl"><label for="sw2">Steering wheel, + = right</label><output id="sw2O"></output><input type="range" id="sw2" min="-468" max="468" step="1" value="0"></div>
         <div class="f"><label for="ssA">Step the steering wheel to</label><input id="ssA" type="number" value="30" step="5" min="-400" max="400"><span class="u">°</span></div>
         <div class="rowbtns"><button class="btn" id="ssGo">Step steer</button></div>
-        <p class="hint" id="ssNote">Step steer centers the steering wheel, lets the car settle, then turns it to this angle (degrees at the steering wheel, + = right). The History panel shows the response.</p>
+        <p class="hint">Step steer centers the steering wheel, lets the car settle, then turns it to this angle (degrees at the steering wheel, + = right). The History panel shows the response.</p>
       </div>
       <div class="sl"><label for="ax">Longitudinal, + = accelerating</label><output id="axO"></output><input type="range" id="ax" min="-1.5" max="1.2" step="0.01" value="0"></div>
     </fieldset>
@@ -195,13 +195,13 @@
         <tr><td>Springs, front / rear</td><td>8 / 6 kgf/mm = 78.5 / 58.8 N/mm</td><td class="u k">Set</td></tr>
         <tr><td>Dampers</td><td>Stock slopes × 1.66 front, × 1.69 rear (square root of the spring ratio)</td><td class="u k">Guess</td></tr>
         <tr><td>Wheels and tires</td><td>15×7 ET35, 185/45R15 at 240 kPa, loaded radius 260 mm, 235 N/mm; wheel spacers 30 mm front and 12 mm rear (effective offset ET5 front, ET23 rear)</td><td class="u k">Set</td></tr>
-        <tr><td>Alignment, front</td><td>At ride height: camber −4.67°, caster 3°, toe −0.5° per wheel. The Geometry fields read −4.00° and −0.97° because they are set at stock height and lowering the car adds the rest, as after a realignment.</td><td class="u k">Set</td></tr>
-        <tr><td>Alignment, rear</td><td>At ride height: camber −3.17°, toe 0°. The Geometry camber field reads −1.94°.</td><td class="u k">Set</td></tr>
+        <tr><td>Alignment, front</td><td>At ride height: camber −4.67°, caster 3°, toe −0.5° per wheel. The Geometry fields read −3.98° and −0.82° because they are set at stock height and lowering the car adds the rest, as after a realignment.</td><td class="u k">Set</td></tr>
+        <tr><td>Alignment, rear</td><td>At ride height: camber −3.17°, toe 0°. The Geometry camber field reads −1.91°.</td><td class="u k">Set</td></tr>
         <tr><td>Ride height</td><td>−26 mm front, −38 mm rear from stock height (Heights tab, same zero as Stock)</td><td class="u k">Set</td></tr>
         <tr><td>Travel limits, bump / droop</td><td>Same as stock: 82 / 93 mm front, 80 / 96 mm rear</td><td class="u k">Set</td></tr>
         <tr><td>Rack, inner joint height</td><td>207.0 mm, 6.8 mm above stock</td><td class="u k">Set</td></tr>
-        <tr><td>Track, front / rear</td><td>1522 / 1483 mm (the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
-        <tr><td>Roll center height, front / rear</td><td>29 / 94 mm</td><td class="u k">Follows</td></tr>
+        <tr><td>Track, front / rear</td><td>1523 / 1483 mm (the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
+        <tr><td>Roll center height, front / rear</td><td>23 / 93 mm</td><td class="u k">Follows</td></tr>
         <tr><th>Stock car, published by Mazda</th><th></th><th></th></tr>
         <tr><td>Wheelbase</td><td>2265 mm</td><td class="u k">Published</td></tr>
         <tr><td>Track, front / rear</td><td>1415 / 1440 mm</td><td class="u k">Published</td></tr>
@@ -233,7 +233,7 @@
         <tr><td>Front upright, ball joint to ball joint</td><td>217.2 mm: the measured heights, leaned to Mazda's 11°39′ kingpin</td><td class="u k">Measured + published</td></tr>
         <tr><td>Hub face position, kingpin offset, tie rod joints, coilover mounts</td><td>See the Geometry tab</td><td class="u k">Fitted</td></tr>
         <tr><td>Rear upright, pivot height, hub face, damper mount</td><td>Upright 240 mm between the arm mounts, lower pivot 186.4 mm above ground, hub face 137.9 mm from the kingpin axis, fitted to roll center 120 mm, track 1440 mm and motion ratio 0.721. A rough 230 mm estimate of the upright could not give that roll center with enough droop reach.</td><td class="u k">Fitted</td></tr>
-        <tr><td>Front tie rod, outer joint</td><td>103 mm ahead of the ball joint axis, fitted to the published full lock. A rough 135 mm measurement gave 27° / 25° of lock, so it was not used.</td><td class="u k">Fitted</td></tr>
+        <tr><td>Front tie rod, outer joint</td><td>101 mm ahead of the ball joint axis, fitted to the published full lock. A rough 135 mm measurement gave 27° / 25° of lock, so it was not used.</td><td class="u k">Fitted</td></tr>
         <tr><th>Estimates</th><th></th><th></th></tr>
                 <tr><td>Unsprung mass per corner</td><td>32 kg</td><td class="u k">Estimate</td></tr>
         <tr><td>Front weight share</td><td>52 %</td><td class="u k">Estimate</td></tr>
@@ -297,7 +297,7 @@
 <script src="three.min.js"></script>
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=5b8c0312"></script>
-<script src="core.js?v=7219f528"></script>
-<script src="ui.js?v=d53ae216"></script>
+<script src="core.js?v=39a4fe32"></script>
+<script src="ui.js?v=516d27e8"></script>
 </body>
 </html>
