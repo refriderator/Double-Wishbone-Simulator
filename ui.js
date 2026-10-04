@@ -13,7 +13,7 @@ function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!
 function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
 let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="coen";}
 let model=makeModel(P), S=newState();
-const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0};
+const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
 const BODY_LIFT=0.038;      // the Assetto Corsa shell is a lowered car: raise it 38 mm on the wheels so it sits right at stock height (drawing only, no effect on the numbers)
 let bodyOn=true; try{bodyOn=localStorage.getItem("dws.body")!=="box";}catch(e){}      // 3D view: the car body, or the plain chassis box
@@ -53,22 +53,29 @@ function buildFields(host,groups,getObj,prefix,who,titleOf){
     host.appendChild(fsEl);
   }
 }
-/* The rear has no tie rod (its lower arm has two outer pivots, field "ee"); the front has no second outer pivot. */
-const geoFor=a=>GEO.filter(([t])=>!(a&&t==="TIE")).map(([t,fs])=>[t,fs.filter(f=>a||f[0]!=="ee")]);
+/* Which field groups each tab shows. The rear has no tie rod (its lower arm has two outer pivots, field "ee"); the front has no second outer pivot. */
+const GEO_TABS={geo:["Wishbones","Chassis pivots","Pivots fore-aft / 3D only","Upright","Alignment"],whl:["Wheel","TIRE","GRIP"],spr:["Coilover","Travel limits"]};
+const geoFor=(a,names)=>GEO.filter(([t])=>names.includes(t)).map(([t,fs])=>[t,fs.filter(f=>a||f[0]!=="ee")]);
+const TIRE_KINDS=[["street","Street"],["sport","Sporty street"],["semi","Semi-slick"]];
 function renderForms(){
-  const who=editAxle?"Rear: ":"Front: ";
-  buildFields($("geoFields"),geoFor(editAxle),()=>P.ax[editAxle].g,"g",who,t=>t==="TIE"?"Tie rod / to rack":t==="TIRE"?"Tire":t);
-  {const tf=$("geoFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div"), t=tireFromSize(P,editAxle);
+  const who=editAxle?"Rear: ":"Front: ", gObj=()=>P.ax[editAxle].g;
+  buildFields($("geoFields"),geoFor(editAxle,GEO_TABS.geo),gObj,"g",who);
+  buildFields($("whlFields"),geoFor(editAxle,GEO_TABS.whl),gObj,"g",who,t=>t==="TIRE"?"Tire":t==="GRIP"?"Tire grip / typical, not measured":t);
+  {const tf=$("whlFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div"), t=tireFromSize(P,editAxle);
    r2.className="rowbtns"; r2.innerHTML='<button class="btn" id="fitTire">Estimate from size</button>'; tf.appendChild(r2);
    const h2=document.createElement("p"); h2.className="hint";
    h2.textContent="Free radius "+(t.free*1000).toFixed(0)+" mm from the size. The button sets the rate from Rhyne's empirical formula and the loaded radius as free radius − static load ÷ rate. An estimate.";
    tf.appendChild(h2); $("fitTire").onclick=fitTire;}
-  const tie=$("geoFields").querySelector('fieldset[data-g="TIE"]');
-  if(tie){const row=document.createElement("div");
-    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
-    const th=document.createElement("p"); th.className="hint"; th.textContent="Moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
-    $("fitTie").onclick=fitTie;}
+  {const gf=$("whlFields").querySelector('fieldset[data-g="GRIP"]'), g=gObj(), row=document.createElement("div");
+   const cur=TIRE_KINDS.find(([k])=>Object.keys(TIRE_PRESETS[k]).every(q=>Math.abs(TIRE_PRESETS[k][q]-g[q])<1e-9));
+   row.className="f"; row.innerHTML='<label for="tireKind">Kind of tire</label><select id="tireKind" class="wide">'+(cur?"":'<option value="">Custom</option>')+TIRE_KINDS.map(([k,n])=>`<option value="${k}"${cur&&cur[0]===k?" selected":""}>${n}</option>`).join("")+'</select>';
+   gf.insertBefore(row,gf.children[1]);
+   const h3=document.createElement("p"); h3.className="hint";
+   h3.textContent="Picking a kind fills the five numbers with typical values. Tire makers do not publish these, so the size of a result is a guess; the direction of a change is more reliable.";
+   gf.appendChild(h3);
+   $("tireKind").onchange=()=>{const k=$("tireKind").value; if(k&&applyEdit(()=>{Object.assign(P.ax[editAxle].g,TIRE_PRESETS[k]);},"Tire grip set to typical "+TIRE_KINDS.find(q=>q[0]===k)[1].toLowerCase()+" values.")) renderForms();};}
   buildFields($("sprFields"),SPR,()=>P.ax[editAxle].s,"s",who);
+  buildFields($("sprGeoFields"),geoFor(editAxle,GEO_TABS.spr),gObj,"g",who,t=>t==="Coilover"?"Coilover mount":t);
   buildFields($("vehFields"),VEH,()=>P.veh,"v","");
   buildFields($("strFields"),[STEER[0],STEER[2]],()=>P.steer,"st","");
   const cf=$("strFields").querySelector('fieldset[data-g="Cut knuckles"]'), cc=document.createElement("label");
@@ -78,15 +85,20 @@ function renderForms(){
   cf.appendChild(ch);
   $("cut").checked=!!P.steer.cut;
   $("cut").onchange=()=>{const on=$("cut").checked; if(!applyEdit(()=>{P.steer.cut=on?1:0;},on?"Cut knuckles on.":"Cut knuckles off.")) $("cut").checked=!!P.steer.cut;};
-  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Cornering from steering");
+  buildFields($("tieFields"),GEO.filter(([t])=>t==="TIE"),()=>P.ax[0].g,"g","Front: ",()=>"Tie rod / to rack");
+  {const tie=$("tieFields").querySelector("fieldset"), row=document.createElement("div");
+   row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
+   const th=document.createElement("p"); th.className="hint"; th.textContent="The outer joint moves with the upright; the inner joint sits on the rack. The button moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
+   $("fitTie").onclick=fitTie;}
+  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Drive");
   const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
-  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Set lateral g from steering and speed'; lf.insertBefore(chk,lf.children[1]);
+  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Drive the car at this speed'; lf.insertBefore(chk,lf.children[1]);
   const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="Low-speed turn radius, no tire slip: lateral acceleration = speed² ÷ radius, capped at the grip limit."; lf.appendChild(hint);
+  hint.textContent="On: the tires make the side force from their slip angles, the car slides and yaws, and lateral g comes out of that. Off: you set lateral g on the Forces tab."; lf.appendChild(hint);
   $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; save(); syncLink();};
   buildHeights();
 }
-function syncLink(){const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; if(!on) $("ay").value=ayManual; readLoads();}
+function syncLink(){const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual; readLoads();}
 function applyEdit(fn,msg){
   const backup=JSON.stringify(P);
   try{fn(); model=makeModel(P); save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}
@@ -97,14 +109,14 @@ function fitTire(){
   if(applyEdit(()=>{const g=P.ax[editAxle].g; g.kt=kt; g.R=R;},"Tire set from its size: rate "+(kt/1000).toFixed(1)+" N/mm, loaded radius "+(R*1000).toFixed(1)+" mm.")) renderForms();
 }
 function fitTie(){
-  const nm=editAxle?"Rear":"Front"; let z;
-  try{z=Math.round(bestTieHeight(editAxle?P.ax[1].g:frontG(P),nm)*1e4)/1e4;}catch(e){setStatus(e.message,true); return;}
-  if(applyEdit(()=>{P.ax[editAxle].g.zti=z;},"Inner joint moved to "+(z*1000).toFixed(1)+" mm above ground. Check the toe curve.")) $("g-zti").value=fmtIn(z,1e-3);
+  let z;
+  try{z=Math.round(bestTieHeight(frontG(P),"Front")*1e4)/1e4;}catch(e){setStatus(e.message,true); return;}
+  if(applyEdit(()=>{P.ax[0].g.zti=z;},"Inner joint moved to "+(z*1000).toFixed(1)+" mm above ground. Check the toe curve.")) $("g-zti").value=fmtIn(z,1e-3);
 }
 
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["geo","spr","str","load","ht","veh"].forEach(t=>$("p-"+t).hidden=(t!==b.dataset.t));
+  ["geo","whl","spr","str","load","veh"].forEach(t=>$("p-"+t).hidden=(t!==b.dataset.t));
 }));
 document.querySelectorAll(".axleSel").forEach(sg=>sg.addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return; editAxle=+b.dataset.a;
@@ -171,6 +183,12 @@ $("sw").addEventListener("input",()=>setSw(+$("sw").value));
 $("swC").onclick=()=>setSw(0); $("swL").onclick=()=>setSw(-swMax()); $("swR").onclick=()=>setSw(swMax());
 const rackTarget=()=>Math.max(-P.steer.rmax,Math.min(P.steer.rmax,model.T[0].sgn*swDeg/360*P.steer.c));
 const swNow=()=>inp.rack/(model.T[0].sgn*P.steer.c)*360;
+$("ssGo").onclick=()=>{
+  const a=parseFloat($("ssA").value); if(!Number.isFinite(a)){setStatus("Step steer needs an angle in degrees.",true); return;}
+  if(!P.steer.link){P.steer.link=1; $("link").checked=true; save(); syncLink();}
+  setSw(0); inp.rack=0; inp.U=P.steer.speed; resettle(1.5); setSw(a);
+  setStatus("Step steer to "+sgnTxt(swDeg,0)+"° at "+(P.steer.speed*3.6).toFixed(0)+" km/h. The History panel shows the response.",false);
+};
 
 /* ---- heights ---- */
 function buildHeights(){
@@ -221,6 +239,9 @@ function refreshStatic(){
     one("Pitch gradient",fin(r.pitchGrad,2),"°/g")+
     one("Front lateral load transfer",(r.lltd*100).toFixed(1),"%")+
     one("CG above roll axis",mm(r.hp).toFixed(0),"mm")+
+    `<tr><td>Cornering limit, front / rear tires</td><td colspan="2" id="balLim">…</td><td class="u">g</td></tr>`+
+    `<tr><td>Runs out of grip first</td><td colspan="2" id="balEnd">…</td><td class="u"></td></tr>`+
+    `<tr><td>Understeer gradient, 0.2 to 0.4 g</td><td colspan="2" id="balK">…</td><td class="u">°/g</td></tr>`+
     one("Steering ratio on centre",r.ratio.toFixed(1),": 1")+
     one("Steering wheel, lock to lock",(2*r.swMax/360).toFixed(2),"turns")+
     one("Full lock, inner / outer wheel",r.lock.di.toFixed(1)+" / "+r.lock.dout.toFixed(1),"°")+
@@ -239,7 +260,25 @@ function refreshStatic(){
   $("pts").innerHTML=`<tr><th>mm</th><th>Ahead</th><th>From centre</th><th>Height</th></tr>`+pr("Lower ball joint",p.LBJ)+pr("Upper ball joint",p.UBJ)+pr("Wheel centre",p.WC)+pr("Contact patch",p.CP)+
     pr("Kingpin axis at ground",[T.kp[0],T.kp[1],0])+`<tr><td>Tie rod length</td><td colspan="3">${f(T.D.Lt)}</td></tr><tr><td>Steering arm length</td><td colspan="3">${f(T.D.arm)}</td></tr>`;
   const mx=swMax(), sw=$("sw"); sw.min=-mx; sw.max=mx; setSw(swDeg);
+  scheduleBalance();
   curveStatic();
+}
+/* Steady cornering sweep (core: balance). It takes a few tens of milliseconds, so it runs a moment after the last edit. */
+let BAL=null, balKey="", balTimer=0;
+function fillBalance(){
+  if(!$("balLim")) return;
+  if(!BAL){$("balLim").textContent=$("balEnd").textContent=$("balK").textContent="…"; return;}
+  const top=BAL.ay[BAL.ay.length-1], f=v=>Number.isFinite(v)?v.toFixed(2):"over "+top.toFixed(2), F=BAL.limF, R=BAL.limR;
+  $("balLim").textContent=f(F)+" / "+f(R);
+  $("balEnd").textContent=!Number.isFinite(F)&&!Number.isFinite(R)?"Neither, up to "+top.toFixed(2)+" g":
+    (Number.isFinite(F)&&(!Number.isFinite(R)||F<=R))?"Front: understeer"+(Number.isFinite(R)?", by "+(R-F).toFixed(2)+" g":""):"Rear: oversteer"+(Number.isFinite(F)?", by "+(F-R).toFixed(2)+" g":"");
+  $("balK").textContent=Number.isFinite(BAL.K)?sgnTxt(BAL.K,2)+(BAL.K>0.005?" (understeer)":BAL.K<-0.005?" (oversteer)":" (neutral)"):"–";
+}
+function scheduleBalance(){
+  const key=JSON.stringify([P.ax,P.veh,P.dh,P.steer.cut,P.steer.cutL,P.steer.rmax]);
+  if(key===balKey&&BAL){fillBalance(); return;}
+  BAL=null; fillBalance(); clearTimeout(balTimer);
+  balTimer=setTimeout(()=>{try{BAL=balance(model); balKey=key;}catch(e){BAL=null;} fillBalance(); if($("curveQ").value==="grip") curveStatic();},180);
 }
 
 /* ---- per-frame derived values shared by the views ---- */
@@ -482,31 +521,42 @@ const CURVES={
   rch:{x:"s",name:"Roll centre height",unit:"mm",dec:0,note:"For equal travel on both sides.",f:(T,s)=>lk1(T,T.rch,s)*1000},
   rw:{x:"sw",name:"Road-wheel angle",unit:"°",dec:1,note:"+ = steered right.",f:(T,st,r,side)=>side*lk2(T,T.steer,st,side*r)},
   camS:{x:"sw",name:"Camber",unit:"°",dec:2,note:"Camber is relative to the body here.",f:(T,st,r,side)=>lk2(T,T.cam,st,side*r)},
-  lift:{x:"sw",name:"Body lift",unit:"mm",dec:1,note:"+ = steering pushes that corner of the body up (caster and kingpin inclination).",f:(T,st,r,side)=>(lk2(T,T.sa,st,side*r)-st)*1000}
+  lift:{x:"sw",name:"Body lift",unit:"mm",dec:1,note:"+ = steering pushes that corner of the body up (caster and kingpin inclination).",f:(T,st,r,side)=>(lk2(T,T.sa,st,side*r)-st)*1000},
+  grip:{x:"ay",name:"Grip in use",unit:"%",dec:0,note:"The axle whose line reaches 100 % first sets the limit. Front first is understeer, rear first is oversteer. Tire grip numbers are typical values."}
 };
-function curveEval(C,xv,side){   // xv: travel in mm, or steering-wheel angle in degrees; side: -1 left, +1 right
+const SERIES={sw:["Left wheel","Right wheel","L ","R "],ay:["Front axle","Rear axle","F ","R "]};
+const ayNow=()=>Math.abs(P.steer.link?S.ay:inp.ay);
+function balAt(arr,ay){if(!BAL||!BAL.ay.length) return 0; const n=BAL.ay.length, x=Math.max(0,Math.min(n-1,ay/0.05)), i=Math.min(n-2,Math.floor(x)); return n<2?arr[0]:arr[i]+(arr[i+1]-arr[i])*(x-i);}
+function curveEval(C,xv,side){   // xv: travel in mm, steering-wheel angle in degrees, or lateral g; side: -1 left (or front axle), +1 right (or rear axle)
   if(C.x==="s") return C.f(model.T[viewAxle],xv/1000);
+  if(C.x==="ay") return BAL?balAt(side===-1?BAL.uF:BAL.uR,xv)*100:0;
   const T=model.T[0]; return C.f(T,model.st[side===-1?0:1],T.sgn*xv/360*P.steer.c,side);
 }
 function curveDomain(C){
   if(C.x==="s"){const g=P.ax[viewAxle].g; return [-g.droop*1000,g.bump*1000];}
+  if(C.x==="ay") return [0,BAL&&BAL.ay.length>1?BAL.ay[BAL.ay.length-1]:1];
   const mx=P.steer.rmax/P.steer.c*360; return [-mx,mx];
 }
 function curveStatic(){
-  const C=CURVES[$("curveQ").value], two=C.x==="sw", d=curveDomain(C), v=(xv,side)=>num(curveEval(C,xv,side),C.dec)+unitTxt(C.unit);
-  $("curveLg").innerHTML=two?'<span><i class="k1"></i>Left wheel</span><span><i class="k2"></i>Right wheel</span>'
+  const C=CURVES[$("curveQ").value], kind=C.x, two=kind!=="s", d=curveDomain(C), v=(xv,side)=>num(curveEval(C,xv,side),C.dec)+unitTxt(C.unit);
+  $("curveLg").innerHTML=two?'<span><i class="k1"></i>'+SERIES[kind][0]+'</span><span><i class="k2"></i>'+SERIES[kind][1]+'</span>'
     :'<span><i></i>'+(viewAxle?"Rear":"Front")+' axle, both sides</span><span><i class="m1"></i>Left wheel now</span><span><i class="m2"></i>Right wheel now</span>';
-  const xl=x=>two?sgnTxt(x,0)+"°":sgnTxt(x,0)+" mm";
-  const pos=two?[["Full left ("+xl(d[0])+")",d[0]],["Centre",0],["Full right ("+xl(d[1])+")",d[1]]]:[["Full droop ("+xl(d[0])+")",d[0]],["Design height",0],["Full bump ("+xl(d[1])+")",d[1]]];
-  let t=two?`<tr><th>${C.name}</th><th>Left wheel</th><th>Right wheel</th></tr>`:`<tr><th>${C.name}</th><th>${viewAxle?"Rear":"Front"} axle</th></tr>`;
-  for(const [lab,xv] of pos) t+=two?`<tr><td>${lab}</td><td>${v(xv,-1)}</td><td>${v(xv,1)}</td></tr>`:`<tr><td>${lab}</td><td>${v(xv,1)}</td></tr>`;
+  const xl=x=>kind==="sw"?sgnTxt(x,0)+"°":sgnTxt(x,0)+" mm";
+  let pos;
+  if(kind==="sw") pos=[["Full left ("+xl(d[0])+")",d[0]],["Centre",0],["Full right ("+xl(d[1])+")",d[1]]];
+  else if(kind==="ay"){const lim=BAL?Math.min(Number.isFinite(BAL.limF)?BAL.limF:9,Number.isFinite(BAL.limR)?BAL.limR:9):9;
+    pos=[["At 0.30 g",0.3],["At 0.60 g",0.6]].filter(q=>q[1]<=d[1]); if(lim<9) pos.push(["At the limit, "+lim.toFixed(2)+" g",lim]);}
+  else pos=[["Full droop ("+xl(d[0])+")",d[0]],["Design height",0],["Full bump ("+xl(d[1])+")",d[1]]];
+  let t=two?`<tr><th>${C.name}</th><th>${SERIES[kind][0]}</th><th>${SERIES[kind][1]}</th></tr>`:`<tr><th>${C.name}</th><th>${viewAxle?"Rear":"Front"} axle</th></tr>`;
+  if(kind==="ay"&&!BAL) t+=`<tr><td>Working it out</td><td>…</td><td>…</td></tr>`;
+  else for(const [lab,xv] of pos) t+=two?`<tr><td>${lab}</td><td>${v(xv,-1)}</td><td>${v(xv,1)}</td></tr>`:`<tr><td>${lab}</td><td>${v(xv,1)}</td></tr>`;
   $("curveTbl").innerHTML=t;
-  $("curveHint").textContent=(two?"Front axle at its static ride height. The markers show the current steering angle. ":"Same axle as the rear view. Travel is measured at the contact patch. The markers show where each wheel is now. ")+C.note;
+  $("curveHint").textContent=(kind==="sw"?"Front axle at its static ride height. The markers show the current steering angle. ":kind==="ay"?"The car is settled at each lateral g and each axle's side force is compared with the most its tires can make. The markers show the lateral g now. ":"Same axle as the rear view. Travel is measured at the contact patch. The markers show where each wheel is now. ")+C.note;
 }
 $("curveQ").addEventListener("change",curveStatic);
 function drawCurve(){
   const c=cvs.curve, x=ctx2(c), w=Wd(c), h=Hd(c); x.clearRect(0,0,w,h);
-  const C=CURVES[$("curveQ").value], two=C.x==="sw", d=curveDomain(C), N=96, sides=two?[-1,1]:[1], ys=sides.map(()=>[]);
+  const C=CURVES[$("curveQ").value], kind=C.x, two=kind!=="s", d=curveDomain(C), N=96, sides=two?[-1,1]:[1], ys=sides.map(()=>[]);
   let lo=Infinity, hi=-Infinity;
   for(let k=0;k<=N;k++){const xv=d[0]+(d[1]-d[0])*k/N; sides.forEach((sd,j)=>{const y=curveEval(C,xv,sd); ys[j].push(y); if(y<lo)lo=y; if(y>hi)hi=y;});}
   const minSpan=Math.pow(10,-C.dec)*4; if(hi-lo<minSpan){const m=(hi+lo)/2; lo=m-minSpan/2; hi=m+minSpan/2;}
@@ -518,15 +568,16 @@ function drawCurve(){
   for(const t of ty){x.beginPath(); x.moveTo(Lm,Y(t)); x.lineTo(w-Rm,Y(t)); x.stroke(); x.fillText(tickTxt(t,ty.step),Lm-6,Y(t)+6);}
   x.textAlign="center";
   for(const t of tx){x.beginPath(); x.moveTo(X(t),Tm); x.lineTo(X(t),h-Bm); x.stroke(); x.fillText(tickTxt(t,tx.step),X(t),h-Bm+18);}
-  x.textAlign="left"; x.fillText(two?"STEERING WHEEL ° / + RIGHT":"WHEEL TRAVEL mm / + BUMP",Lm,h-6);
+  x.textAlign="left"; x.fillText(kind==="sw"?"STEERING WHEEL ° / + RIGHT":kind==="ay"?"LATERAL g":"WHEEL TRAVEL mm / + BUMP",Lm,h-6);
   x.fillText(C.name.toUpperCase()+(C.unit?" "+C.unit:""),0,16);                    // the y-axis title sits above the plot, flush left
   x.strokeStyle=COL.edge; x.beginPath(); x.moveTo(X(0),Tm); x.lineTo(X(0),h-Bm); x.stroke();
+  if(kind==="ay"&&hi>100){x.setLineDash([3,4]); x.beginPath(); x.moveTo(Lm,Y(100)); x.lineTo(w-Rm,Y(100)); x.stroke(); x.setLineDash([]); x.fillStyle=COL.dim; x.textAlign="right"; x.fillText("LIMIT",w-Rm-2,Y(100)-5); x.textAlign="left";}
   const cols=two?[COL.vinyl,COL.ice]:[COL.vinyl];
   ys.forEach((arr,j)=>{x.strokeStyle=cols[j]; x.lineWidth=2; x.setLineDash(j?DASH:[]); x.beginPath(); arr.forEach((v,k)=>{const px=X(d[0]+(d[1]-d[0])*k/N), py=Y(v); k?x.lineTo(px,py):x.moveTo(px,py);}); x.stroke(); x.setLineDash([]);});
   // where each wheel is now: a disc for the left wheel, a square for the right
   const dots=[-1,1].map((sd,j)=>{
-    const xv=two?swNow():Math.max(d[0],Math.min(d[1],(S.out[viewAxle*2+j].s||0)*1000)), cx=Math.max(d[0],Math.min(d[1],xv));
-    return {px:X(cx),py:Y(curveEval(C,cx,sd)),v:curveEval(C,cx,sd),col:j?COL.ice:COL.vinyl,tag:j?"R ":"L "};
+    const xv=kind==="sw"?swNow():kind==="ay"?ayNow():Math.max(d[0],Math.min(d[1],(S.out[viewAxle*2+j].s||0)*1000)), cx=Math.max(d[0],Math.min(d[1],xv));
+    return {px:X(cx),py:Y(curveEval(C,cx,sd)),v:curveEval(C,cx,sd),col:j?COL.ice:COL.vinyl,tag:two?SERIES[kind][2+j]:(j?"R ":"L ")};
   });
   dots.forEach((q,j)=>{x.fillStyle=q.col; x.strokeStyle=COL.glass; x.lineWidth=2; x.beginPath(); if(j) x.rect(q.px-5,q.py-5,10,10); else x.arc(q.px,q.py,5.5,0,7); x.fill(); x.stroke();});
   x.fillStyle=COL.vinyl;
@@ -541,22 +592,23 @@ function drawCurve(){
     const k=Math.max(0,Math.min(N,Math.round((hx-Lm)/(w-Lm-Rm)*N))), xv=d[0]+(d[1]-d[0])*k/N, px=X(xv);
     x.strokeStyle=COL.dim; x.lineWidth=1; x.beginPath(); x.moveTo(px,Tm); x.lineTo(px,h-Bm); x.stroke();
     ys.forEach((arr,j)=>{x.fillStyle=cols[j]; x.strokeStyle=COL.glass; x.lineWidth=2; x.beginPath(); x.arc(px,Y(arr[k]),4,0,7); x.fill(); x.stroke();});
-    const u=unitTxt(C.unit), rows=two?[["k1","Left wheel",num(ys[0][k],C.dec)+u],["k2","Right wheel",num(ys[1][k],C.dec)+u]]:[["",C.name,num(ys[0][k],C.dec)+u]];
-    const title=two?"Steering "+sgnTxt(xv,0)+"°":"Travel "+sgnTxt(xv,1)+" mm";
+    const u=unitTxt(C.unit), rows=two?[["k1",SERIES[kind][0],num(ys[0][k],C.dec)+u],["k2",SERIES[kind][1],num(ys[1][k],C.dec)+u]]:[["",C.name,num(ys[0][k],C.dec)+u]];
+    const title=kind==="sw"?"Steering "+sgnTxt(xv,0)+"°":kind==="ay"?"Lateral "+xv.toFixed(2)+" g":"Travel "+sgnTxt(xv,1)+" mm";
     setTip($("curveTip"),title+"|"+rows.map(r=>r[2]).join("|"),title,rows,px,w);
   } else setTip($("curveTip"),null);
 }
 
 /* ---- history: fixed 6 s of simulated time, sampled at 100 Hz ---- */
-const HN=600, HS=8, HWIN=6, hist=new Float32Array(HN*HS); let hCount=0, hHead=0, hAcc=0;
+const HN=600, HS=10, HWIN=6, hist=new Float32Array(HN*HS); let hCount=0, hHead=0, hAcc=0;
 function histClear(){hCount=0; hHead=0; hAcc=0;}
 function histPush(){
   const o=hHead*HS; hist[o]=S.t; hist[o+1]=S.ph/D2R; hist[o+2]=S.th/D2R; hist[o+3]=S.z*1000;
   for(let i=0;i<4;i++) hist[o+4+i]=S.out[i].Ft||0;
+  hist[o+8]=S.ay; hist[o+9]=S.r/D2R;
   hHead=(hHead+1)%HN; if(hCount<HN) hCount++;
 }
 const hIdx=j=>((hHead-hCount+j+HN)%HN)*HS;
-const HROWS=[{name:"Roll",unit:"°",cols:[1],sym:true,min:0.05,dec:2},{name:"Pitch",unit:"°",cols:[2],sym:true,min:0.05,dec:2},{name:"Heave",unit:"mm",cols:[3],sym:true,min:1,dec:1},
+const HROWS=[{name:"Lat g",unit:"g",cols:[8],sym:true,min:0.05,dec:2},{name:"Yaw rate",unit:"°/s",cols:[9],sym:true,min:1,dec:1},{name:"Roll",unit:"°",cols:[1],sym:true,min:0.05,dec:2},{name:"Pitch",unit:"°",cols:[2],sym:true,min:0.05,dec:2},{name:"Heave",unit:"mm",cols:[3],sym:true,min:1,dec:1},
              {name:"Front load",unit:"N",cols:[4,5],min:200,dec:0},{name:"Rear load",unit:"N",cols:[6,7],min:200,dec:0}];
 function drawHist(){
   const c=cvs.hist, x=ctx2(c), w=Wd(c), h=Hd(c); x.clearRect(0,0,w,h);
@@ -588,34 +640,40 @@ function drawHist(){
   if(hk>=0){
     const o=hIdx(hk), px=X(hist[o]); x.strokeStyle=COL.dim; x.lineWidth=1; x.beginPath(); x.moveTo(px,2); x.lineTo(px,h-Bm); x.stroke();
     const title=(t1-hist[o]<0.005?"Now":"−"+(t1-hist[o]).toFixed(2)+" s");
-    const rows=[["","Roll",num(hist[o+1],2)+"°"],["","Pitch",num(hist[o+2],2)+"°"],["","Heave",num(hist[o+3],1)+" mm"],["k1","FL load",hist[o+4].toFixed(0)+" N"],["k2","FR load",hist[o+5].toFixed(0)+" N"],["k1","RL load",hist[o+6].toFixed(0)+" N"],["k2","RR load",hist[o+7].toFixed(0)+" N"]];
+    const rows=[["","Lat g",num(hist[o+8],2)+" g"],["","Yaw rate",num(hist[o+9],1)+"°/s"],["","Roll",num(hist[o+1],2)+"°"],["","Pitch",num(hist[o+2],2)+"°"],["","Heave",num(hist[o+3],1)+" mm"],["k1","FL load",hist[o+4].toFixed(0)+" N"],["k2","FR load",hist[o+5].toFixed(0)+" N"],["k1","RL load",hist[o+6].toFixed(0)+" N"],["k2","RR load",hist[o+7].toFixed(0)+" N"]];
     setTip($("histTip"),title+"|"+rows.map(r=>r[2]).join("|"),title,rows,px,w);
   } else setTip($("histTip"),null);
 }
 function histTable(){
-  const lab=["Roll","Pitch","Heave","FL tire load","FR tire load","RL tire load","RR tire load"], un=["°","°","mm","N","N","N","N"], dec=[2,2,1,0,0,0,0];
-  const t0=S.t-HWIN, lo=new Array(7).fill(Infinity), hi=new Array(7).fill(-Infinity);
-  for(let j=0;j<hCount;j++){const o=hIdx(j); if(hist[o]<t0) continue; for(let k=0;k<7;k++){const v=hist[o+1+k]; if(v<lo[k])lo[k]=v; if(v>hi[k])hi[k]=v;}}
+  const col=[8,9,1,2,3,4,5,6,7], lab=["Lateral g","Yaw rate","Roll","Pitch","Heave","FL tire load","FR tire load","RL tire load","RR tire load"], un=["g","°/s","°","°","mm","N","N","N","N"], dec=[2,1,2,2,1,0,0,0,0], n=col.length;
+  const t0=S.t-HWIN, lo=new Array(n).fill(Infinity), hi=new Array(n).fill(-Infinity);
+  for(let j=0;j<hCount;j++){const o=hIdx(j); if(hist[o]<t0) continue; for(let k=0;k<n;k++){const v=hist[o+col[k]]; if(v<lo[k])lo[k]=v; if(v>hi[k])hi[k]=v;}}
   let t=`<tr><th>Over the last 6 s</th><th>Min</th><th>Max</th><th></th></tr>`;
-  for(let k=0;k<7;k++) t+=`<tr><td>${lab[k]}</td><td>${hi[k]>=lo[k]?num(lo[k],dec[k]):"–"}</td><td>${hi[k]>=lo[k]?num(hi[k],dec[k]):"–"}</td><td class="u">${un[k]}</td></tr>`;
+  for(let k=0;k<n;k++) t+=`<tr><td>${lab[k]}</td><td>${hi[k]>=lo[k]?num(lo[k],dec[k]):"–"}</td><td>${hi[k]>=lo[k]?num(hi[k],dec[k]):"–"}</td><td class="u">${un[k]}</td></tr>`;
   $("histTbl").innerHTML=t;
 }
 
 /* ---- telemetry ---- */
 function drawTele(){
-  let t=`<tr><th>Corner</th><th>Body Δh</th><th>Travel</th><th>Tire load</th><th>Camber to road</th><th>Steer, + right</th><th>Damper</th></tr>`, tot=0; const F=[];
+  let t=`<tr><th>Corner</th><th>Body Δh</th><th>Travel</th><th>Tire load</th><th>Camber to road</th><th>Steer, + right</th><th>Slip angle</th><th>Grip in use</th><th>Damper</th></tr>`, tot=0; const F=[];
+  const drive=!!P.steer.link, q=drive?null:gripNow(model,S,inp.ay);
   for(let i=0;i<4;i++){
     const o=S.out[i], zc=S.z+model.xs[i]*S.th+model.ys[i]*S.ph; F[i]=o.Ft||0; tot+=F[i];
-    t+=`<tr><td>${CN[i]}</td><td>${num(zc*1000,1)} mm</td><td>${num((o.s||0)*1000,1)} mm</td><td>${F[i]<1?"LIFTED":F[i].toFixed(0)+" N"}</td><td>${num(FR.cam[i],2)}°</td><td>${num(FR.steer[i],2)}°</td><td>${num((o.vd||0)*1000,0)} mm/s</td></tr>`;
+    const slip=drive?(o.slip||0):q.tire[i].slip, used=drive?(o.used||0):q.tire[i].used;
+    t+=`<tr><td>${CN[i]}</td><td>${num(zc*1000,1)} mm</td><td>${num((o.s||0)*1000,1)} mm</td><td>${F[i]<1?"LIFTED":F[i].toFixed(0)+" N"}</td><td>${num(FR.cam[i],2)}°</td><td>${num(FR.steer[i],2)}°</td><td>${num(slip,1)}°</td><td>${F[i]<1?"–":(used*100).toFixed(0)+" %"}</td><td>${num((o.vd||0)*1000,0)} mm/s</td></tr>`;
   }
   const si=FR.si, turning=Math.abs(si.kra)>1e-4;
-  t+=`<tr><td colspan="3">Cross weight (FL + RR)</td><td>${tot>0?((F[0]+F[3])/tot*100).toFixed(1):"–"} %</td><td colspan="3">TOTAL ${tot.toFixed(0)} N</td></tr>`;
-  $("teleNote").textContent=turning?"Steering "+(si.kra>0?"right":"left")+": inner wheel "+si.di.toFixed(1)+"°, outer "+si.dout.toFixed(1)+"°"+(Number.isFinite(si.ack)?", Ackermann "+si.ack.toFixed(0)+" %":"")+", low-speed turn radius "+si.R.toFixed(1)+" m.":"Steering straight ahead.";
+  t+=`<tr><td colspan="3">Cross weight (FL + RR)</td><td>${tot>0?((F[0]+F[3])/tot*100).toFixed(1):"–"} %</td><td colspan="5">TOTAL ${tot.toFixed(0)} N</td></tr>`;
+  let note=turning?"Steering "+(si.kra>0?"right":"left")+": inner wheel "+si.di.toFixed(1)+"°, outer "+si.dout.toFixed(1)+"°"+(Number.isFinite(si.ack)?", Ackermann "+si.ack.toFixed(0)+" %":"")+", low-speed turn radius "+si.R.toFixed(1)+" m.":"Steering straight ahead.";
+  if(!drive){const over=["Front","Rear"].filter((n,k)=>q.ax[k].used>1); if(over.length) note+=" "+over.join(" and ")+" tires cannot make "+Math.abs(inp.ay).toFixed(2)+" g: past the grip limit.";
+    else if(Math.abs(inp.ay)>0.005) note+=" Slip angle and grip in use are what the tires need to hold "+Math.abs(inp.ay).toFixed(2)+" g, steering centred.";}
+  $("teleNote").textContent=note;
   $("tele").innerHTML=t;
-  const ayK=P.steer.speed*P.steer.speed*si.kay/G;
+  const U=P.steer.speed, ayK=U*U*si.kay/G, kmh=(U*3.6).toFixed(0);
   $("steerOut").innerHTML=`<tr><th>Front wheels now</th><th></th></tr><tr><td>Left wheel</td><td>${num(si.dL,2)}°</td></tr><tr><td>Right wheel</td><td>${num(si.dR,2)}°</td></tr>`+
     `<tr><td>Ackermann</td><td>${Number.isFinite(si.ack)?si.ack.toFixed(0)+" %":"–"}</td></tr><tr><td>Turn radius, low speed</td><td>${Number.isFinite(si.R)&&turning?si.R.toFixed(1)+" m":"–"}</td></tr>`+
-    `<tr><td>Lateral g at ${(P.steer.speed*3.6).toFixed(0)} km/h, no slip</td><td>${Math.abs(ayK)>P.steer.grip?num(Math.sign(ayK)*P.steer.grip,2)+" g / GRIP LIMIT":num(ayK,2)+" g"}</td></tr>`;
+    (drive?`<tr><td>Lateral g at ${kmh} km/h</td><td>${num(S.ay,2)} g</td></tr><tr><td>Yaw rate</td><td>${num(S.r/D2R,1)}°/s</td></tr><tr><td>Car's slide angle, + = nose into the turn</td><td>${num(-Math.sign(S.r||1)*Math.atan2(S.vy,U)/D2R,1)}°</td></tr><tr><td>Lateral g if the tires did not slip</td><td>${num(ayK,2)} g</td></tr>`
+          :`<tr><td>Lateral g at ${kmh} km/h if the tires did not slip</td><td>${num(ayK,2)} g</td></tr>`);
   histTable();
 }
 
@@ -632,13 +690,15 @@ function frame(now){
   if(running){
     stepAcc+=dtF*speed/DT; const n=Math.min(1200,Math.floor(stepAcc)); stepAcc-=Math.floor(stepAcc);
     const tgt=rackTarget(), rr=900/360*P.steer.c*DT;
-    if(P.steer.link){const si=steerInfo(model,inp.rack,S.out[0].s||0,S.out[1].s||0); inp.ay=Math.max(-P.steer.grip,Math.min(P.steer.grip,P.steer.speed*P.steer.speed*si.kay/G));}
+    inp.U=P.steer.link?P.steer.speed:0;
     for(let k=0;k<n;k++){
       const d=tgt-inp.rack; inp.rack+=d>rr?rr:(d<-rr?-rr:d);
       step(model,S,inp,DT,0);
       if(++hAcc>=40){hAcc=0; histPush();}
     }
-    if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
+    if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centred.",true);}
+    else if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
+    if(P.steer.link) inp.ay=S.ay;
   }
   computeFrame();
   $("hRoll").textContent=num(S.ph/D2R,2)+"°"; $("hPitch").textContent=num(S.th/D2R,2)+"°"; $("hHeave").textContent=num(S.z*1000,1)+" mm";

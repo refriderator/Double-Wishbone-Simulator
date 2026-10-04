@@ -5,49 +5,43 @@
 const G=9.81, D2R=Math.PI/180;
 
 /* Two cars, both a Mazda MX-5 / Roadster NB 1.8 (NB8C): STOCK (as Mazda built it) and COEN'S (the one this tool was built for).
-   The Stock / Coen's buttons on the page load them. Both use the same arms, pivots and rack; Coen's changes the wheels, tires,
-   alignment, springs, dampers, ride height and the travel limits. Source of each number:
+   The Stock / Coen's buttons on the page load them. Both use the same arms, pivots and rack. Source of each number:
    PUBLISHED by Mazda: wheelbase 2265 mm, track 1415 / 1440 mm, mass 1030 kg, front camber 0°02', caster 5°40', kingpin 11°39',
      caster trail 17.5 mm, rear camber -0°42', toe-in 3 mm total per axle, roll centre height 41 / 120 mm, wheel stroke 82 bump / 93 droop
-     (front) and 80 / 96 (rear), springs 2.9 / 2.1 kgf/mm, damper forces at 0.1 and 0.3 m/s (62 / 115 kgf rebound, 35 / 57 kgf bump front,
-     35 / 77 kgf bump rear), rack stroke 121 mm, 2.6 turns lock to lock, full lock 38° inner / 33° outer.
-     Wheels 15x6JJ +40 and 195/50R15 tires at 180 kPa.
-   MEASURED by others: spring motion ratios 0.686 / 0.721 (owner measurement on a 2000 car); static stability factor 1.59 (NHTSA),
-     which puts the whole car's CG 449 mm above the ground.
-   FROM THE NA DRAWING VALUES this file already had: front lower pivots 656 mm apart, upper pivots 756 mm apart, lower arm 350 mm,
-     upper pivots 183 mm above the lower ones. Mazda lowered the lower pivots 5.8 mm for the NB, which makes it 188.8 mm.
-   FROM A BUSHING-KIT DRAWING of the four arms seen from above (scale 1.21 mm per drawing pixel, set by the front arms, whose
-     sideways lengths the drawing and this file agree on; the same scale is assumed for the rear arms): the rear lower arm reaches
-     386 mm sideways with inner pivots 306 mm apart and two outer pivots 132 mm apart; the rear upper arm reaches 186 mm sideways
-     with inner pivots 142 mm apart, centred on its outer end.
-   FITTED so the model reproduces the published numbers (none of these is published): pivot heights above ground, front upper arm
-     length (261 mm, not 250), upright lengths, spindle and hub-face positions, kingpin offset, tie-rod joints, coilover mount
-     positions. Rear: the two sideways lengths above are kept; the rear pivot positions, hub face and damper top mount are then
-     fitted to the 120 mm roll centre, 1440 mm track and 0.721 motion ratio. The lower ball joint is assumed 160 mm above the ground.
-   ESTIMATES: unsprung mass, roll and pitch inertia, tire rate, anti-roll bar rates, front weight share, grip limit.
+     (front) and 80 / 96 (rear), springs 2.9 / 2.1 kgf/mm, damper forces at 0.1 and 0.3 m/s, rack stroke 121 mm, 2.6 turns lock to
+     lock, full lock 38° inner / 33° outer.
+   MEASURED on the parts: front arms (lower 336.6 mm, upper 250 mm), front knuckle (ball joints 120.7 mm above and 92.1 mm below the
+     axle, lower joint 88.9 mm from the wheel face), rear chassis pivots (lower 243.9 mm and upper 387.3 mm from the centreline,
+     192.1 mm apart in height), rear arms (lower 393.7 mm, upper 212.7 mm).
+   MEASURED by others: spring motion ratios 0.686 / 0.721; static stability factor 1.59 (NHTSA), CG 449 mm for the whole car.
+   FITTED so the model reproduces the published numbers: front inner pivot positions, all pivot heights, rear upright (240 mm),
+     spindle and hub-face positions, tie-rod joints, rack height (zero bump steer), coilover mount positions.
+   ESTIMATES: unsprung mass, roll, pitch and yaw inertia, tire rate, anti-roll bar rates, front weight share, and every tire grip
+     number (typical values for the kind of tire, not measured).
    The Miata has no rear toe link. Its rear lower arm has two outer pivots; the model draws the arm as two legs (front leg to the
    ball joint, rear leg to a second outer point ee behind it) and the rear leg holds the toe, so no rear tie-rod numbers are used.
-   COEN'S car, on top of stock: 8 / 6 kgf/mm springs with dampers scaled up by the square root of the spring ratio (a guess, his
-   real dampers are stiffer by an unknown amount), 15x7 +40 wheels, 185/50R15 tires at 240 kPa (loaded radius 265 mm, 235 N/mm, as he
-   entered them), front camber -4°, caster 4.5°, toe -0.1°, rear camber -1.5°, front tie-rod inner joint 180.2 mm, travel limits
-   100 / 120 mm front and 90 / 105 mm rear, ride height -2 mm front and -20 mm rear. */
+   COEN'S car, on top of stock: 8 / 6 kgf/mm springs with dampers scaled up by the square root of the spring ratio (a guess),
+   15x7 ET35 wheels with 30 / 12 mm spacers, 185/45R15 tires, alignment held at ride height (front camber -4.67°, caster 3°,
+   toe -0.5°; rear camber -3.17°, toe 0°), rack 6.8 mm higher, ride height -26 mm front and -38 mm rear. */
 function stockCar(){
   return {
-    veh:{M:902,mu:32,L:2.265,wf:0.523,h:0.474,Ixx:260,Iyy:1050},
-    steer:{c:0.0465,rmax:0.0605,speed:60/3.6,grip:0.9,link:0,cut:0,cutL:0.020},
+    veh:{M:902,mu:32,L:2.265,wf:0.523,h:0.474,Ixx:260,Iyy:1050,Izz:1400},
+    steer:{c:0.0465,rmax:0.0605,speed:60/3.6,link:0,cut:0,cutL:0.020},
     ax:[
-      {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
+      {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
           xto:0.0987,yto:0.6846,zto:0.215,xti:0.0987,yti:0.3609,zti:0.2002,fMount:0.777,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
-      {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:-0.7,caster:0,toe:0.15,kt:185000,
+      {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,cam0:-0.7,caster:0,toe:0.15,kt:185000,
           xto:-0.132,yto:0.6464,zto:0.1675,xti:-0.215,yti:0.2596,zti:0.185,fMount:0.8735,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
        s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0]
   };
 }
+/* Typical grip numbers for three kinds of tire. None of them is measured data. */
+const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
-       for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000});
+       for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000},TIRE_PRESETS.sport);
        Object.assign(P.ax[0].g,{cam0:-4.0037,caster:3,toe:-0.9703,zti:0.207,sp:0.030});
        Object.assign(P.ax[1].g,{cam0:-1.9437,toe:0,sp:0.012});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
@@ -64,6 +58,8 @@ const GEO=[
   ["Upright",[["hsp","Spindle height above lower ball joint","mm",1e-3,5,0,500],["hf","Hub face outboard of kingpin","mm",1e-3,5,0,400],["xk","Wheel centre ahead of kingpin axis, side view","mm",1e-3,1,-60,60]]],
   ["Wheel",[["rimD","Rim diameter","in",0.0254,1,10,22],["rimW","Rim width","in",0.0254,0.5,4,12],["et","Offset (ET), + = wheel centre inboard of hub face","mm",1e-3,1,-60,90],["sp","Wheel spacer, pushes the wheel outboard","mm",1e-3,1,0,100]]],
   ["TIRE",[["tw","Section width","mm",1e-3,5,125,355],["ar","Aspect ratio","%",1e-2,5,25,85],["pk","Pressure","kPa",1e3,5,100,350],["R","Loaded radius","mm",1e-3,5,150,500],["kt","Vertical rate","N/mm",1e3,10,50,1000]]],
+  ["GRIP",[["tmu","Peak grip at 2.5 kN of load","",1,0.05,0.3,2.5],["tls","Grip lost per kN of extra load","/kN",1e-3,0.01,0,0.2],["tca","Cornering stiffness, share of load per degree of slip","/°",1,0.01,0.05,0.6],
+           ["tcg","Camber thrust, share of load per degree","/°",1,0.001,0,0.06],["tgo","Camber into the turn that gives the most grip","°",1,0.5,0,8]]],
   ["Alignment",[["cam0","Static camber","°",1,0.1,-10,10],["caster","Caster","°",1,0.5,-5,20],["toe","Static toe per wheel, + = toe-in","°",1,0.05,-5,5]]],
   ["TIE",[["xto","Outer joint, ahead of axle (− = behind)","mm",1e-3,5,-400,400],["yto","Outer joint, from centreline","mm",1e-3,5,100,1100],["zto","Outer joint, above ground","mm",1e-3,5,20,800],["xti","Inner joint, ahead of axle (− = behind)","mm",1e-3,5,-500,500],["yti","Inner joint, from centreline","mm",1e-3,5,0,800],["zti","Inner joint, above ground","mm",1e-3,0.1,20,800]]],
   ["Coilover",[["fMount","Mount on lower arm (fraction from inner pivot)","",1,0.05,0.2,1],["ydm","Top mount, from centreline","mm",1e-3,5,0,900],["zdm","Top mount, above ground","mm",1e-3,5,100,1200]]],
@@ -75,12 +71,12 @@ const SPR=[
   ["Damper / rebound",[["crl","Low-speed slope","N·s/m",1,100,0,20000],["crh","High-speed slope","N·s/m",1,100,0,20000],["vkr","Knee speed","mm/s",1e-3,10,5,1000]]]
 ];
 const VEH=[
-  ["Mass",[["M","Sprung mass","kg",1,10,100,5000],["mu","Unsprung mass per corner","kg",1,1,10,150],["Ixx","Roll inertia about the CG (sprung)","kg·m²",1,10,20,3000],["Iyy","Pitch inertia about the CG (sprung)","kg·m²",1,10,100,15000]]],
+  ["Mass",[["M","Sprung mass","kg",1,10,100,5000],["mu","Unsprung mass per corner","kg",1,1,10,150],["Ixx","Roll inertia about the CG (sprung)","kg·m²",1,10,20,3000],["Iyy","Pitch inertia about the CG (sprung)","kg·m²",1,10,100,15000],["Izz","Yaw inertia about the CG (whole car)","kg·m²",1,10,200,15000]]],
   ["Layout",[["L","Wheelbase","mm",1e-3,10,1000,5000],["wf","Front weight share","%",1e-2,0.5,20,80],["h","CG height at design ride height","mm",1e-3,5,100,1500]]]
 ];
 const STEER=[
   ["Rack",[["c","Rack travel per steering-wheel turn","mm",1e-3,1,20,150],["rmax","Rack travel each way","mm",1e-3,1,10,120]]],
-  ["SPEED",[["speed","Speed","km/h",1/3.6,5,5,250],["grip","Grip limit","g",1,0.05,0.3,2.5]]],
+  ["SPEED",[["speed","Speed","km/h",1/3.6,5,5,250]]],
   ["Cut knuckles",[["cutL","Steering arm shortened by","mm",1e-3,1,0,60]]]
 ];
 function check(P){
@@ -309,7 +305,7 @@ function makeModel(P){
   m.arbOff=[m.st[0]-m.st[1],m.st[2]-m.st[3]];
   return m;
 }
-function newState(){return {t:0,z:0,zd:0,th:0,thd:0,ph:0,phd:0,zw:[0,0,0,0],zwd:[0,0,0,0],ev:[],out:[{},{},{},{}],hrc:[0,0],hp:0};}
+function newState(){return {t:0,z:0,zd:0,th:0,thd:0,ph:0,phd:0,zw:[0,0,0,0],zwd:[0,0,0,0],vy:0,r:0,ay:0,al:[0,0,0,0],spun:false,ev:[],out:[{},{},{},{}],hrc:[0,0],hp:0};}
 
 function damperF(s,v){
   if(v>=0) return v<=s.vkb?s.cbl*v:s.cbl*s.vkb+s.cbh*(v-s.vkb);
@@ -324,7 +320,9 @@ function groundAt(st,i){
 const CT=300, KBS=200000, KBS2=2e7, CBS=1500, KTOP=800000, DT=1/4000;
 const _s=[0,0,0,0], _sd=[0,0,0,0], _sa=[0,0,0,0], _Fw=[0,0,0,0];
 
-/* One time step. inp: {ay, ax in g; Fp N at (xp, yp) m from the CG; rack m, + = toward the car's right}. */
+/* One time step. inp: {ay, ax in g; Fp N at (xp, yp) m from the CG; rack m, + = toward the car's right; U m/s}.
+   With U > 0 the car is driven: the tires make the side force from their slip angles, the car slides sideways (vy) and yaws (r, + = turning right),
+   and the lateral acceleration comes out of that instead of from inp.ay. */
 function step(m,st,inp,dt,extraDamp){
   const P=m.P, v=P.veh, T=m.T, out=st.out, rack=inp.rack||0, s=_s, sd=_sd, sa=_sa, Fw=_Fw;
   for(let i=0;i<4;i++){
@@ -338,12 +336,25 @@ function step(m,st,inp,dt,extraDamp){
     if(sa[i]>g.bump){const e=sa[i]-g.bump; F+=KBS*e+KBS2*e*e+CBS*sd[i];}
     if(sa[i]<-g.droop){const e=-g.droop-sa[i]; F+=-KTOP*e+CBS*sd[i];}
     Fw[i]=F; const o=out[i]; o.s=s[i]; o.sa=sa[i]; o.vd=vd; o.Fs=Fs;
+    if(inp.U>0){                                               // slip angle from the wheel's own path over the ground, with a short lag (relaxation length)
+      const side=i%2===0?-1:1, de=side*cv(Tx.steer)*D2R, lean=side*(cv(Tx.cam)-side*st.ph/D2R);
+      const vx=Math.max(0.5,inp.U-y*st.r), al=de-Math.atan2(st.vy+x*st.r,vx);
+      st.al[i]+=(al-st.al[i])*Math.min(1,vx*dt/TRELAX);
+      const Fz=o.Ft!==undefined?o.Ft:m.W[i]+v.mu*G, Fy=tireFy(g,st.al[i]/D2R,Fz,lean), D=tirePeak(g,Fz,Fy>=0?lean:-lean);
+      o.Fy=Fy; o.slip=st.al[i]/D2R; o.used=D>0?Math.abs(Fy)/D:0;
+    }
   }
+  let ayDrive=0;
+  if(inp.U>0){
+    const Mt=v.M+4*v.mu; let Fy=0, Mz=0; for(let i=0;i<4;i++){Fy+=out[i].Fy; Mz+=m.xs[i]*out[i].Fy;}
+    ayDrive=Fy/Mt; st.vy+=(ayDrive-inp.U*st.r)*dt; st.r+=Mz/v.Izz*dt;
+    if(Math.abs(st.vy)>inp.U) st.spun=true;                   // sliding sideways faster than it is going forward
+  } else {st.vy=0; st.r=0; st.al[0]=st.al[1]=st.al[2]=st.al[3]=0;}
   for(let ax=0;ax<2;ax++){
     const k=P.ax[ax].s.arb, iL=ax*2, iR=iL+1, dif=(sa[iL]-sa[iR])-m.arbOff[ax];
     Fw[iL]+=k*dif; Fw[iR]-=k*dif;
   }
-  const ay=inp.ay*G, axl=inp.ax*G;
+  const ay=inp.U>0?ayDrive:inp.ay*G, axl=inp.ax*G; st.ay=ay/G;
   const hrcF=lk1(T[0],T[0].rch,(sa[0]+sa[1])/2), hrcR=lk1(T[1],T[1].rch,(sa[2]+sa[3])/2);
   st.hrc[0]=hrcF; st.hrc[1]=hrcR;
   const hra=hrcF+(hrcR-hrcF)*m.a/v.L, hcg=v.h+st.z, hp=hcg-hra;   // CG height follows the body; hp = CG above the roll axis
@@ -371,7 +382,68 @@ function step(m,st,inp,dt,extraDamp){
   if(st.ev.length&&st.ev.every(e=>st.t>e.t0+e.dur)) st.ev=[];
 }
 function settle(m,st,inp,sec){const n=Math.round(sec/DT); for(let k=0;k<n;k++) step(m,st,inp,DT,0.002);}
-function finite(st){return Number.isFinite(st.z+st.th+st.ph+st.zd+st.thd+st.phd+st.zw[0]+st.zw[1]+st.zw[2]+st.zw[3]+st.zwd[0]+st.zwd[1]+st.zwd[2]+st.zwd[3]);}
+function finite(st){return Number.isFinite(st.vy+st.r+st.z+st.th+st.ph+st.zd+st.thd+st.phd+st.zw[0]+st.zw[1]+st.zw[2]+st.zw[3]+st.zwd[0]+st.zwd[1]+st.zwd[2]+st.zwd[3]);}
+
+
+/* ---- tire side force ----
+   Magic Formula shape. slip and lean are in degrees: slip + and lean + (top toward the car's right) both push the tire to the right.
+   Peak grip falls with load (tls) and changes a little with camber into the turn, best at tgo. Cornering stiffness rises with load
+   but flattens off (it peaks at three times the reference load). Camber thrust shifts the curve sideways. */
+const TREF=2500, TSHAPE=1.4, TCURV=-0.6, TRELAX=0.35;
+function tirePeak(g,Fz,gin){
+  if(!(Fz>0)) return 0;
+  const mu=Math.max(0.3*g.tmu,g.tmu-g.tls*(Fz-TREF));
+  const f=g.tgo>0?1+g.tcg/g.tmu*(gin-gin*gin/(2*g.tgo)):1;
+  return Math.max(0.5,f)*mu*Fz;
+}
+function tireFy(g,slip,Fz,lean){
+  if(!(Fz>0)) return 0;
+  const Ca=g.tca*TREF/0.6*Math.sin(2*Math.atan(Fz/(3*TREF)));      // N per degree
+  const x=slip+g.tcg*Fz/Ca*lean, D=tirePeak(g,Fz,x>=0?lean:-lean), bx=Ca/(TSHAPE*D)*x;
+  return D*Math.sin(TSHAPE*Math.atan(bx-TCURV*(bx-Math.atan(bx))));
+}
+/* One axle in a steady corner: the slip angle (deg, at the axle, before each wheel's own toe) at which its two tires make the side force F,
+   and the most the axle can make. Fz, toe (deg, + = steered right) and lean (deg, + = top to the right) are per wheel, left then right. */
+function axleSolve(g,F,Fz,toe,lean){
+  const f=a=>tireFy(g,a+toe[0],Fz[0],lean[0])+tireFy(g,a+toe[1],Fz[1],lean[1]);
+  let cap=-Infinity, ap=0; for(let a=-4;a<=25;a+=0.25){const v=f(a); if(v>cap){cap=v;ap=a;}}
+  if(!(cap>0)) return {a:NaN,cap:0,used:Infinity};
+  if(F>=cap) return {a:ap,cap,used:F/cap};
+  let lo=-25, hi=ap; for(let i=0;i<40;i++){const mid=(lo+hi)/2; if(f(mid)<F)lo=mid; else hi=mid;}
+  return {a:(lo+hi)/2,cap,used:F/cap};
+}
+/* Per-tire slip, side force and share of grip in use for the state st cornering at ay (g, + = right turn), with the wheels' present
+   loads, camber and toe (rack centred). Used when the car is not being driven by the tire model. */
+function gripNow(m,st,ay){
+  const P=m.P, r={tire:[],ax:[]}, sg=ay<0?-1:1;
+  for(let ax=0;ax<2;ax++){
+    const T=m.T[ax], g=P.ax[ax].g, Fz=[], toe=[], lean=[];
+    for(let k=0;k<2;k++){const i=ax*2+k, side=k?1:-1, o=st.out[i], s=o.s||0;
+      Fz[k]=o.Ft!==undefined?o.Ft:m.W[i]+P.veh.mu*G; toe[k]=sg*side*lk2(T,T.steer,s,0); lean[k]=sg*side*(lk2(T,T.cam,s,0)-side*st.ph/D2R);}
+    const F=Math.abs(ay)*2*(m.W[ax*2]+P.veh.mu*G), q=axleSolve(g,F,Fz,toe,lean);
+    r.ax.push(q);
+    for(let k=0;k<2;k++){const al=q.a+toe[k], Fy=tireFy(g,al,Fz[k],lean[k]), D=tirePeak(g,Fz[k],lean[k]); r.tire.push({slip:sg*al,Fy:sg*Fy,used:D>0?Math.abs(Fy)/D:0});}
+  }
+  return r;
+}
+/* Steady cornering sweep: the car is settled at each lateral g in turn and each axle's side force is compared with what its tires can make.
+   Returns the share of grip in use per axle against lateral g, the g at which each axle runs out, and the understeer gradient (deg/g, + = understeer). */
+function balance(m){
+  const st=newState(), z={ay:0,ax:0,Fp:0,xp:0,yp:0,rack:0}, out={ay:[],uF:[],uR:[],aF:[],aR:[],limF:NaN,limR:NaN,K:NaN};
+  settle(m,st,z,1.5);
+  for(let k=0;k<=40;k++){
+    const ay=k*0.05; z.ay=ay; settle(m,st,z,k?0.5:0.1);
+    if(!finite(st)) break;
+    const q=gripNow(m,st,ay);
+    out.ay.push(ay); out.uF.push(q.ax[0].used); out.uR.push(q.ax[1].used); out.aF.push(q.ax[0].a); out.aR.push(q.ax[1].a);
+    if(q.ax[0].used>1.15&&q.ax[1].used>1.15) break;
+  }
+  const lim=u=>{for(let k=1;k<u.length;k++) if(u[k]>=1) return out.ay[k-1]+(1-u[k-1])/(u[k]-u[k-1])*0.05; return NaN;};
+  out.limF=lim(out.uF); out.limR=lim(out.uR);
+  const i2=out.ay.findIndex(a=>a>0.199), i4=out.ay.findIndex(a=>a>0.399);
+  if(i2>0&&i4>0&&out.uF[i4]<1&&out.uR[i4]<1) out.K=((out.aF[i4]-out.aR[i4])-(out.aF[i2]-out.aR[i2]))/(out.ay[i4]-out.ay[i2]);
+  return out;
+}
 
 /* Road-wheel angles (deg, + = right), Ackermann and the low-speed turn for a rack position and the front wheel travels. */
 function steerInfo(m,rack,sL,sR){

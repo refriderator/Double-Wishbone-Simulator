@@ -14,7 +14,7 @@
       <img class="mark" src="ol-racing-factory-white.png" width="880" height="464" alt="OL! Racing Factory">
       <div class="titles">
         <h1>Double Wishbone</h1>
-        <p class="osdline">Simulator / 7 DOF</p>
+        <p class="osdline">Simulator / 9 DOF</p>
       </div>
     </div>
     <div class="simbar">
@@ -31,21 +31,26 @@
   </div>
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-t="geo" id="tab-geo">Geometry</button>
-    <button class="tab" role="tab" aria-selected="false" data-t="spr" id="tab-spr">Springs</button>
+    <button class="tab" role="tab" aria-selected="false" data-t="whl" id="tab-whl">Wheels &amp; tires</button>
+    <button class="tab" role="tab" aria-selected="false" data-t="spr" id="tab-spr">Springs &amp; heights</button>
     <button class="tab" role="tab" aria-selected="false" data-t="str" id="tab-str">Steering</button>
     <button class="tab" role="tab" aria-selected="false" data-t="load" id="tab-load">Forces</button>
-    <button class="tab" role="tab" aria-selected="false" data-t="ht" id="tab-ht">Heights</button>
     <button class="tab" role="tab" aria-selected="false" data-t="veh" id="tab-veh">Vehicle</button>
   </div>
 
   <div class="pane" id="p-geo" role="tabpanel">
     <div class="rowbtns"><div class="seg axleSel" role="group" aria-label="Axle"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></div><button class="btn" id="copyGeo">Copy to rear</button></div>
-    <p class="hint">Dimensions at design ride height. Lateral from the centreline, height from the ground, fore-aft from the axle line. The solver finds the lower-arm angle that puts the tire on the ground. The ball joints follow from the arm lengths.</p>
+    <p class="hint">Dimensions at design ride height. Lateral from the centreline, height from the ground, fore-aft from the axle line. The solver finds the lower-arm angle that puts the tire on the ground. Wheels and tires, coilover mounts and the tie rod are on their own tabs.</p>
     <div id="geoFields" class="groups"></div>
     <fieldset><legend>Solved points</legend>
       <div class="tw"><table class="pts wrap" id="pts"></table></div>
-      <p class="hint">At design height. The tie rod's outer joint moves with the upright. Its inner joint sits on the rack (front) or the chassis (rear).</p>
+      <p class="hint">At design height.</p>
     </fieldset>
+  </div>
+
+  <div class="pane" id="p-whl" role="tabpanel" hidden>
+    <div class="rowbtns"><div class="seg axleSel" role="group" aria-label="Axle"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></div></div>
+    <div id="whlFields" class="groups"></div>
   </div>
 
   <div class="pane" id="p-spr" role="tabpanel" hidden>
@@ -53,23 +58,35 @@
     <p class="hint">Values at the coilover. The motion ratio converts them to the wheel. Dampers are two-slope: the low-speed slope up to the knee, the high-speed slope beyond it.</p>
     <div id="sprFields" class="groups"></div>
     <div class="zeta" id="zeta"></div>
+    <div id="sprGeoFields" class="groups"></div>
+    <fieldset><legend>Ride height</legend>
+      <div class="seg" id="htLink" role="group" aria-label="Link corners"><button aria-pressed="false" data-v="each">Each</button><button aria-pressed="true" data-v="pair">Pairs</button><button aria-pressed="false" data-v="all">All four</button></div>
+      <div id="htFields" class="groups"></div>
+      <div class="rowbtns"><button class="btn" id="zeroHt">Design height</button></div>
+      <p class="hint">Target body height change at each corner, relative to design. The spring perches are set so the car settles there under its own weight. Four targets off one plane cannot all be met; the difference shows as cross weight.</p>
+      <table id="perch" class="wrap"></table>
+      <p class="hint">Spring force at design length is the coilover force with the wheel at design height. A negative value means the spring is loose there and seats only in bump.</p>
+    </fieldset>
   </div>
 
   <div class="pane" id="p-str" role="tabpanel" hidden>
     <fieldset><legend>Steering wheel</legend>
       <div class="sl"><label for="sw">Angle, + = right</label><output id="swO"></output><input type="range" id="sw" min="-468" max="468" step="1" value="0"></div>
       <div class="rowbtns"><button class="btn" id="swL">Full left</button><button class="btn" id="swC">Centre</button><button class="btn" id="swR">Full right</button></div>
+      <div class="f"><label for="ssA">Step steer to</label><input id="ssA" type="number" value="30" step="5" min="-400" max="400"><span class="u">°</span></div>
+      <div class="rowbtns"><button class="btn" id="ssGo">Step steer</button></div>
     </fieldset>
+    <div id="linkFields" class="groups"></div>
     <table id="steerOut" class="wrap"></table>
     <div id="strFields" class="groups"></div>
-    <div id="linkFields" class="groups"></div>
-    <p class="hint">Cut knuckles is off in both cars; the 20 mm is a placeholder, so enter what was cut from yours. Tie rod joints, caster and static toe are on the Geometry tab. The rack follows the steering wheel at up to 900°/s.</p>
+    <div id="tieFields" class="groups"></div>
+    <p class="hint">Cut knuckles is off in both cars; the 20 mm is a placeholder, so enter what was cut from yours. Caster and static toe are on the Geometry tab. The rack follows the steering wheel at up to 900°/s.</p>
   </div>
 
   <div class="pane" id="p-load" role="tabpanel" hidden>
     <fieldset><legend>Body acceleration / steady</legend>
       <div class="sl"><label for="ay">Lateral, + = right turn</label><output id="ayO"></output><input type="range" id="ay" min="-1.5" max="1.5" step="0.01" value="0"></div>
-      <p class="hint" id="ayNote" hidden>Lateral g is set by the steering wheel and speed (Steering tab).</p>
+      <p class="hint" id="ayNote" hidden>The car is being driven (Steering tab), so lateral g comes from the tires.</p>
       <div class="sl"><label for="ax">Longitudinal, + = accelerating</label><output id="axO"></output><input type="range" id="ax" min="-1.5" max="1.2" step="0.01" value="0"></div>
     </fieldset>
     <fieldset><legend>Point load / downward</legend>
@@ -88,18 +105,9 @@
     <div class="rowbtns"><button class="btn" id="drive">Drive over bump</button><button class="btn" data-hit="0">Hit FL</button><button class="btn" data-hit="1">Hit FR</button><button class="btn" data-hit="2">Hit RL</button><button class="btn" data-hit="3">Hit RR</button></div>
   </div>
 
-  <div class="pane" id="p-ht" role="tabpanel" hidden>
-    <p class="hint">Target body height change at each corner, relative to design. The spring perches are set so the car settles there under its own weight. The body is rigid: four targets off one plane cannot all be met. The car settles between them and the difference shows as cross weight.</p>
-    <div class="seg" id="htLink" role="group" aria-label="Link corners"><button aria-pressed="false" data-v="each">Each</button><button aria-pressed="true" data-v="pair">Pairs</button><button aria-pressed="false" data-v="all">All four</button></div>
-    <div id="htFields" class="groups"></div>
-    <div class="rowbtns"><button class="btn" id="zeroHt">Design height</button></div>
-    <table id="perch" class="wrap"></table>
-    <p class="hint">Spring force at design length is the coilover force with the wheel at design height. A negative value means the spring is loose there and seats only in bump.</p>
-  </div>
-
   <div class="pane" id="p-veh" role="tabpanel" hidden>
     <div id="vehFields" class="groups"></div>
-    <p class="hint">Sprung mass is everything the springs carry. Unsprung mass is wheel, tire, upright, brake and about half the arms and coilover. Roll inertia is about the CG. The model adds the offset to the roll axis. CG height follows the ride height.</p>
+    <p class="hint">Sprung mass is everything the springs carry. Unsprung mass is wheel, tire, upright, brake and about half the arms and coilover. Roll inertia is about the CG. The model adds the offset to the roll axis. CG height follows the ride height. Yaw inertia is only used while the car is driven.</p>
     <p class="hint">The setup saves in this browser. Stock and Coen's reload that car. Any edit you make is kept as the Session setup; the Session button brings it back.</p>
   </div>
   <div class="status" id="status" role="status">Solved.</div>
@@ -141,6 +149,7 @@
       <h2>Curve <select id="curveQ" aria-label="Curve">
         <optgroup label="Against wheel travel"><option value="cam">Camber</option><option value="toe">Toe (bump steer)</option><option value="dtr">Track change, per side</option><option value="MR">Motion ratio</option><option value="rch">Roll centre height</option></optgroup>
         <optgroup label="Against steering (front)"><option value="rw">Road-wheel angle</option><option value="camS">Camber</option><option value="lift">Body lift at the wheel</option></optgroup>
+        <optgroup label="Against lateral g"><option value="grip">Grip in use, front and rear</option></optgroup>
       </select></h2>
       <div class="lg" id="curveLg"></div>
       <div class="plot"><canvas id="curve" aria-label="Kinematic curve. Use the left and right arrow keys to read values."></canvas><div class="tip" id="curveTip" hidden></div></div>
@@ -150,7 +159,7 @@
     <section class="card">
       <h2>History / 6 s</h2>
       <div class="lg"><span><i class="k1"></i>Left wheel</span><span><i class="k2"></i>Right wheel</span></div>
-      <div class="plot"><canvas id="hist" class="tall" aria-label="History of roll, pitch, heave and tire loads over the last 6 seconds of simulated time. Use the left and right arrow keys to read values."></canvas><div class="tip" id="histTip" hidden></div></div>
+      <div class="plot"><canvas id="hist" class="tall" aria-label="History of lateral g, yaw rate, roll, pitch, heave and tire loads over the last 6 seconds of simulated time. Use the left and right arrow keys to read values."></canvas><div class="tip" id="histTip" hidden></div></div>
       <div class="tw"><table id="histTbl" class="wrap"></table></div>
     </section>
     <section class="card">
@@ -211,7 +220,8 @@
         <tr><td>Tire rate and loaded radius</td><td>185 N/mm, 274 mm, from the size and pressure</td><td class="u k">Estimate</td></tr>
         <tr><td>Anti-roll bar at the wheel, front / rear</td><td>8.0 / 1.4 N/mm, from 22 / 11 mm bars</td><td class="u k">Estimate</td></tr>
         <tr><td>Bump steer</td><td>Zero front and rear on the stock car. The front rack height (200.2 mm) is set to give that.</td><td class="u k">Estimate</td></tr>
-        <tr><td>Grip limit</td><td>0.9 g</td><td class="u k">Estimate</td></tr>
+        <tr><td>Tire grip</td><td>Typical values for the kind of tire, not measured: street tires on Stock (peak 0.95), sporty street tires on Coen's (peak 1.10). See the Wheels &amp; tires tab.</td><td class="u k">Estimate</td></tr>
+        <tr><td>Yaw inertia, whole car</td><td>1400 kg·m²</td><td class="u k">Estimate</td></tr>
         <tr><th>Checks, not used in the fit</th><th></th><th></th></tr>
         <tr><td>NA roll centre: lower pivot 5.8 mm higher</td><td>62.5 mm. Mazda: 61 mm</td><td class="u k">Check</td></tr>
         <tr><td>NA caster trail at 4°26′</td><td>11.6 mm. Mazda: 11.6 mm</td><td class="u k">Check</td></tr>
@@ -230,9 +240,10 @@
       <details open><summary>Model notes</summary>
       <ul>
         <li>Each corner is a rigid upright on two wishbones and a tie rod, solved in 3D. The wishbone pivot axes run parallel to the car's centreline, so camber, track, motion ratio and roll centre come from the front view. Caster, kingpin inclination, toe, bump steer and Ackermann come from the 3D solve.</li>
-        <li>Dynamics: body heave, pitch and roll (small angles) plus vertical motion of each wheel. The body rolls about the roll axis, a tilted body carries its CG off-centre over the wheels, and the CG height follows the ride height.</li>
-        <li>Tires are thin discs with a linear vertical spring and light damping. They can leave the ground. There are no lateral or longitudinal tire forces, so camber and toe do not change grip and cornering loads do not jack the body.</li>
-        <li>Lateral g from steering is optional. It uses the low-speed turn radius (tires roll where they point, no slip angle) and is capped at the grip limit.</li>
+        <li>Dynamics: body heave, pitch and roll (small angles) plus vertical motion of each wheel, and sideways slide and yaw while the car is driven. The body rolls about the roll axis, a tilted body carries its CG off-centre over the wheels, and the CG height follows the ride height.</li>
+        <li>Tires are thin discs with a linear vertical spring and light damping. They can leave the ground. Side force follows a Magic Formula curve from slip angle, load and camber: peak grip falls as load rises, cornering stiffness flattens with load, and camber leaning into the turn adds a little grip up to an optimum. The grip numbers are typical values, not test data, so trust the direction of a change more than the size.</li>
+        <li>Grip in use: the car is settled at each lateral g and each axle's side force is compared with the most its two tires can make at their loads, cambers and toes. The axle that reaches 100 % first sets the limit. The understeer gradient is the change in front minus rear slip angle between 0.2 and 0.4 g.</li>
+        <li>Drive (Steering tab): at the set speed the tires make the side force from their slip angles, the car slides sideways and yaws, and lateral g comes out of that. Speed is held constant, the road is flat, and there is no drive or brake force at the tires. Past the limit the car plows or spins; that part is the least accurate. Cornering loads do not jack the body.</li>
         <li>No anti-dive or anti-squat: all longitudinal load transfer goes through the springs.</li>
         <li>Lateral load transfer through the links uses each axle's roll centre height for equal travel on both sides and zero steer. The rear view shows the true roll centre for reference.</li>
         <li>Steering lifts or lowers each front tire relative to its arm (caster and kingpin inclination), which shifts load diagonally. Springs, bump stops and anti-roll bars act on arm travel.</li>
