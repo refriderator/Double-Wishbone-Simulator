@@ -48,7 +48,7 @@ function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
        P.dh=[-0.026,-0.026,-0.038,-0.038]; return P; }
 const PRESETS={stock:stockCar,coen:coensCar};
-function defaults(){return coensCar();}
+function defaults(){return stockCar();}      // the car a new visitor starts with
 
 /* Field specs: [key, label, unit, scale to SI, step, min, max]; min and max are in the displayed unit. */
 const GEO=[

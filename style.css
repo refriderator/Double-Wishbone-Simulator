@@ -200,3 +200,25 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
   .view{animation:none}
   .btn{transition:none}
 }
+
+/* ---- quick start: one window, three steps, shown on a first visit ---- */
+.intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:var(--space-4);background:rgba(0,0,0,0.72)}
+.intro[hidden]{display:none}
+.introBox{position:relative;width:min(1040px,100%);max-height:100%;overflow:auto;padding:var(--space-6);border:1px solid var(--edge);background:var(--void);box-shadow:var(--lift)}
+.introBox h2{margin:0 48px var(--space-4) 0;font:400 20px/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase}
+.introX{position:absolute;top:var(--space-3);right:var(--space-3);width:40px;min-width:40px;height:40px;padding:0;font:400 20px/1 var(--font-sans);letter-spacing:0}
+.introSteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4)}
+.introSteps li{display:grid;gap:var(--space-2);align-content:start}
+.introSteps div{display:grid;gap:var(--space-1);align-content:start}
+.introSteps b{display:flex;align-items:center;gap:var(--space-2);font:400 13px/18px var(--font-display);letter-spacing:.1em;text-transform:uppercase}
+.introSteps i{flex:none;display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--vinyl);font:400 20px/1 var(--font-osd);font-style:normal}
+.introSteps span{color:var(--vinyl-dim);min-height:40px}
+.introSteps img{display:block;width:100%;height:auto;border:1px solid var(--edge)}
+@media (max-width:760px){
+  .introBox{padding:var(--space-4)}
+  .introSteps{grid-template-columns:1fr;gap:var(--space-3)}
+  .introSteps li{grid-template-columns:44% minmax(0,1fr);align-items:start}
+  .introSteps img{grid-column:1;grid-row:1}
+  .introSteps div{grid-column:2;grid-row:1}
+  .introSteps span{min-height:0}
+}

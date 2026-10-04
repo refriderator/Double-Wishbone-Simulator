@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Double Wishbone Simulator</title>
-<link rel="stylesheet" href="style.css?v=f4b1dae6">
+<link rel="stylesheet" href="style.css?v=839bff8e">
 </head>
 <body>
 <div class="app">
@@ -27,6 +27,7 @@
         <button aria-pressed="true" data-v="1">1x</button><button aria-pressed="false" data-v="0.25">1/4x</button><button aria-pressed="false" data-v="0.1">1/10x</button>
       </div>
       <span class="tag">MX-5 NB8C</span>
+      <button class="btn" id="introBtn" title="Quick start" aria-label="Quick start">?</button>
     </div>
   </div>
   <div class="tabs" role="tablist">
@@ -260,11 +261,26 @@
 </main>
 </div>
 
+<div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introT" hidden>
+  <div class="introBox">
+    <button class="btn introX" id="introX" aria-label="Close">✕</button>
+    <h2 id="introT">Quick start</h2>
+    <ol class="introSteps">
+      <li><div><b><i>1</i>Set up the car</b><span>Geometry · Wheels &amp; tires · Springs &amp; heights · Vehicle</span></div>
+        <img src="intro-1.jpg?v=87081ffa" width="640" height="480" alt="The tabs on the left, with the Geometry fields open"></li>
+      <li><div><b><i>2</i>Steer and load it</b><span>Steering wheel slider · Forces sliders</span></div>
+        <img src="intro-2.jpg?v=19d6150e" width="640" height="480" alt="The 3D view with the front wheels turned and the body leaning"></li>
+      <li><div><b><i>3</i>Test turn-in</b><span>Steering tab: On · speed · Step steer</span></div>
+        <img src="intro-3.jpg?v=62b77571" width="640" height="480" alt="The Assess turn-in group ticked, with the Step steer button"></li>
+    </ol>
+  </div>
+</div>
+
 <!-- 3D library (three.js r128), the car body mesh, then the physics, then the controls and drawing -->
 <script src="three.min.js"></script>
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=5b8c0312"></script>
-<script src="core.js?v=78390cac"></script>
-<script src="ui.js?v=4a4d88d1"></script>
+<script src="core.js?v=7219f528"></script>
+<script src="ui.js?v=b06e4765"></script>
 </body>
 </html>

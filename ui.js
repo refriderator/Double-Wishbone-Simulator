@@ -11,7 +11,7 @@ function loadSaved(){try{const t=localStorage.getItem(KEY); if(!t) return null; 
 let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.preset")||null;}catch(e){}      // which car button is lit; any edit clears it
 function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}   // an edit makes the current setup the session setup
 function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
-let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="coen";}
+let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="stock";}
 let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
@@ -19,7 +19,7 @@ let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayM
    coarsest spacing. The 3D view keeps the car still and moves the floor the opposite way. d is the distance covered in the last drawn frame. */
 const GND={psi:0,x:0,y:0,d:0}, GWRAP=4;
 const BODY_LIFT=0.038;      // the Assetto Corsa shell is a lowered car: raise it 38 mm on the wheels so it sits right at stock height (drawing only, no effect on the numbers)
-let bodyOn=true; try{bodyOn=localStorage.getItem("dws.body")!=="box";}catch(e){}      // 3D view: the car body, or the plain chassis box
+let bodyOn=false; try{bodyOn=localStorage.getItem("dws.body")==="car";}catch(e){}      // 3D view: the plain chassis box (the start-up view), or the car body
 /* Colours and fonts come from the OL! tokens in style.css. The palette is closed (black, greys, midnight, ice),
    so parts and data series differ by lightness, line weight and dash, never by hue. */
 let COL={};
@@ -144,7 +144,7 @@ function loadPreset(name){
     let q;
     if(name==="session"){
       let t=null; try{t=localStorage.getItem(SKEY);}catch(e){}
-      if(!t) q=PRESETS.coen();                                          // no session saved yet: it starts as Coen's setup
+      if(!t) q=defaults();                                               // no session saved yet: it starts as the start-up car
       else {const j=JSON.parse(t); q=noSp(merge(defaults(),j),j);}
     } else q=PRESETS[name]();
     makeModel(q); P=q;
@@ -736,6 +736,14 @@ function frame(now){
   if(now-teleT>100){drawTele(); teleT=now;}
   requestAnimationFrame(frame);
 }
+
+/* ---- quick start: shown once on a first visit, and again from the ? button ---- */
+{const box=$("intro"), show=on=>{box.hidden=!on; if(on) $("introX").focus(); else try{localStorage.setItem("dws.intro","1");}catch(e){}};
+ $("introX").onclick=()=>show(false); $("introBtn").onclick=()=>show(true);
+ box.addEventListener("click",e=>{if(e.target===box) show(false);});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!box.hidden) show(false);});
+ let seen=false; try{seen=!!localStorage.getItem("dws.intro");}catch(e){}
+ if(!seen&&!restored) show(true);}
 
 /* boot */
 settle(model,S,inp,3); S.t=0;
