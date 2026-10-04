@@ -358,7 +358,7 @@ function init3D(){
   const sun=new THREE.DirectionalLight(0xffffff,0.8); sun.position.set(3,6,4); scene.add(sun);
   const std=o=>new THREE.MeshStandardMaterial(o);
   const M={lower:std({metalness:0.1,roughness:0.6}),upper:std({metalness:0.1,roughness:0.6}),upright:std({metalness:0.1,roughness:0.6}),coil:std({metalness:0.1,roughness:0.6}),
-    tie:std({metalness:0.1,roughness:0.6}),tire:std({roughness:0.9,flatShading:true}),rim:std({metalness:0.2,roughness:0.5,flatShading:true,side:THREE.DoubleSide}),body:std({transparent:true,opacity:0.30,depthWrite:false}),cg:std({}),bumpm:std({roughness:0.8}),
+    tie:std({metalness:0.1,roughness:0.6}),rackH:std({metalness:0.1,roughness:0.6}),tire:std({roughness:0.9,flatShading:true}),rim:std({metalness:0.2,roughness:0.5,flatShading:true,side:THREE.DoubleSide}),body:std({transparent:true,opacity:0.30,depthWrite:false}),cg:std({}),bumpm:std({roughness:0.8}),
     car:std({transparent:true,opacity:0.09,depthWrite:false,flatShading:true,side:THREE.DoubleSide,metalness:0,roughness:0.8})};
   const LM={edge:new THREE.LineBasicMaterial({transparent:true,opacity:0.9}),coil:new THREE.LineBasicMaterial({}),axis:new THREE.LineDashedMaterial({dashSize:0.06,gapSize:0.04}),car:new THREE.LineBasicMaterial({transparent:true,opacity:0.55})};
   let grid=null, gridLv=[], chassis=null, chassisEdge=null, chKey="";
@@ -429,7 +429,10 @@ function init3D(){
     c.bump=new THREE.Mesh(new THREE.BoxGeometry(0.3,1,0.3),M.bumpm); scene.add(c.bump);
     corners.push(c);
   }
-  const rack=rod(M.tie,0.013), col=rod(M.tie,0.008), swG=new THREE.Group(); bodyG.add(swG);
+  /* Steering rack: the housing is fixed to the chassis; the rack bar slides through it and carries the two inner tie-rod joints, which
+     therefore move sideways together; each tie rod (per corner, above) keeps its length. */
+  const rackH=rod(M.rackH,0.024), rack=rod(M.tie,0.013), col=rod(M.tie,0.008), swG=new THREE.Group(); bodyG.add(swG);
+  const rackJ=[0,1].map(()=>{const j=new THREE.Mesh(new THREE.SphereGeometry(0.018,14,10),M.tie); bodyG.add(j); return j;});
   swG.add(new THREE.Mesh(new THREE.TorusGeometry(0.17,0.012,8,36),M.tie));
   const spk=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.022,0.012),M.tie); swG.add(spk);
   const spk2=new THREE.Mesh(new THREE.BoxGeometry(0.022,0.17,0.012),M.tie); spk2.position.y=-0.085; swG.add(spk2);
@@ -450,7 +453,7 @@ function init3D(){
     scene.background=c("midnight");                                   // the brand field: white vinyl on dark blue
     M.lower.color=c("armL").multiplyScalar(0.3); M.upper.color=c("armU").multiplyScalar(0.3); M.upright.color=c("dim");
     M.lower.emissive=c("armL"); M.lower.emissiveIntensity=0.9; M.upper.emissive=c("armU"); M.upper.emissiveIntensity=0.8;   // the arms glow in their own color instead of washing out under the lights
-    M.coil.color=c("ice"); M.tie.color=c("ice");
+    M.coil.color=c("ice"); M.tie.color=c("ice"); M.rackH.color=c("edge");
     M.tire.color=c("gunmetal"); M.rim.color=c("edge"); M.body.color=c("gunmetal"); M.cg.color=c("vinyl"); M.bumpm.color=c("edge");
     LM.edge.color=c("edge"); LM.coil.color=c("vinyl"); LM.axis.color=c("dim"); M.car.color=c("armU"); LM.car.color=c("armU");
     corners.forEach(k=>k.arrow.setColor(c("vinyl")));
@@ -501,9 +504,11 @@ function init3D(){
       c.arrow.visible=Ft>5; if(Ft>5) c.arrow.setLength(Math.max(0.08,Ft/8000),0.06,0.04);
       c.bump.visible=zg>0.0005; c.bump.position.set(x0,zg/2,side*p.CP[1]); c.bump.scale.set(1,Math.max(zg,1e-4),1);
     }
-    const g0=P.ax[0].g, xr=model.a+g0.xti;
-    place(rack,new THREE.Vector3(xr,g0.zti,inp.rack-g0.yti),new THREE.Vector3(xr,g0.zti,g0.yti+inp.rack));
-    pin.set(xr,g0.zti,-Math.min(0.2,g0.yti*0.7));
+    const g0=P.ax[0].g, xr=model.a+g0.xti, hh=Math.max(0.05,g0.yti-P.steer.rmax-0.03);      // housing half length: an inner joint at full lock stays 30 mm clear of it
+    place(rackH,new THREE.Vector3(xr,g0.zti,-hh),new THREE.Vector3(xr,g0.zti,hh));
+    rackJ[0].position.set(xr,g0.zti,inp.rack-g0.yti); rackJ[1].position.set(xr,g0.zti,inp.rack+g0.yti);
+    place(rack,rackJ[0].position,rackJ[1].position);
+    pin.set(xr,g0.zti,-Math.min(0.2,0.8*hh));      // the pinion, where the column meets the housing
     hub.set(model.a-1.0,0.76,-0.33).sub(pin).multiplyScalar(0.95);                           // steering wheel: column 5 % shorter,
     hub.setLength(hub.length()+0.06).add(pin); hub.y-=0.1076; hub.x-=0.04;                  // then 60 mm further out along the column, 108 mm down, 40 mm straight back
     place(col,pin,hub);
