@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Double Wishbone Simulator</title>
-<link rel="stylesheet" href="style.css?v=9bf38bcf">
+<link rel="stylesheet" href="style.css?v=e5b67592">
 </head>
 <body>
 <div class="app">
@@ -172,9 +172,15 @@
       <p class="hint" id="curveHint"></p>
     </section>
     <section class="card">
-      <h2>History / 6 s</h2>
+      <h2>History / <span id="histT">10 s</span></h2>
+      <div class="rowbtns recbar">
+        <button class="btn sm tog" id="recBtn" aria-pressed="false">Record</button><output class="rd" id="recO"></output>
+        <button class="btn sm" id="recPng" title="Save the recording as a picture of the graph (PNG)" hidden>Export graph</button>
+        <button class="btn sm" id="recCsv" title="Save the recording as a table of numbers (CSV), for a spreadsheet" hidden>Export numbers</button>
+        <button class="btn sm ghost" id="recX" title="Drop the recording and show the live history again" hidden>Discard</button>
+      </div>
       <div class="lg"><span><i class="k1"></i>Left wheel</span><span><i class="k2"></i>Right wheel</span></div>
-      <div class="plot"><canvas id="hist" class="tall" aria-label="History of lateral g, yaw rate, roll, pitch, heave and tire loads over the last 6 seconds of simulated time. Use the left and right arrow keys to read values."></canvas><div class="tip" id="histTip" hidden></div></div>
+      <div class="plot"><canvas id="hist" class="tall" aria-label="History of lateral g, yaw rate, roll, pitch, heave and tire loads over the last 10 seconds of simulated time, or over a finished recording. Use the left and right arrow keys to read values."></canvas><div class="tip" id="histTip" hidden></div></div>
       <div class="tw"><table id="histTbl" class="wrap"></table></div>
     </section>
     <section class="card">
@@ -292,6 +298,6 @@
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=5b8c0312"></script>
 <script src="core.js?v=7219f528"></script>
-<script src="ui.js?v=27b150b4"></script>
+<script src="ui.js?v=d53ae216"></script>
 </body>
 </html>

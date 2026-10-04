@@ -641,30 +641,47 @@ function drawCurve(){
   } else setTip($("curveTip"),null);
 }
 
-/* ---- history: fixed 6 s of simulated time, sampled at 100 Hz ---- */
-const HN=600, HS=10, HWIN=6, hist=new Float32Array(HN*HS); let hCount=0, hHead=0, hAcc=0;
-function histClear(){hCount=0; hHead=0; hAcc=0;}
+/* ---- history: the last 10 s of simulated time, sampled at 100 Hz, and a recording of up to 60 s that can be exported ----
+   Columns: time, roll, pitch, heave, four tire loads, lateral g, yaw rate, steering wheel angle. */
+const HS=11, HWIN=10, HN=HWIN*100, hist=new Float32Array(HN*HS); let hCount=0, hHead=0, hAcc=0;
+/* The recording has its own buffer and its own clock (0 at the start). REC.on: recording now. REC.n > 0 with REC.on false: a finished
+   recording, shown in place of the live history until it is discarded. */
+const RMAX=60, REC={on:false,n:0,buf:new Float32Array(RMAX*100*HS),meta:null};
+function histClear(){hCount=0; hHead=0; hAcc=0; if(REC.on) REC.n=0;}      // a restart of the simulation (Settle, Step steer, a car loaded) restarts a recording in progress
+function histSample(a,o,t){
+  a[o]=t; a[o+1]=S.ph/D2R; a[o+2]=S.th/D2R; a[o+3]=S.z*1000;
+  for(let i=0;i<4;i++) a[o+4+i]=S.out[i].Ft||0;
+  a[o+8]=S.ay; a[o+9]=S.r/D2R; a[o+10]=swNow();
+}
 function histPush(){
-  const o=hHead*HS; hist[o]=S.t; hist[o+1]=S.ph/D2R; hist[o+2]=S.th/D2R; hist[o+3]=S.z*1000;
-  for(let i=0;i<4;i++) hist[o+4+i]=S.out[i].Ft||0;
-  hist[o+8]=S.ay; hist[o+9]=S.r/D2R;
-  hHead=(hHead+1)%HN; if(hCount<HN) hCount++;
+  histSample(hist,hHead*HS,S.t); hHead=(hHead+1)%HN; if(hCount<HN) hCount++;
+  if(REC.on){histSample(REC.buf,REC.n*HS,REC.n*0.01); if(++REC.n>=RMAX*100) recStop("Recording stopped at "+RMAX+" s, the longest it can be. Export it or discard it.");}
 }
 const hIdx=j=>((hHead-hCount+j+HN)%HN)*HS;
+const recHeld=()=>!REC.on&&REC.n>0, recDur=()=>Math.max(0,(REC.n-1)*0.01);
+/* What the panel shows: the finished recording from 0 to its end, or else the live window ending now. */
+function histView(){
+  if(recHeld()) return {rec:true,arr:REC.buf,idx:j=>j*HS,j0:0,n:REC.n,t0:0,t1:Math.max(0.5,recDur())};
+  const t1=S.t, t0=t1-HWIN; let j0=0; while(j0<hCount&&hist[hIdx(j0)]<t0) j0++;
+  return {rec:false,arr:hist,idx:hIdx,j0,n:hCount,t0,t1};
+}
 const HROWS=[{name:"Lat g",unit:"g",cols:[8],sym:true,min:0.05,dec:2},{name:"Yaw rate",unit:"°/s",cols:[9],sym:true,min:1,dec:1},{name:"Roll",unit:"°",cols:[1],sym:true,min:0.05,dec:2},{name:"Pitch",unit:"°",cols:[2],sym:true,min:0.05,dec:2},{name:"Heave",unit:"mm",cols:[3],sym:true,min:1,dec:1},
              {name:"Front load",unit:"N",cols:[4,5],min:200,dec:0},{name:"Rear load",unit:"N",cols:[6,7],min:200,dec:0}];
-function drawHist(){
-  const c=cvs.hist, x=ctx2(c), w=Wd(c), h=Hd(c); x.clearRect(0,0,w,h);
-  const Lm=100, Rm=8, Bm=24, rh=(h-Bm-4)/HROWS.length, t1=S.t, t0=t1-HWIN, X=t=>Lm+(t-t0)/HWIN*(w-Lm-Rm);
-  x.font=OSD(18); x.lineJoin="miter"; x.lineCap="butt";
-  let j0=0; while(j0<hCount&&hist[hIdx(j0)]<t0) j0++;
+/* Draws the rows of a view into a w x h area of any 2D context (the panel, or the picture that Export graph saves).
+   hx: pointer x for the read-out line, or null. Returns the index of the sample under the pointer, or -1. */
+function plotHist(x,w,h,V,hx){
+  const Lm=100, Rm=8, Bm=24, rh=(h-Bm-4)/HROWS.length, span=V.t1-V.t0, X=t=>Lm+(t-V.t0)/span*(w-Lm-Rm), a=V.arr;
+  x.font=OSD(18); x.lineJoin="miter"; x.lineCap="butt"; x.setLineDash([]);
   x.strokeStyle=COL.hairline; x.fillStyle=COL.dim; x.lineWidth=1; x.textAlign="center";
-  for(let s=0;s<=HWIN;s+=2){const px=X(t1-s); x.beginPath(); x.moveTo(px,2); x.lineTo(px,h-Bm); x.stroke(); x.fillText(s?"−"+s+" s":"NOW",Math.min(w-Rm-12,px),h-6);}
-  let hk=-1; const hx=hovHist.x;
-  if(hx!==null&&hx>=Lm-6&&hCount-j0>0){const th=t0+(Math.min(w-Rm,Math.max(Lm,hx))-Lm)/(w-Lm-Rm)*HWIN; let best=1e9; for(let j=j0;j<hCount;j++){const dd=Math.abs(hist[hIdx(j)]-th); if(dd<best){best=dd;hk=j;}}}
+  const tick=(t,lab)=>{const px=X(t); x.beginPath(); x.moveTo(px,2); x.lineTo(px,h-Bm); x.stroke(); x.fillText(lab,Math.max(Lm+14,Math.min(w-Rm-14,px)),h-6);};
+  if(V.rec){const tk=niceTicks(0,V.t1,w<420?4:6); for(const t of tk) tick(t,tickTxt(t,tk.step)+" s");}
+  else for(let s=0;s<=HWIN;s+=2) tick(V.t1-s,s?"−"+s+" s":"NOW");
+  let hk=-1;
+  if(hx!==null&&hx>=Lm-6&&V.n-V.j0>0){const th=V.t0+(Math.min(w-Rm,Math.max(Lm,hx))-Lm)/(w-Lm-Rm)*span; let best=1e9; for(let j=V.j0;j<V.n;j++){const dd=Math.abs(a[V.idx(j)]-th); if(dd<best){best=dd;hk=j;}}}
+  const stp=Math.max(1,Math.ceil((V.n-V.j0)/2400));      // a long recording is drawn with every 2nd or 3rd sample
   HROWS.forEach((R,ri)=>{
     const y0=2+ri*rh; let lo=Infinity, hi=-Infinity;
-    for(let j=j0;j<hCount;j++){const o=hIdx(j); for(const cI of R.cols){const v=hist[o+cI]; if(v<lo)lo=v; if(v>hi)hi=v;}}
+    for(let j=V.j0;j<V.n;j++){const o=V.idx(j); for(const cI of R.cols){const v=a[o+cI]; if(v<lo)lo=v; if(v>hi)hi=v;}}
     if(!(hi>=lo)){lo=0;hi=0;}
     if(R.sym){const m=Math.max(R.min,Math.abs(lo),Math.abs(hi)); lo=-m; hi=m;} else if(hi-lo<R.min){const m=(hi+lo)/2; lo=m-R.min/2; hi=m+R.min/2;}
     const Y=v=>y0+rh-7-(v-lo)/(hi-lo)*(rh-14);
@@ -675,26 +692,78 @@ function drawHist(){
     x.fillStyle=COL.dim; x.fillText(R.sym?"±"+hi.toFixed(R.dec)+" "+R.unit:lo.toFixed(0)+"–"+hi.toFixed(0)+" "+R.unit,0,y0+rh/2+16);
     R.cols.forEach((cI,si)=>{
       x.strokeStyle=si?COL.ice:COL.vinyl; x.lineWidth=2; x.setLineDash(si?DASH:[]); x.beginPath();
-      for(let j=j0;j<hCount;j++){const o=hIdx(j), px=X(hist[o]), py=Y(hist[o+cI]); j===j0?x.moveTo(px,py):x.lineTo(px,py);}
+      for(let j=V.j0;j<V.n;j+=stp){const o=V.idx(j), px=X(a[o]), py=Y(a[o+cI]); j===V.j0?x.moveTo(px,py):x.lineTo(px,py);}
       x.stroke(); x.setLineDash([]);
-      if(hk>=0){const o=hIdx(hk); x.fillStyle=x.strokeStyle; x.beginPath(); x.arc(X(hist[o]),Y(hist[o+cI]),3,0,7); x.fill();}
+      if(hk>=0){const o=V.idx(hk); x.fillStyle=x.strokeStyle; x.beginPath(); x.arc(X(a[o]),Y(a[o+cI]),3,0,7); x.fill();}
     });
   });
+  if(hk>=0){const px=X(a[V.idx(hk)]); x.strokeStyle=COL.dim; x.lineWidth=1; x.beginPath(); x.moveTo(px,2); x.lineTo(px,h-Bm); x.stroke();}
+  return hk;
+}
+function drawHist(){
+  const c=cvs.hist, x=ctx2(c), w=Wd(c), h=Hd(c); x.clearRect(0,0,w,h);
+  const V=histView(), hk=plotHist(x,w,h,V,hovHist.x);
+  if(REC.on) $("recO").textContent="REC "+recDur().toFixed(1)+" s";
   if(hk>=0){
-    const o=hIdx(hk), px=X(hist[o]); x.strokeStyle=COL.dim; x.lineWidth=1; x.beginPath(); x.moveTo(px,2); x.lineTo(px,h-Bm); x.stroke();
-    const title=(t1-hist[o]<0.005?"Now":"−"+(t1-hist[o]).toFixed(2)+" s");
-    const rows=[["","Lat g",num(hist[o+8],2)+" g"],["","Yaw rate",num(hist[o+9],1)+"°/s"],["","Roll",num(hist[o+1],2)+"°"],["","Pitch",num(hist[o+2],2)+"°"],["","Heave",num(hist[o+3],1)+" mm"],["k1","FL load",hist[o+4].toFixed(0)+" N"],["k2","FR load",hist[o+5].toFixed(0)+" N"],["k1","RL load",hist[o+6].toFixed(0)+" N"],["k2","RR load",hist[o+7].toFixed(0)+" N"]];
+    const a=V.arr, o=V.idx(hk), px=100+(a[o]-V.t0)/(V.t1-V.t0)*(w-108);
+    const title=V.rec?a[o].toFixed(2)+" s":(V.t1-a[o]<0.005?"Now":"−"+(V.t1-a[o]).toFixed(2)+" s");
+    const rows=[["","Lat g",num(a[o+8],2)+" g"],["","Yaw rate",num(a[o+9],1)+"°/s"],["","Roll",num(a[o+1],2)+"°"],["","Pitch",num(a[o+2],2)+"°"],["","Heave",num(a[o+3],1)+" mm"],["k1","FL load",a[o+4].toFixed(0)+" N"],["k2","FR load",a[o+5].toFixed(0)+" N"],["k1","RL load",a[o+6].toFixed(0)+" N"],["k2","RR load",a[o+7].toFixed(0)+" N"]];
     setTip($("histTip"),title+"|"+rows.map(r=>r[2]).join("|"),title,rows,px,w);
   } else setTip($("histTip"),null);
 }
 function histTable(){
   const col=[8,9,1,2,3,4,5,6,7], lab=["Lateral g","Yaw rate","Roll","Pitch","Heave","FL tire load","FR tire load","RL tire load","RR tire load"], un=["g","°/s","°","°","mm","N","N","N","N"], dec=[2,1,2,2,1,0,0,0,0], n=col.length;
-  const t0=S.t-HWIN, lo=new Array(n).fill(Infinity), hi=new Array(n).fill(-Infinity);
-  for(let j=0;j<hCount;j++){const o=hIdx(j); if(hist[o]<t0) continue; for(let k=0;k<n;k++){const v=hist[o+col[k]]; if(v<lo[k])lo[k]=v; if(v>hi[k])hi[k]=v;}}
-  let t=`<tr><th>Over the last 6 s</th><th>Min</th><th>Max</th><th></th></tr>`;
+  const V=histView(), lo=new Array(n).fill(Infinity), hi=new Array(n).fill(-Infinity);
+  for(let j=V.j0;j<V.n;j++){const o=V.idx(j); for(let k=0;k<n;k++){const v=V.arr[o+col[k]]; if(v<lo[k])lo[k]=v; if(v>hi[k])hi[k]=v;}}
+  let t=`<tr><th>${V.rec?"Over the recording, "+recDur().toFixed(1)+" s":"Over the last "+HWIN+" s"}</th><th>Min</th><th>Max</th><th></th></tr>`;
   for(let k=0;k<n;k++) t+=`<tr><td>${lab[k]}</td><td>${hi[k]>=lo[k]?num(lo[k],dec[k]):"–"}</td><td>${hi[k]>=lo[k]?num(hi[k],dec[k]):"–"}</td><td class="u">${un[k]}</td></tr>`;
   $("histTbl").innerHTML=t;
 }
+
+/* ---- recording: Record starts it, Stop ends it; the panel then shows it and it can be exported as a picture or as numbers ---- */
+function recSync(){
+  const held=recHeld(), b=$("recBtn");
+  b.textContent=REC.on?"Stop":"Record"; b.setAttribute("aria-pressed",REC.on);
+  b.title=REC.on?"Stop recording":held?"Start a new recording (this one is dropped)":"Record the history from now, for up to "+RMAX+" s";
+  $("recPng").hidden=$("recCsv").hidden=$("recX").hidden=!held;
+  $("histT").textContent=held?"Recording "+recDur().toFixed(1)+" s":HWIN+" s";
+  $("recO").textContent=REC.on?"REC 0.0 s":"";
+}
+function recStart(){REC.on=true; REC.n=0; REC.meta=null; recSync(); setStatus(running?"Recording. Press Stop to review and export it; it stops itself at "+RMAX+" s.":"Recording starts when the simulation runs (it is paused).",false);}
+function recStop(msg){
+  if(!REC.on) return; REC.on=false;
+  REC.meta={car:presetName==="stock"?"Stock":presetName==="coen"?"Coen's":"Session",drive:P.steer.link?"Drive "+(P.steer.speed*3.6).toFixed(0)+" km/h":"Drive off",when:new Date()};
+  recSync(); histTable();
+  setStatus(REC.n>0?(msg||"Recorded "+recDur().toFixed(1)+" s. Export it as a graph or as numbers, or discard it."):"Nothing was recorded: the simulation was paused.",false);
+}
+$("recBtn").onclick=()=>REC.on?recStop():recStart();
+$("recX").onclick=()=>{REC.n=0; REC.meta=null; recSync(); histTable(); setStatus("Recording discarded. History is live again.",false);};
+function recName(ext){const d=REC.meta.when, p2=n=>String(n).padStart(2,"0"), car=REC.meta.car==="Coen's"?"coens":REC.meta.car.toLowerCase();
+  return "dws-recording-"+car+"-"+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+"-"+p2(d.getHours())+p2(d.getMinutes())+"."+ext;}
+/* The graph: the same rows as the panel, on the panel's ground, with a title line that says which car, the Drive speed, how long and when. */
+$("recPng").onclick=()=>{
+  if(!recHeld()) return;
+  const W=1000, H=760, pad=24, top=84, sc=2, c=document.createElement("canvas"); c.width=W*sc; c.height=H*sc;
+  const x=c.getContext("2d"), m=REC.meta, d=m.when, p2=n=>String(n).padStart(2,"0"); x.scale(sc,sc);
+  x.fillStyle=COL.glass; x.fillRect(0,0,W,H);
+  x.textAlign="left"; x.fillStyle=COL.vinyl; x.font=OSD(30); x.fillText("DOUBLE WISHBONE SIMULATOR / HISTORY",pad,pad+22);
+  x.fillStyle=COL.dim; x.font=OSD(20);
+  x.fillText((m.car+" / "+m.drive+" / "+recDur().toFixed(1)+" s / "+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+" "+p2(d.getHours())+":"+p2(d.getMinutes())).toUpperCase(),pad,pad+48);
+  const lx=W-pad-250, ly=pad+16;      // key: solid = left wheel, dashed = right wheel
+  x.lineWidth=2; x.strokeStyle=COL.vinyl; x.beginPath(); x.moveTo(lx,ly); x.lineTo(lx+24,ly); x.stroke(); x.fillText("LEFT WHEEL",lx+32,ly+6);
+  x.strokeStyle=COL.ice; x.setLineDash(DASH); x.beginPath(); x.moveTo(lx,ly+24); x.lineTo(lx+24,ly+24); x.stroke(); x.setLineDash([]); x.fillText("RIGHT WHEEL",lx+32,ly+30);
+  x.save(); x.translate(pad,top); plotHist(x,W-2*pad,H-top-pad,histView(),null); x.restore();
+  c.toBlob(b=>{if(b) saveFile(recName("png"),b,"Graph"); else setStatus("Export failed: the picture could not be made.",true);},"image/png");
+};
+/* The numbers: one row per 0.01 s, one column per trace, plus the steering wheel angle. Opens in any spreadsheet. */
+$("recCsv").onclick=()=>{
+  if(!recHeld()) return;
+  const a=REC.buf, col=[0,8,9,1,2,3,4,5,6,7,10], dec=[2,3,2,3,3,2,0,0,0,0,1];
+  let t="time_s,lateral_g,yaw_rate_deg_s,roll_deg,pitch_deg,heave_mm,FL_load_N,FR_load_N,RL_load_N,RR_load_N,steering_wheel_deg\n";
+  for(let j=0;j<REC.n;j++){const o=j*HS; t+=col.map((cI,k)=>a[o+cI].toFixed(dec[k])).join(",")+"\n";}
+  saveFile(recName("csv"),new Blob([t],{type:"text/csv"}),"Numbers");
+};
+recSync();
 
 /* ---- telemetry ---- */
 function drawTele(){
@@ -745,6 +814,7 @@ function frame(now){
       if(++hAcc>=40){hAcc=0; histPush();}
     }
     GND.x-=GWRAP*Math.round(GND.x/GWRAP); GND.y-=GWRAP*Math.round(GND.y/GWRAP); GND.d+=(moved-GND.d)*0.3;
+    if(S.spun||!finite(S)) recStop();                         // a recording keeps what led up to a spin; the reset below does not wipe it
     if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centered.",true);}
     else if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
     if(P.steer.link) inp.ay=S.ay;
@@ -761,21 +831,24 @@ function frame(now){
 }
 
 /* ---- setup files: Export saves the car on screen as a .json file; Import loads such a file as the session setup ---- */
-async function exportSetup(){
-  const d=new Date(), p2=n=>String(n).padStart(2,"0"), name=presetName==="coen"?"coens":(presetName||"session");
-  const file="dws-"+name+"-"+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+".json";
-  const text=JSON.stringify({app:"double-wishbone-simulator",format:1,name,saved:d.toISOString(),setup:P},null,1);
-  let dl=null; try{if(window.claude&&window.claude.use) dl=await window.claude.use("downloads");}catch(e){}      // inside a Claude artifact the viewer saves the file
+/* Hands a generated file to the person: inside a Claude artifact the viewer saves it, on the web it is a normal browser download. */
+async function saveFile(file,data,what){
+  let dl=null; try{if(window.claude&&window.claude.use) dl=await window.claude.use("downloads");}catch(e){}
   if(dl){
-    try{await dl.save({filename:file,data:text}); setStatus("Setup exported as "+file+".",false);}
+    try{await dl.save({filename:file,data}); setStatus(what+" exported as "+file+".",false);}
     catch(e){if(e&&e.code==="declined") setStatus("Export cancelled.",false); else setStatus("Export is not available in this view.",true);}
     return;
   }
   try{
-    const a=document.createElement("a"), u=URL.createObjectURL(new Blob([text],{type:"application/json"}));
+    const a=document.createElement("a"), u=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));
     a.href=u; a.download=file; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
-    setStatus("Setup exported as "+file+".",false);
+    setStatus(what+" exported as "+file+".",false);
   }catch(e){setStatus("Export failed: "+e.message,true);}
+}
+function exportSetup(){
+  const d=new Date(), p2=n=>String(n).padStart(2,"0"), name=presetName==="coen"?"coens":(presetName||"session");
+  const file="dws-"+name+"-"+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+".json";
+  saveFile(file,new Blob([JSON.stringify({app:"double-wishbone-simulator",format:1,name,saved:d.toISOString(),setup:P},null,1)],{type:"application/json"}),"Setup");
 }
 function importSetup(f){
   const rd=new FileReader();

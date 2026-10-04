@@ -69,6 +69,7 @@ h1{margin:0;font:400 28px/1.15 var(--font-display);letter-spacing:.04em;text-tra
 .btn.primary:hover{box-shadow:var(--glow-ice);color:var(--on-ice)}
 .btn.primary:active{background:linear-gradient(-45deg,transparent 8px,var(--vinyl) 8.5px)}
 .btn.ghost{padding:0 var(--space-2);border-color:transparent;color:var(--vinyl-dim)}
+.btn.sm{min-height:32px;padding:0 var(--space-3)}      /* a button inside a card */
 .btn.ghost:hover{color:var(--vinyl)}
 .btn.tog[aria-pressed="true"],.btn.tog[aria-pressed="true"]:hover{background:var(--vinyl);border-color:var(--vinyl);color:var(--void);box-shadow:var(--glow-ice)}   /* a mode that is on: lit */
 .seg{display:inline-flex;border:1px solid var(--edge)}
@@ -108,6 +109,8 @@ legend{padding:0;margin-bottom:var(--space-2);color:var(--vinyl-dim);font:400 12
 .f .wide{grid-column:2/4}
 .hint{margin:0;color:var(--vinyl-dim);max-width:65ch}
 .rowbtns{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.recbar .rd{font:400 20px/20px var(--font-osd);letter-spacing:.06em}
+.recbar .rd:empty{display:none}
 .sl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--space-1) var(--space-2);align-items:baseline}
 .sl output{font:400 20px/20px var(--font-osd);letter-spacing:.06em}
 .sl.off{opacity:.4}                                    /* a slider the current mode has taken over */
@@ -188,7 +191,7 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
 
 @media (pointer:coarse){
   .f input,.f select,.card h2 select{height:44px}
-  .seg button{min-height:44px}
+  .seg button,.btn.sm{min-height:44px}
   .tab{min-height:44px}
 }
 @media (max-width:860px){

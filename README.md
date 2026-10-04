@@ -87,6 +87,7 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 ## Grip and handling
 
 - **Telemetry** shows each tire's slip angle and the share of its grip in use.
+- **History** shows the last 10 s of lateral g, yaw rate, roll, pitch, heave and tire loads. **Record** starts a recording of up to 60 s; **Stop** ends it and the panel then shows the whole recording. **Export graph** saves it as a PNG picture, **Export numbers** as a CSV table (one row per 0.01 s, with the steering wheel angle as an extra column), **Discard** goes back to the live history. Settle, Step steer or loading a car restarts a recording in progress, so a recording started before Step steer begins at the step; a spin stops it and keeps it.
 - **Setup sheet** runs from everyday numbers to detail: alignment at ride height, wheels and ride height, springs and dampers, then roll, pitch and grip (the cornering limit of the front and rear tires, which end runs out first, and the understeer gradient), steering, and geometry detail.
 - The **space bar** runs and pauses the simulation from anywhere on the page.
 - The **Curve** menu names both axes of each curve (for example "Camber vs wheel travel" and "Camber vs steering"). **Grip in use vs lateral g** plots both axles against lateral g. The line that reaches 100 % first sets the limit.
