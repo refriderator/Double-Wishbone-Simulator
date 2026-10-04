@@ -90,6 +90,7 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 - **Setup sheet** shows the cornering limit of the front and rear tires, which end runs out first, and the understeer gradient.
 - **Curve → Grip in use** plots both axles against lateral g. The line that reaches 100 % first sets the limit.
 - **Steering → Assess turn-in** runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. **Step steer** (only while it is on) centers the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
+- While Assess turn-in is on, the floor grid in the 3D view moves under the car: it streams back at the car's speed, turns as the car yaws and drifts sideways when the car slides. `GND` in `ui.js` holds the car's heading and position.
 - Speed is constant, the road is flat, and no drive or brake force acts at the tires. If the car slides sideways faster than it moves forward it has spun, and the page centers the steering.
 
 ## Good to know

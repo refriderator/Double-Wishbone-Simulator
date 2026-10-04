@@ -15,6 +15,9 @@ let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="coen";}
 let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
+/* Where the car is on the ground while it is driven (Assess turn-in): heading psi (+ = turned right) and position, wrapped to the floor grid's
+   coarsest spacing. The 3D view keeps the car still and moves the floor the opposite way. d is the distance covered in the last drawn frame. */
+const GND={psi:0,x:0,y:0,d:0}, GWRAP=4;
 const BODY_LIFT=0.038;      // the Assetto Corsa shell is a lowered car: raise it 38 mm on the wheels so it sits right at stock height (drawing only, no effect on the numbers)
 let bodyOn=true; try{bodyOn=localStorage.getItem("dws.body")!=="box";}catch(e){}      // 3D view: the car body, or the plain chassis box
 /* Colours and fonts come from the OL! tokens in style.css. The palette is closed (black, greys, midnight, ice),
@@ -133,7 +136,7 @@ $("copySpr").onclick=()=>applyEdit(()=>{P.ax[1-editAxle].s=JSON.parse(JSON.strin
 $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; speed=+b.dataset.v;
   $("speed").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); $("oSpeed").textContent=b.textContent;});
 $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"Run";};
-function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear();}
+function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear(); GND.psi=GND.x=GND.y=0;}
 $("reset").onclick=()=>resettle(4);
 function loadPreset(name){
   const label=name==="stock"?"Stock":name==="session"?"Session":"Coen's";
@@ -314,7 +317,7 @@ function init3D(){
     tie:std({metalness:0.1,roughness:0.6}),tire:std({roughness:0.9}),rim:std({metalness:0.2,roughness:0.5}),body:std({transparent:true,opacity:0.30,depthWrite:false}),cg:std({}),bumpm:std({roughness:0.8}),
     car:std({transparent:true,opacity:0.09,depthWrite:false,flatShading:true,side:THREE.DoubleSide,metalness:0,roughness:0.8})};
   const LM={edge:new THREE.LineBasicMaterial({transparent:true,opacity:0.9}),coil:new THREE.LineBasicMaterial({}),axis:new THREE.LineDashedMaterial({dashSize:0.06,gapSize:0.04}),car:new THREE.LineBasicMaterial({transparent:true,opacity:0.55})};
-  let grid=null, chassis=null, chassisEdge=null, chKey="";
+  let grid=null, gridLv=[], chassis=null, chassisEdge=null, chKey="";
   const pivot=new THREE.Group(), bodyG=new THREE.Group(); pivot.add(bodyG); scene.add(pivot);
   const UP=new THREE.Vector3(0,1,0), ZA=new THREE.Vector3(0,0,1), tmp=new THREE.Vector3(), nv=new THREE.Vector3();
   const rod=(mat,r)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,12),mat); bodyG.add(m); return m;};
@@ -377,8 +380,18 @@ function init3D(){
     M.tire.color=c("gunmetal"); M.rim.color=c("edge"); M.body.color=c("gunmetal"); M.cg.color=c("vinyl"); M.bumpm.color=c("edge");
     LM.edge.color=c("edge"); LM.coil.color=c("vinyl"); LM.axis.color=c("dim"); M.car.color=c("armU"); LM.car.color=c("armU");
     corners.forEach(k=>k.arrow.setColor(c("vinyl")));
-    if(grid){scene.remove(grid); grid.geometry.dispose();}
-    grid=new THREE.GridHelper(10,40,c("edge"),c("gunmetal")); scene.add(grid);
+    /* Floor: three line spacings (0.25, 1 and 4 m). A spacing fades out when the floor moves too far per frame for its lines to read as motion. */
+    if(grid){scene.remove(grid); gridLv.forEach(l=>{l.seg.geometry.dispose(); l.seg.material.dispose();});}
+    grid=new THREE.Group(); gridLv=[];
+    const half=8, lv=[[0.25,1,"gunmetal"],[1,GWRAP,"gunmetal"],[GWRAP,0,"edge"]];
+    for(const [sp,skip,col] of lv){
+      const pts=[], n=Math.round(half/sp);
+      for(let i=-n;i<=n;i++){const q=i*sp; if(skip&&Math.abs(q/skip-Math.round(q/skip))<1e-6) continue; pts.push(-half,0,q,half,0,q,q,0,-half,q,0,half);}
+      const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.Float32BufferAttribute(pts,3));
+      const seg=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:c(col),transparent:true}));
+      grid.add(seg); gridLv.push({sp,seg});
+    }
+    scene.add(grid);
   }
   function resize(){
     const w=view.clientWidth, h=view.clientHeight; renderer.setSize(w,h,false);
@@ -417,6 +430,9 @@ function init3D(){
     const sF=((S.out[0].s||0)+(S.out[1].s||0))/2, sR=((S.out[2].s||0)+(S.out[3].s||0))/2, pa=axisGeo.attributes.position.array;
     pa[0]=model.a; pa[1]=S.hrc[0]+sF; pa[2]=0; pa[3]=-model.b; pa[4]=S.hrc[1]+sR; pa[5]=0;
     axisGeo.attributes.position.needsUpdate=true; axisLine.computeLineDistances();
+    {const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);            // the floor seen from the car: the world turned back by the heading and shifted back by the position
+     grid.rotation.y=GND.psi; grid.position.set(-GND.x*cs-GND.y*sn,0,GND.x*sn-GND.y*cs);
+     for(const l of gridLv){const a=Math.max(0,Math.min(1,(0.45-GND.d/l.sp)/0.25)); l.seg.material.opacity=a; l.seg.visible=a>0.01;}}
     controls.update(); renderer.render(scene,camera);
   }
   return {update,resize,theme};
@@ -695,15 +711,21 @@ function frame(now){
     stepAcc+=dtF*speed/DT; const n=Math.min(1200,Math.floor(stepAcc)); stepAcc-=Math.floor(stepAcc);
     const tgt=rackTarget(), rr=900/360*P.steer.c*DT;
     inp.U=P.steer.link?P.steer.speed:0;
+    let moved=0;
     for(let k=0;k<n;k++){
       const d=tgt-inp.rack; inp.rack+=d>rr?rr:(d<-rr?-rr:d);
       step(model,S,inp,DT,0);
+      if(inp.U>0){                                               // the car's path over the ground, for the moving floor
+        const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);
+        GND.x+=(inp.U*cs-S.vy*sn)*DT; GND.y+=(inp.U*sn+S.vy*cs)*DT; GND.psi+=S.r*DT; moved+=Math.hypot(inp.U,S.vy)*DT;
+      }
       if(++hAcc>=40){hAcc=0; histPush();}
     }
+    GND.x-=GWRAP*Math.round(GND.x/GWRAP); GND.y-=GWRAP*Math.round(GND.y/GWRAP); GND.d+=(moved-GND.d)*0.3;
     if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centered.",true);}
     else if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
     if(P.steer.link) inp.ay=S.ay;
-  }
+  } else GND.d*=0.7;
   computeFrame();
   $("hRoll").textContent=num(S.ph/D2R,2)+"°"; $("hPitch").textContent=num(S.th/D2R,2)+"°"; $("hHeave").textContent=num(S.z*1000,1)+" mm";
   $("hSteer").textContent=num(swNow(),0)+"°"; $("hAy").textContent=num(inp.ay,2)+" g"; $("hTime").textContent="Sim "+clock(S.t);
