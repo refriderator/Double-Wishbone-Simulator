@@ -40,7 +40,7 @@
 
   <div class="pane" id="p-geo" role="tabpanel">
     <div class="rowbtns"><div class="seg axleSel" role="group" aria-label="Axle"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></div><button class="btn" id="copyGeo">Copy to rear</button></div>
-    <p class="hint">Dimensions at design ride height. Lateral from the centreline, height from the ground, fore-aft from the axle line. The solver finds the lower-arm angle that puts the tire on the ground. Wheels and tires, coilover mounts and the tie rod are on their own tabs.</p>
+    <p class="hint">Dimensions at design ride height. Lateral from the centerline, height from the ground, fore-aft from the axle line. The solver finds the lower-arm angle that puts the tire on the ground. Wheels and tires, coilover mounts and the tie rod are on their own tabs.</p>
     <div id="geoFields" class="groups"></div>
     <fieldset><legend>Solved points</legend>
       <div class="tw"><table class="pts wrap" id="pts"></table></div>
@@ -72,13 +72,13 @@
   <div class="pane" id="p-str" role="tabpanel" hidden>
     <fieldset><legend>Steering wheel</legend>
       <div class="sl"><label for="sw">Angle, + = right</label><output id="swO"></output><input type="range" id="sw" min="-468" max="468" step="1" value="0"></div>
-      <div class="rowbtns"><button class="btn" id="swL">Full left</button><button class="btn" id="swC">Centre</button><button class="btn" id="swR">Full right</button></div>
+      <div class="rowbtns"><button class="btn" id="swL">Full left</button><button class="btn" id="swC">Center</button><button class="btn" id="swR">Full right</button></div>
     </fieldset>
     <div id="linkFields" class="groups"></div>
     <fieldset>
-      <div class="f"><label for="ssA">Step steer to</label><input id="ssA" type="number" value="30" step="5" min="-400" max="400"><span class="u">°</span></div>
+      <div class="f"><label for="ssA">Step the steering wheel to</label><input id="ssA" type="number" value="30" step="5" min="-400" max="400"><span class="u">°</span></div>
       <div class="rowbtns"><button class="btn" id="ssGo">Step steer</button></div>
-      <p class="hint" id="ssNote">Step steer centres the wheel, lets the car settle, then turns the wheel to this angle. The History panel shows the response.</p>
+      <p class="hint" id="ssNote">Step steer centers the steering wheel, lets the car settle, then turns it to this angle (degrees at the steering wheel, + = right). The History panel shows the response.</p>
     </fieldset>
     <table id="steerOut" class="wrap"></table>
     <div id="strFields" class="groups"></div>
@@ -95,10 +95,10 @@
     <fieldset><legend>Point load / downward</legend>
       <div class="sl"><label for="fp">Force</label><output id="fpO"></output><input type="range" id="fp" min="0" max="4000" step="10" value="0"></div>
       <div class="sl"><label for="xp">Position, + = forward of CG</label><output id="xpO"></output><input type="range" id="xp" min="-1600" max="1600" step="10" value="1100"></div>
-      <div class="sl"><label for="yp">Position, + = right of centre</label><output id="ypO"></output><input type="range" id="yp" min="-800" max="800" step="10" value="-600"></div>
+      <div class="sl"><label for="yp">Position, + = right of center</label><output id="ypO"></output><input type="range" id="yp" min="-800" max="800" step="10" value="-600"></div>
     </fieldset>
     <div class="rowbtns"><button class="btn" id="zeroLoads">Zero all forces</button></div>
-    <p class="hint">Sliders apply as steps: the transient first, then the steady state. Lateral load splits between the springs (moment about the roll axis) and the links (through the roll centres).</p>
+    <p class="hint">Sliders apply as steps: the transient first, then the steady state. Lateral load splits between the springs (moment about the roll axis) and the links (through the roll centers).</p>
     <fieldset><legend>Road bump / 1 − cos</legend>
       <div class="f"><label for="bh">Height</label><input id="bh" type="number" value="40" step="5" min="0" max="150"><span class="u">mm</span></div>
       <div class="f"><label for="bl">Length</label><input id="bl" type="number" value="300" step="50" min="50" max="5000"><span class="u">mm</span></div>
@@ -145,12 +145,12 @@
     </section>
     <section class="card">
       <h2>Rear view <span class="seg" id="viewAxle" role="group" aria-label="Axle shown"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></span></h2>
-      <div class="plot"><canvas id="rear" role="img" aria-label="Rear view of the selected axle with wishbones, instant centres and roll centre"></canvas></div>
-      <p class="hint">Seen from behind, ground level, live. The body rolls and the camber labels are relative to the road. Dashed lines extend each wishbone to its instant centre. The solid lines from each contact patch through its instant centre cross at the roll centre.</p>
+      <div class="plot"><canvas id="rear" role="img" aria-label="Rear view of the selected axle with wishbones, instant centers and roll center"></canvas></div>
+      <p class="hint">Seen from behind, ground level, live. The body rolls and the camber labels are relative to the road. Dashed lines extend each wishbone to its instant center. The solid lines from each contact patch through its instant center cross at the roll center.</p>
     </section>
     <section class="card">
       <h2>Curve <select id="curveQ" aria-label="Curve">
-        <optgroup label="Against wheel travel"><option value="cam">Camber</option><option value="toe">Toe (bump steer)</option><option value="dtr">Track change, per side</option><option value="MR">Motion ratio</option><option value="rch">Roll centre height</option></optgroup>
+        <optgroup label="Against wheel travel"><option value="cam">Camber</option><option value="toe">Toe (bump steer)</option><option value="dtr">Track change, per side</option><option value="MR">Motion ratio</option><option value="rch">Roll center height</option></optgroup>
         <optgroup label="Against steering (front)"><option value="rw">Road-wheel angle</option><option value="camS">Camber</option><option value="lift">Body lift at the wheel</option></optgroup>
         <optgroup label="Against lateral g"><option value="grip">Grip in use, front and rear</option></optgroup>
       </select></h2>
@@ -183,7 +183,7 @@
         <tr><td>Travel limits, bump / droop</td><td>Same as stock: 82 / 93 mm front, 80 / 96 mm rear</td><td class="u k">Set</td></tr>
         <tr><td>Rack, inner joint height</td><td>207.0 mm, 6.8 mm above stock</td><td class="u k">Set</td></tr>
         <tr><td>Track, front / rear</td><td>1522 / 1483 mm (the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
-        <tr><td>Roll centre height, front / rear</td><td>29 / 94 mm</td><td class="u k">Follows</td></tr>
+        <tr><td>Roll center height, front / rear</td><td>29 / 94 mm</td><td class="u k">Follows</td></tr>
         <tr><th>Stock car, published by Mazda</th><th></th><th></th></tr>
         <tr><td>Wheelbase</td><td>2265 mm</td><td class="u k">Published</td></tr>
         <tr><td>Track, front / rear</td><td>1415 / 1440 mm</td><td class="u k">Published</td></tr>
@@ -192,7 +192,7 @@
         <tr><td>Caster trail</td><td>17.5 mm</td><td class="u k">Published</td></tr>
         <tr><td>Rear camber</td><td>−0°42′</td><td class="u k">Published</td></tr>
         <tr><td>Toe-in, total per axle</td><td>3 mm = 0.15° per wheel</td><td class="u k">Published</td></tr>
-        <tr><td>Roll centre height, front / rear</td><td>41 / 120 mm</td><td class="u k">Published</td></tr>
+        <tr><td>Roll center height, front / rear</td><td>41 / 120 mm</td><td class="u k">Published</td></tr>
         <tr><td>Wheel stroke, bump / droop</td><td>82 / 93 mm front, 80 / 96 mm rear</td><td class="u k">Published</td></tr>
         <tr><td>Springs, front / rear</td><td>2.9 / 2.1 kgf/mm = 28.4 / 20.6 N/mm</td><td class="u k">Published</td></tr>
         <tr><td>Damper force at 0.1 and 0.3 m/s</td><td>Rebound 62 / 115 kgf. Bump 35 / 57 kgf front, 35 / 77 kgf rear</td><td class="u k">Published</td></tr>
@@ -201,7 +201,7 @@
         <tr><th>Measured on the parts</th><th></th><th></th></tr>
         <tr><td>Front knuckle</td><td>Upper ball joint 120.7 mm (4¾ in) above the axle, lower ball joint 92.1 mm (3⅝ in) below it and 88.9 mm (3½ in) in from the wheel face</td><td class="u k">Photo with a tape</td></tr>
         <tr><td>Front arms</td><td>Lower 336.6 mm from the pivot line to the ball joint, inner pivots 325 mm apart, ball joint 25 mm ahead of the front pivot. Upper 250 mm, inner pivots 220 mm apart, ball joint midway</td><td class="u k">Arm drawings</td></tr>
-        <tr><td>Rear chassis pivots</td><td>Lower 243.9 mm and upper 387.3 mm from the centreline, upper 192.1 mm above lower. Lower pivots 320.4 mm apart front to back, upper 164.5 mm</td><td class="u k">Pickup drawing</td></tr>
+        <tr><td>Rear chassis pivots</td><td>Lower 243.9 mm and upper 387.3 mm from the centerline, upper 192.1 mm above lower. Lower pivots 320.4 mm apart front to back, upper 164.5 mm</td><td class="u k">Pickup drawing</td></tr>
         <tr><td>Rear arms</td><td>Lower 393.7 mm, upper 212.7 mm (8⅜ in), pivot line to outer joint</td><td class="u k">Arm drawings</td></tr>
         <tr><td>Rear upright</td><td>Axle sits 45 % of the way up from the lower arm mount to the upper one</td><td class="u k">Photo</td></tr>
         <tr><th>Measured by others</th><th></th><th></th></tr>
@@ -214,7 +214,7 @@
         <tr><td>Front pivot heights, lower / upper</td><td>171.8 / 360.6 mm</td><td class="u k">Fitted</td></tr>
         <tr><td>Front upright, ball joint to ball joint</td><td>217.2 mm: the measured heights, leaned to Mazda's 11°39′ kingpin</td><td class="u k">Measured + published</td></tr>
         <tr><td>Hub face position, kingpin offset, tie rod joints, coilover mounts</td><td>See the Geometry tab</td><td class="u k">Fitted</td></tr>
-        <tr><td>Rear upright, pivot height, hub face, damper mount</td><td>Upright 240 mm between the arm mounts, lower pivot 186.4 mm above ground, hub face 137.9 mm from the kingpin axis, fitted to roll centre 120 mm, track 1440 mm and motion ratio 0.721. A rough 230 mm estimate of the upright could not give that roll centre with enough droop reach.</td><td class="u k">Fitted</td></tr>
+        <tr><td>Rear upright, pivot height, hub face, damper mount</td><td>Upright 240 mm between the arm mounts, lower pivot 186.4 mm above ground, hub face 137.9 mm from the kingpin axis, fitted to roll center 120 mm, track 1440 mm and motion ratio 0.721. A rough 230 mm estimate of the upright could not give that roll center with enough droop reach.</td><td class="u k">Fitted</td></tr>
         <tr><td>Front tie rod, outer joint</td><td>103 mm ahead of the ball joint axis, fitted to the published full lock. A rough 135 mm measurement gave 27° / 25° of lock, so it was not used.</td><td class="u k">Fitted</td></tr>
         <tr><th>Estimates</th><th></th><th></th></tr>
                 <tr><td>Unsprung mass per corner</td><td>32 kg</td><td class="u k">Estimate</td></tr>
@@ -226,7 +226,7 @@
         <tr><td>Tire grip</td><td>Typical values for the kind of tire, not measured: street tires on Stock (peak 0.95), sporty street tires on Coen's (peak 1.10). See the Wheels &amp; tires tab.</td><td class="u k">Estimate</td></tr>
         <tr><td>Yaw inertia, whole car</td><td>1400 kg·m²</td><td class="u k">Estimate</td></tr>
         <tr><th>Checks, not used in the fit</th><th></th><th></th></tr>
-        <tr><td>NA roll centre: lower pivot 5.8 mm higher</td><td>62.5 mm. Mazda: 61 mm</td><td class="u k">Check</td></tr>
+        <tr><td>NA roll center: lower pivot 5.8 mm higher</td><td>62.5 mm. Mazda: 61 mm</td><td class="u k">Check</td></tr>
         <tr><td>NA caster trail at 4°26′</td><td>11.6 mm. Mazda: 11.6 mm</td><td class="u k">Check</td></tr>
         <tr><td>Turning radius, outer front tire</td><td>4.49 m. Mazda: 4.6 m</td><td class="u k">Check</td></tr>
       </table></div>
@@ -242,18 +242,18 @@
     <section class="card wide">
       <details open><summary>Model notes</summary>
       <ul>
-        <li>Each corner is a rigid upright on two wishbones and a tie rod, solved in 3D. The wishbone pivot axes run parallel to the car's centreline, so camber, track, motion ratio and roll centre come from the front view. Caster, kingpin inclination, toe, bump steer and Ackermann come from the 3D solve.</li>
-        <li>Dynamics: body heave, pitch and roll (small angles) plus vertical motion of each wheel, and sideways slide and yaw while the car is driven. The body rolls about the roll axis, a tilted body carries its CG off-centre over the wheels, and the CG height follows the ride height.</li>
+        <li>Each corner is a rigid upright on two wishbones and a tie rod, solved in 3D. The wishbone pivot axes run parallel to the car's centerline, so camber, track, motion ratio and roll center come from the front view. Caster, kingpin inclination, toe, bump steer and Ackermann come from the 3D solve.</li>
+        <li>Dynamics: body heave, pitch and roll (small angles) plus vertical motion of each wheel, and sideways slide and yaw while the car is driven. The body rolls about the roll axis, a tilted body carries its CG off-center over the wheels, and the CG height follows the ride height.</li>
         <li>Tires are thin discs with a linear vertical spring and light damping. They can leave the ground. Side force follows a Magic Formula curve from slip angle, load and camber: peak grip falls as load rises, cornering stiffness flattens with load, and camber leaning into the turn adds a little grip up to an optimum. The grip numbers are typical values, not test data, so trust the direction of a change more than the size.</li>
         <li>Grip in use: the car is settled at each lateral g and each axle's side force is compared with the most its two tires can make at their loads, cambers and toes. The axle that reaches 100 % first sets the limit. The understeer gradient is the change in front minus rear slip angle between 0.2 and 0.4 g.</li>
         <li>Assess turn-in (grip) (Steering tab): at the set steady speed the tires make the side force from their slip angles, the car slides sideways and yaws, and lateral g comes out of that. Speed is held constant, the road is flat, and there is no drive or brake force at the tires. Past the limit the car plows or spins; that part is the least accurate. Cornering loads do not jack the body.</li>
         <li>No anti-dive or anti-squat: all longitudinal load transfer goes through the springs.</li>
-        <li>Lateral load transfer through the links uses each axle's roll centre height for equal travel on both sides and zero steer. The rear view shows the true roll centre for reference.</li>
+        <li>Lateral load transfer through the links uses each axle's roll center height for equal travel on both sides and zero steer. The rear view shows the true roll center for reference.</li>
         <li>Steering lifts or lowers each front tire relative to its arm (caster and kingpin inclination), which shifts load diagonally. Springs, bump stops and anti-roll bars act on arm travel.</li>
         <li>Coil springs cannot pull: they unseat at full droop. Anti-roll bar links are assumed adjusted for zero preload at the target heights.</li>
         <li>Bump stops engage at the end of the published wheel stroke. The real car's stops touch earlier and build up progressively.</li>
         <li>The Miata has no rear toe link. Its rear lower arm holds the upright at two outer pivots. The model draws that arm as two legs, the front leg to the ball joint and the rear leg to a second outer point, and the rear leg holds the toe. Both legs swing about the same axis, so the rear has no toe change by construction.</li>
-        <li>Left and right sides share one geometry, and the CG is on the centreline.</li>
+        <li>Left and right sides share one geometry, and the CG is on the centerline.</li>
       </ul></details>
     </section>
   </div>

@@ -7,11 +7,11 @@ const G=9.81, D2R=Math.PI/180;
 /* Two cars, both a Mazda MX-5 / Roadster NB 1.8 (NB8C): STOCK (as Mazda built it) and COEN'S (the one this tool was built for).
    The Stock / Coen's buttons on the page load them. Both use the same arms, pivots and rack. Source of each number:
    PUBLISHED by Mazda: wheelbase 2265 mm, track 1415 / 1440 mm, mass 1030 kg, front camber 0°02', caster 5°40', kingpin 11°39',
-     caster trail 17.5 mm, rear camber -0°42', toe-in 3 mm total per axle, roll centre height 41 / 120 mm, wheel stroke 82 bump / 93 droop
+     caster trail 17.5 mm, rear camber -0°42', toe-in 3 mm total per axle, roll center height 41 / 120 mm, wheel stroke 82 bump / 93 droop
      (front) and 80 / 96 (rear), springs 2.9 / 2.1 kgf/mm, damper forces at 0.1 and 0.3 m/s, rack stroke 121 mm, 2.6 turns lock to
      lock, full lock 38° inner / 33° outer.
    MEASURED on the parts: front arms (lower 336.6 mm, upper 250 mm), front knuckle (ball joints 120.7 mm above and 92.1 mm below the
-     axle, lower joint 88.9 mm from the wheel face), rear chassis pivots (lower 243.9 mm and upper 387.3 mm from the centreline,
+     axle, lower joint 88.9 mm from the wheel face), rear chassis pivots (lower 243.9 mm and upper 387.3 mm from the centerline,
      192.1 mm apart in height), rear arms (lower 393.7 mm, upper 212.7 mm).
    MEASURED by others: spring motion ratios 0.686 / 0.721; static stability factor 1.59 (NHTSA), CG 449 mm for the whole car.
    FITTED so the model reproduces the published numbers: front inner pivot positions, all pivot heights, rear upright (240 mm),
@@ -53,16 +53,16 @@ function defaults(){return coensCar();}
 /* Field specs: [key, label, unit, scale to SI, step, min, max]; min and max are in the displayed unit. */
 const GEO=[
   ["Wishbones",[["Ll","Lower arm length","mm",1e-3,5,100,1000],["Lu","Upper arm length","mm",1e-3,5,80,1000],["Lk","Upright length in front view (ball joint to ball joint)","mm",1e-3,5,80,600]]],
-  ["Chassis pivots",[["yli","Lower inner pivot, from centreline","mm",1e-3,5,0,800],["zli","Lower inner pivot, above ground","mm",1e-3,5,20,600],["yui","Upper inner pivot, from centreline","mm",1e-3,5,0,900],["zui","Upper inner pivot, above ground","mm",1e-3,5,60,900]]],
+  ["Chassis pivots",[["yli","Lower inner pivot, from centerline","mm",1e-3,5,0,800],["zli","Lower inner pivot, above ground","mm",1e-3,5,20,600],["yui","Upper inner pivot, from centerline","mm",1e-3,5,0,900],["zui","Upper inner pivot, above ground","mm",1e-3,5,60,900]]],
   ["Pivots fore-aft / 3D only",[["xlf","Lower arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xlr","Lower arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xuf","Upper arm front pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["xur","Upper arm rear pivot, ahead of axle (− = behind)","mm",1e-3,5,-600,600],["ee","Lower arm outer pivots: rear one this far behind the front one","mm",1e-3,5,20,400]]],
-  ["Upright",[["hsp","Spindle height above lower ball joint","mm",1e-3,5,0,500],["hf","Hub face outboard of kingpin","mm",1e-3,5,0,400],["xk","Wheel centre ahead of kingpin axis, side view","mm",1e-3,1,-60,60]]],
-  ["Wheel",[["rimD","Rim diameter","in",0.0254,1,10,22],["rimW","Rim width","in",0.0254,0.5,4,12],["et","Offset (ET), + = wheel centre inboard of hub face","mm",1e-3,1,-60,90],["sp","Wheel spacer, pushes the wheel outboard","mm",1e-3,1,0,100]]],
+  ["Upright",[["hsp","Spindle height above lower ball joint","mm",1e-3,5,0,500],["hf","Hub face outboard of kingpin","mm",1e-3,5,0,400],["xk","Wheel center ahead of kingpin axis, side view","mm",1e-3,1,-60,60]]],
+  ["Wheel",[["rimD","Rim diameter","in",0.0254,1,10,22],["rimW","Rim width","in",0.0254,0.5,4,12],["et","Offset (ET), + = wheel center inboard of hub face","mm",1e-3,1,-60,90],["sp","Wheel spacer, pushes the wheel outboard","mm",1e-3,1,0,100]]],
   ["TIRE",[["tw","Section width","mm",1e-3,5,125,355],["ar","Aspect ratio","%",1e-2,5,25,85],["pk","Pressure","kPa",1e3,5,100,350],["R","Loaded radius","mm",1e-3,5,150,500],["kt","Vertical rate","N/mm",1e3,10,50,1000]]],
   ["GRIP",[["tmu","Peak grip at 2.5 kN of load","",1,0.05,0.3,2.5],["tls","Grip lost per kN of extra load","/kN",1e-3,0.01,0,0.2],["tca","Cornering stiffness, share of load per degree of slip","/°",1,0.01,0.05,0.6],
            ["tcg","Camber thrust, share of load per degree","/°",1,0.001,0,0.06],["tgo","Camber into the turn that gives the most grip","°",1,0.5,0,8]]],
   ["Alignment",[["cam0","Static camber","°",1,0.1,-10,10],["caster","Caster","°",1,0.5,-5,20],["toe","Static toe per wheel, + = toe-in","°",1,0.05,-5,5]]],
-  ["TIE",[["xto","Outer joint, ahead of axle (− = behind)","mm",1e-3,5,-400,400],["yto","Outer joint, from centreline","mm",1e-3,5,100,1100],["zto","Outer joint, above ground","mm",1e-3,5,20,800],["xti","Inner joint, ahead of axle (− = behind)","mm",1e-3,5,-500,500],["yti","Inner joint, from centreline","mm",1e-3,5,0,800],["zti","Inner joint, above ground","mm",1e-3,0.1,20,800]]],
-  ["Coilover",[["fMount","Mount on lower arm (fraction from inner pivot)","",1,0.05,0.2,1],["ydm","Top mount, from centreline","mm",1e-3,5,0,900],["zdm","Top mount, above ground","mm",1e-3,5,100,1200]]],
+  ["TIE",[["xto","Outer joint, ahead of axle (− = behind)","mm",1e-3,5,-400,400],["yto","Outer joint, from centerline","mm",1e-3,5,100,1100],["zto","Outer joint, above ground","mm",1e-3,5,20,800],["xti","Inner joint, ahead of axle (− = behind)","mm",1e-3,5,-500,500],["yti","Inner joint, from centerline","mm",1e-3,5,0,800],["zti","Inner joint, above ground","mm",1e-3,0.1,20,800]]],
+  ["Coilover",[["fMount","Mount on lower arm (fraction from inner pivot)","",1,0.05,0.2,1],["ydm","Top mount, from centerline","mm",1e-3,5,0,900],["zdm","Top mount, above ground","mm",1e-3,5,100,1200]]],
   ["Travel limits",[["bump","Bump travel (to bump stop)","mm",1e-3,5,10,200],["droop","Droop travel (to limit)","mm",1e-3,5,10,200]]]
 ];
 const SPR=[
@@ -127,7 +127,7 @@ function tieSolve(D,LBJ,ax,p,r){
 /* ---- design position: the lower-arm angle that puts the tire's lowest point on the ground ---- */
 function design(g,name){
   const cz=g.R*Math.cos(g.cam0*D2R);
-  const ds=g.hf-g.et+g.sp;                                             // wheel centre outboard of the kingpin axis: hub face minus wheel offset
+  const ds=g.hf-g.et+g.sp;                                             // wheel center outboard of the kingpin axis: hub face minus wheel offset
   const f=a=>{const k=fv(g,a); return k? k.lz+g.hsp*k.vz-ds*k.vy-cz : NaN;};
   let best=null; const stp=0.002;
   for(let a=-1.2;a<1.2;a+=stp){
@@ -140,7 +140,7 @@ function design(g,name){
   }
   if(best===null) throw new Error(name+": the linkage can't put the tire on the ground at design height. Check arm lengths, upright length and pivot heights.");
   const k=fv(g,best), tk=Math.tan(g.caster*D2R), xk=g.xk||0;
-  const Sy=k.ly+g.hsp*k.vy, Sz=k.lz+g.hsp*k.vz;                  // spindle root on the kingpin axis; the wheel centre sits xk ahead of it
+  const Sy=k.ly+g.hsp*k.vy, Sz=k.lz+g.hsp*k.vz;                  // spindle root on the kingpin axis; the wheel center sits xk ahead of it
   const xl=(Sz-k.lz)*tk-xk, xu=-(k.uz-Sz)*tk-xk;                  // ball-joint x offsets that give the caster angle
   const LBJ=[xl,k.ly,k.lz], UBJ=[xu,k.uy,k.uz], WC=[0,Sy+ds*k.vz,Sz-ds*k.vy];
   const c0=g.cam0*D2R, d0=-g.toe*D2R;                             // local steer angle is + outboard, so toe-in is negative
@@ -231,7 +231,7 @@ function buildAxle(g,name,rmax){
   T.kpi=Math.atan2(P0.LBJ[1]-P0.UBJ[1],P0.UBJ[2]-P0.LBJ[2])/D2R; T.scrub=P0.CP[1]-T.kp[1]; T.trail=T.kp[0]-P0.CP[0];
   T.sgn=nr>1?(lk2(T,T.steer,0,dR)>=lk2(T,T.steer,0,0)?1:-1):1;                     // rack direction that steers right
   if(T.MR0<0.05) throw new Error(name+": the coilover barely moves with the wheel (motion ratio "+T.MR0.toFixed(3)+"). Move its mount further out on the arm or align it with wheel travel.");
-  if(T.tHalf<=0.05) throw new Error(name+": the contact patch ends up at or past the centreline.");
+  if(T.tHalf<=0.05) throw new Error(name+": the contact patch ends up at or past the centerline.");
   return T;
 }
 const _c={o0:0,o1:0,f:0,g:0};
@@ -288,7 +288,7 @@ function makeModel(P){
   const m={P,T,a,b,xs:[a,a,-b,-b],ys:[-T[0].tHalf,T[0].tHalf,-T[1].tHalf,T[1].tHalf],W:[],Ws:[],d0:[],Fpre:[],FpreDesign:[],st:[],zt:[],arbOff:[0,0],zs:0};
   const yF=T[0].tHalf, yR=T[1].tHalf, zt=m.zt;
   for(let i=0;i<4;i++){const g=P.ax[i<2?0:1].g; zt[i]=Math.min(g.droop-0.002,Math.max(-(g.bump-0.002),P.dh[i]));}   // target body height at each corner
-  /* Body attitude at the targets (best-fit plane). A tilted body carries its CG off-centre over the wheels,
+  /* Body attitude at the targets (best-fit plane). A tilted body carries its CG off-center over the wheels,
      so the corner loads the perches must hold differ slightly from the level-car loads. */
   const zF=(zt[0]+zt[1])/2, zR=(zt[2]+zt[3])/2, th=(zF-zR)/v.L, ph=(yF*(zt[1]-zt[0])+yR*(zt[3]-zt[2]))/(2*(yF*yF+yR*yR));
   m.zs=(zF*b+zR*a)/v.L;
@@ -413,7 +413,7 @@ function axleSolve(g,F,Fz,toe,lean){
   return {a:(lo+hi)/2,cap,used:F/cap};
 }
 /* Per-tire slip, side force and share of grip in use for the state st cornering at ay (g, + = right turn), with the wheels' present
-   loads, camber and toe (rack centred). Used when the car is not being driven by the tire model. */
+   loads, camber and toe (rack centered). Used when the car is not being driven by the tire model. */
 function gripNow(m,st,ay){
   const P=m.P, r={tire:[],ax:[]}, sg=ay<0?-1:1;
   for(let ax=0;ax<2;ax++){
@@ -453,7 +453,7 @@ function steerInfo(m,rack,sL,sR){
   let ack=NaN;
   if(di>2){const tk=2*T.kp[1], ideal=Math.atan(1/(1/Math.tan(di*D2R)+tk/v.L))/D2R; ack=(di-dout)/(di-ideal)*100;}
   const kay=kra/(1+m.b*m.b*kra*kra);                              // lateral acceleration at the CG = v^2 * kay
-  const turn=Math.abs(kra)>1e-6, Rr=turn?1/Math.abs(kra):Infinity;   // radius of the rear axle's centre
+  const turn=Math.abs(kra)>1e-6, Rr=turn?1/Math.abs(kra):Infinity;   // radius of the rear axle's center
   return {dL,dR,di,dout,ack,kra,kay,R:turn?Math.hypot(Rr,m.b):Infinity,Ro:turn?Math.hypot(Rr+T.tHalf,v.L):Infinity};   // R at the CG, Ro at the outer front tire
 }
 

@@ -46,14 +46,14 @@ Both are a Mazda MX-5 NB 1.8 (NB8C). The **Stock** button loads the car as Mazda
 
 | Basis | Numbers |
 |---|---|
-| Published by Mazda | Wheelbase 2265 mm, track 1415 / 1440 mm, mass 1030 kg, front camber 0°02′, caster 5°40′, kingpin 11°39′, caster trail 17.5 mm, rear camber −0°42′, toe-in 3 mm per axle, roll centre 41 / 120 mm, wheel stroke 82 / 93 mm front and 80 / 96 mm rear, springs 2.9 / 2.1 kgf/mm, damper forces at 0.1 and 0.3 m/s, rack stroke 121 mm, 2.6 turns, full lock 38° / 33° |
+| Published by Mazda | Wheelbase 2265 mm, track 1415 / 1440 mm, mass 1030 kg, front camber 0°02′, caster 5°40′, kingpin 11°39′, caster trail 17.5 mm, rear camber −0°42′, toe-in 3 mm per axle, roll center 41 / 120 mm, wheel stroke 82 / 93 mm front and 80 / 96 mm rear, springs 2.9 / 2.1 kgf/mm, damper forces at 0.1 and 0.3 m/s, rack stroke 121 mm, 2.6 turns, full lock 38° / 33° |
 | Measured by others | Motion ratios 0.686 / 0.721 (owner measurement), CG height 449 mm (from NHTSA's static stability factor 1.59) |
-| Measured on the parts | Front arms: lower 336.6 mm from the pivot line to the ball joint, inner pivots 325 mm apart, ball joint 25 mm ahead of the front pivot; upper 250 mm, inner pivots 220 mm apart. Front knuckle: upper ball joint 120.7 mm above the axle, lower ball joint 92.1 mm below it and 88.9 mm in from the wheel face. Rear chassis pivots: lower 243.9 mm and upper 387.3 mm from the centreline, upper 192.1 mm above lower, lower pivots 320.4 mm apart front to back, upper 164.5 mm. Rear arms: lower 393.7 mm, upper 212.7 mm. Rear upright: the axle sits 45 % of the way up from the lower arm mount to the upper one (photo) |
+| Measured on the parts | Front arms: lower 336.6 mm from the pivot line to the ball joint, inner pivots 325 mm apart, ball joint 25 mm ahead of the front pivot; upper 250 mm, inner pivots 220 mm apart. Front knuckle: upper ball joint 120.7 mm above the axle, lower ball joint 92.1 mm below it and 88.9 mm in from the wheel face. Rear chassis pivots: lower 243.9 mm and upper 387.3 mm from the centerline, upper 192.1 mm above lower, lower pivots 320.4 mm apart front to back, upper 164.5 mm. Rear arms: lower 393.7 mm, upper 212.7 mm. Rear upright: the axle sits 45 % of the way up from the lower arm mount to the upper one (photo) |
 | NA drawing values already in this project | Upper pivots 183 mm above lower (188.8 mm on the NB). The drawing's pivot spacings (656 / 756 mm) and 350 mm lower arm are no longer used |
-| Fitted so the model reproduces the numbers above | Front: pivots 646 / 736 mm apart and 171.8 / 360.6 mm above ground, upright 217.2 mm (the measured heights leaned to Mazda's 11°39′ kingpin), spindle and hub-face positions, tie rod outer joint 103 mm ahead of the ball joint axis (full lock 38° / 33°; a rough 135 mm measurement gave 27° / 25° and was not used), rack height 200.2 mm (zero bump steer), coilover mount. Rear: upright 240 mm (a rough 230 mm estimate could not give the roll centre with enough droop reach), lower pivot 186.4 mm above ground, hub face 137.9 mm, damper mount 0.874 along the arm, fitted to the 120 mm roll centre, 1440 mm track and 0.721 motion ratio |
+| Fitted so the model reproduces the numbers above | Front: pivots 646 / 736 mm apart and 171.8 / 360.6 mm above ground, upright 217.2 mm (the measured heights leaned to Mazda's 11°39′ kingpin), spindle and hub-face positions, tie rod outer joint 103 mm ahead of the ball joint axis (full lock 38° / 33°; a rough 135 mm measurement gave 27° / 25° and was not used), rack height 200.2 mm (zero bump steer), coilover mount. Rear: upright 240 mm (a rough 230 mm estimate could not give the roll center with enough droop reach), lower pivot 186.4 mm above ground, hub face 137.9 mm, damper mount 0.874 along the arm, fitted to the 120 mm roll center, 1440 mm track and 0.721 motion ratio |
 | Estimates | Unsprung mass 32 kg per corner, front weight share 52 %, inertias (yaw 1400 kg·m²), tire rate 185 N/mm, anti-roll bar rates 8.0 / 1.4 N/mm, and every tire grip number (typical street tires on Stock, typical sporty street tires on Coen's) |
 
-Checks that were not used in the fit: with the lower pivot 5.8 mm higher (the NA position) the model's front roll centre is 62.5 mm (Mazda's NA figure: 61 mm), and with the NA's 4°26′ caster the trail is 11.6 mm (Mazda: 11.6 mm). The turning radius at the outer front tire is 4.49 m (Mazda: 4.6 m).
+Checks that were not used in the fit: with the lower pivot 5.8 mm higher (the NA position) the model's front roll center is 62.5 mm (Mazda's NA figure: 61 mm), and with the NA's 4°26′ caster the trail is 11.6 mm (Mazda: 11.6 mm). The turning radius at the outer front tire is 4.49 m (Mazda: 4.6 m).
 
 ### The rear arms
 
@@ -80,7 +80,7 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 ## Wheels and tires
 
 - **Wheel** (rim diameter, rim width, offset, spacer) and **Tire** (section width, aspect ratio, pressure, loaded radius, vertical rate).
-- The wheel centre sits `hub face − offset + spacer` outboard of the kingpin axis, so a smaller offset widens the track and adds scrub radius.
+- The wheel center sits `hub face − offset + spacer` outboard of the kingpin axis, so a smaller offset widens the track and adds scrub radius.
 - "Estimate from size" fills in the tire's vertical rate (Rhyne's empirical formula) and loaded radius (free radius − static load ÷ rate). Both stay editable. Rim width is only drawn, it does not enter the physics.
 - **Tire grip**: five numbers per axle (peak grip, grip lost with load, cornering stiffness, camber thrust, best camber into the turn). "Kind of tire" fills them with typical values for a street, sporty street or semi-slick tire. Tire makers do not publish these, so they are not measured data: trust the direction of a change more than its size.
 
@@ -89,8 +89,8 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 - **Telemetry** shows each tire's slip angle and the share of its grip in use.
 - **Setup sheet** shows the cornering limit of the front and rear tires, which end runs out first, and the understeer gradient.
 - **Curve → Grip in use** plots both axles against lateral g. The line that reaches 100 % first sets the limit.
-- **Steering → Assess turn-in (grip)** runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. **Step steer** (only while it is on) centres the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
-- Speed is constant, the road is flat, and no drive or brake force acts at the tires. If the car slides sideways faster than it moves forward it has spun, and the page centres the steering.
+- **Steering → Assess turn-in (grip)** runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. **Step steer** (only while it is on) centers the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
+- Speed is constant, the road is flat, and no drive or brake force acts at the tires. If the car slides sideways faster than it moves forward it has spun, and the page centers the steering.
 
 ## Good to know
 

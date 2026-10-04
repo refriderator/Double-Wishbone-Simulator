@@ -228,7 +228,7 @@ function refreshStatic(){
     row("Ride frequency",a=>a.fr.toFixed(2),"Hz")+
     row("Damping ratio, bump LS",a=>a.zb.toFixed(2),"ζ")+
     row("Damping ratio, rebound LS",a=>a.zr.toFixed(2),"ζ")+
-    row("Roll centre height",a=>num(mm(a.rch),0),"mm")+
+    row("Roll center height",a=>num(mm(a.rch),0),"mm")+
     row("Camber",a=>num(a.cam,2),"°")+
     row("Camber gain in bump",a=>num(a.camGain,3),"°/10 mm")+
     row("Toe-in per wheel",a=>num(a.toe,2),"°")+
@@ -246,7 +246,7 @@ function refreshStatic(){
     `<tr><td>Cornering limit, front / rear tires</td><td colspan="2" id="balLim">…</td><td class="u">g</td></tr>`+
     `<tr><td>Runs out of grip first</td><td colspan="2" id="balEnd">…</td><td class="u"></td></tr>`+
     `<tr><td>Understeer gradient, 0.2 to 0.4 g</td><td colspan="2" id="balK">…</td><td class="u">°/g</td></tr>`+
-    one("Steering ratio on centre",r.ratio.toFixed(1),": 1")+
+    one("Steering ratio on center",r.ratio.toFixed(1),": 1")+
     one("Steering wheel, lock to lock",(2*r.swMax/360).toFixed(2),"turns")+
     one("Full lock, inner / outer wheel",r.lock.di.toFixed(1)+" / "+r.lock.dout.toFixed(1),"°")+
     one("Ackermann at full lock",Number.isFinite(r.lock.ack)?r.lock.ack.toFixed(0):"–","%")+
@@ -261,7 +261,7 @@ function refreshStatic(){
   $("perch").innerHTML=ph;
   const T=model.T[editAxle], p=T.P0, f=v=>num(v*1000,1);
   const pr=(lab,v)=>`<tr><td>${lab}</td><td>${f(v[0])}</td><td>${f(v[1])}</td><td>${f(v[2])}</td></tr>`;
-  $("pts").innerHTML=`<tr><th>mm</th><th>Ahead</th><th>From centre</th><th>Height</th></tr>`+pr("Lower ball joint",p.LBJ)+pr("Upper ball joint",p.UBJ)+pr("Wheel centre",p.WC)+pr("Contact patch",p.CP)+
+  $("pts").innerHTML=`<tr><th>mm</th><th>Ahead</th><th>From center</th><th>Height</th></tr>`+pr("Lower ball joint",p.LBJ)+pr("Upper ball joint",p.UBJ)+pr("Wheel center",p.WC)+pr("Contact patch",p.CP)+
     pr("Kingpin axis at ground",[T.kp[0],T.kp[1],0])+`<tr><td>Tie rod length</td><td colspan="3">${f(T.D.Lt)}</td></tr><tr><td>Steering arm length</td><td colspan="3">${f(T.D.arm)}</td></tr>`;
   const mx=swMax(), sw=$("sw"); sw.min=-mx; sw.max=mx; setSw(swDeg);
   scheduleBalance();
@@ -330,7 +330,7 @@ function init3D(){
   const cgMesh=new THREE.Mesh(new THREE.SphereGeometry(0.035,16,12),M.cg); bodyG.add(cgMesh);
   const axisGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]), axisLine=new THREE.Line(axisGeo,LM.axis); bodyG.add(axisLine);
   /* Optional car body from assets/body-model.js: a see-through shell with lit edges that rides on the sprung mass.
-     Its frame is x forward, y up, z right, origin at mid-wheelbase at wheel-centre height. */
+     Its frame is x forward, y up, z right, origin at mid-wheelbase at wheel-center height. */
   let car=null;
   if(window.BODY_MODEL){
     const bm=window.BODY_MODEL, bytes=t=>Uint8Array.from(atob(t),ch=>ch.charCodeAt(0)), q=new Uint16Array(bytes(bm.pos).buffer), pos=new Float32Array(q.length);
@@ -512,8 +512,8 @@ function drawRear(){
   if(near){
     const r=PX(rc[0],rc[1]); x.fillStyle=COL.vinyl; x.strokeStyle=COL.glass; x.lineWidth=2; x.beginPath(); x.arc(r[0],r[1],5,0,7); x.fill(); x.stroke();
     const dy=b.C[0]-a.C[0], dz=b.C[1]-a.C[1], hgt=-(dy*(rc[1]-a.C[1])-dz*(rc[0]-a.C[0]))/Math.hypot(dy,dz), off=Math.abs(rc[0]*1000);
-    x.fillStyle=COL.vinyl; x.fillText("ROLL CENTRE "+num(hgt*1000,0)+" mm / "+(off<0.5?"ON CENTRE":off.toFixed(0)+" mm "+(rc[0]>0?"RIGHT":"LEFT")),0,16);
-  } else x.fillText("ROLL CENTRE FAR / ARM LINES NEAR PARALLEL",0,16);
+    x.fillStyle=COL.vinyl; x.fillText("ROLL CENTER "+num(hgt*1000,0)+" mm / "+(off<0.5?"ON CENTER":off.toFixed(0)+" mm "+(rc[0]>0?"RIGHT":"LEFT")),0,16);
+  } else x.fillText("ROLL CENTER FAR / ARM LINES NEAR PARALLEL",0,16);
 }
 
 /* ---- kinematic curves ---- */
@@ -522,7 +522,7 @@ const CURVES={
   toe:{x:"s",name:"Toe",unit:"°",dec:3,note:"+ = toe-in.",f:(T,s)=>-lk2(T,T.steer,s,0)},
   dtr:{x:"s",name:"Track change",unit:"mm",dec:1,note:"+ = contact patch moves outboard.",f:(T,s)=>lk1(T,T.dtr,s)*1000},
   MR:{x:"s",name:"Motion ratio",unit:"",dec:3,note:"Coilover travel per unit of wheel travel.",f:(T,s)=>lk2(T,T.MR,s,0)},
-  rch:{x:"s",name:"Roll centre height",unit:"mm",dec:0,note:"For equal travel on both sides.",f:(T,s)=>lk1(T,T.rch,s)*1000},
+  rch:{x:"s",name:"Roll center height",unit:"mm",dec:0,note:"For equal travel on both sides.",f:(T,s)=>lk1(T,T.rch,s)*1000},
   rw:{x:"sw",name:"Road-wheel angle",unit:"°",dec:1,note:"+ = steered right.",f:(T,st,r,side)=>side*lk2(T,T.steer,st,side*r)},
   camS:{x:"sw",name:"Camber",unit:"°",dec:2,note:"Camber is relative to the body here.",f:(T,st,r,side)=>lk2(T,T.cam,st,side*r)},
   lift:{x:"sw",name:"Body lift",unit:"mm",dec:1,note:"+ = steering pushes that corner of the body up (caster and kingpin inclination).",f:(T,st,r,side)=>(lk2(T,T.sa,st,side*r)-st)*1000},
@@ -547,7 +547,7 @@ function curveStatic(){
     :'<span><i></i>'+(viewAxle?"Rear":"Front")+' axle, both sides</span><span><i class="m1"></i>Left wheel now</span><span><i class="m2"></i>Right wheel now</span>';
   const xl=x=>kind==="sw"?sgnTxt(x,0)+"°":sgnTxt(x,0)+" mm";
   let pos;
-  if(kind==="sw") pos=[["Full left ("+xl(d[0])+")",d[0]],["Centre",0],["Full right ("+xl(d[1])+")",d[1]]];
+  if(kind==="sw") pos=[["Full left ("+xl(d[0])+")",d[0]],["Center",0],["Full right ("+xl(d[1])+")",d[1]]];
   else if(kind==="ay"){const lim=BAL?Math.min(Number.isFinite(BAL.limF)?BAL.limF:9,Number.isFinite(BAL.limR)?BAL.limR:9):9;
     pos=[["At 0.30 g",0.3],["At 0.60 g",0.6]].filter(q=>q[1]<=d[1]); if(lim<9) pos.push(["At the limit, "+lim.toFixed(2)+" g",lim]);}
   else pos=[["Full droop ("+xl(d[0])+")",d[0]],["Design height",0],["Full bump ("+xl(d[1])+")",d[1]]];
@@ -670,7 +670,7 @@ function drawTele(){
   t+=`<tr><td colspan="3">Cross weight (FL + RR)</td><td>${tot>0?((F[0]+F[3])/tot*100).toFixed(1):"–"} %</td><td colspan="5">TOTAL ${tot.toFixed(0)} N</td></tr>`;
   let note=turning?"Steering "+(si.kra>0?"right":"left")+": inner wheel "+si.di.toFixed(1)+"°, outer "+si.dout.toFixed(1)+"°"+(Number.isFinite(si.ack)?", Ackermann "+si.ack.toFixed(0)+" %":"")+", low-speed turn radius "+si.R.toFixed(1)+" m.":"Steering straight ahead.";
   if(!drive){const over=["Front","Rear"].filter((n,k)=>q.ax[k].used>1); if(over.length) note+=" "+over.join(" and ")+" tires cannot make "+Math.abs(inp.ay).toFixed(2)+" g: past the grip limit.";
-    else if(Math.abs(inp.ay)>0.005) note+=" Slip angle and grip in use are what the tires need to hold "+Math.abs(inp.ay).toFixed(2)+" g, steering centred.";}
+    else if(Math.abs(inp.ay)>0.005) note+=" Slip angle and grip in use are what the tires need to hold "+Math.abs(inp.ay).toFixed(2)+" g, steering centered.";}
   $("teleNote").textContent=note;
   $("tele").innerHTML=t;
   const U=P.steer.speed, ayK=U*U*si.kay/G, kmh=(U*3.6).toFixed(0);
@@ -700,7 +700,7 @@ function frame(now){
       step(model,S,inp,DT,0);
       if(++hAcc>=40){hAcc=0; histPush();}
     }
-    if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centred.",true);}
+    if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centered.",true);}
     else if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
     if(P.steer.link) inp.ay=S.ay;
   }
