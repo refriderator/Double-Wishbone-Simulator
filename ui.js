@@ -101,7 +101,7 @@ function renderForms(){
 function syncLink(){
   const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
   $("ssGo").disabled=$("ssA").disabled=!on;
-  $("linkNote").textContent=on?"On: the car runs at this speed and the tires set the lateral g. The Forces tab's lateral slider is locked."
+  $("linkNote").textContent=on?"On: the car runs at this speed and turns the wheel. Lateral g is then calculated, so the lateral FORCES slider is locked."
     :"Off: you set lateral g on the Forces tab. Tick this to use Step steer.";
   readLoads();
 }
