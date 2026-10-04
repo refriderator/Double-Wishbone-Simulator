@@ -1,6 +1,6 @@
 /* ===== UI ===== */
 const $=id=>document.getElementById(id);
-const KEY="dws.setup.nb1", SKEY="dws.session.nb1", CN=["FL","FR","RL","RR"];
+const KEY="dws.setup.nb2", SKEY="dws.session.nb2", CN=["FL","FR","RL","RR"];
 function merge(def,src){
   if(Array.isArray(def)) return def.map((d,i)=>merge(d,src&&src[i]));
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
@@ -118,8 +118,8 @@ function loadPreset(name){
     let q;
     if(name==="session"){
       let t=null; try{t=localStorage.getItem(SKEY);}catch(e){}
-      if(!t){setStatus("No session setup yet. Edit any field and it is kept here.",true); return;}
-      const j=JSON.parse(t); q=noSp(merge(defaults(),j),j);
+      if(!t) q=PRESETS.coen();                                          // no session saved yet: it starts as Coen's setup
+      else {const j=JSON.parse(t); q=noSp(merge(defaults(),j),j);}
     } else q=PRESETS[name]();
     makeModel(q); P=q;
   }catch(e){setStatus(e.message,true); return;}

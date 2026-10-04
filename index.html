@@ -165,13 +165,13 @@
         <tr><td>Springs, front / rear</td><td>8 / 6 kgf/mm = 78.5 / 58.8 N/mm</td><td class="u k">Set</td></tr>
         <tr><td>Dampers</td><td>Stock slopes × 1.66 front, × 1.69 rear (square root of the spring ratio)</td><td class="u k">Guess</td></tr>
         <tr><td>Wheels and tires</td><td>15×7 ET35, 185/45R15 at 240 kPa, loaded radius 260 mm, 235 N/mm; wheel spacers 30 mm front and 12 mm rear (effective offset ET5 front, ET23 rear)</td><td class="u k">Set</td></tr>
-        <tr><td>Alignment, front</td><td>Camber −3.5°, caster 3°, toe −0.5° per wheel</td><td class="u k">Set</td></tr>
-        <tr><td>Alignment, rear</td><td>Camber −1.5°, toe 0°</td><td class="u k">Set</td></tr>
+        <tr><td>Alignment, front</td><td>At ride height: camber −4.67°, caster 3°, toe −0.5° per wheel. The Geometry fields read −3.97° and −0.86° because they are set at stock height and lowering the car adds the rest, as after a realignment.</td><td class="u k">Set</td></tr>
+        <tr><td>Alignment, rear</td><td>At ride height: camber −3.17°, toe 0°. The Geometry camber field reads −2.50°.</td><td class="u k">Set</td></tr>
         <tr><td>Ride height</td><td>−26 mm front, −38 mm rear from stock height (Heights tab, same zero as Stock)</td><td class="u k">Set</td></tr>
-        <tr><td>Travel limits, bump / droop</td><td>Same as stock: 82 / 93 mm front, 80 / 96 mm rear</td><td class="u k">Set</td></tr>
-        <tr><td>Rack, inner joint height</td><td>180.2 mm</td><td class="u k">Set</td></tr>
-        <tr><td>Track, front / rear</td><td>1522 / 1483 mm (the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
-        <tr><td>Roll centre height, front / rear</td><td>22 / 100 mm</td><td class="u k">Follows</td></tr>
+        <tr><td>Travel limits, bump / droop</td><td>82 / 93 mm front as stock. Rear 80 / 80 mm: with these wheels the measured rear arms run out of reach before the stock 96 mm of droop.</td><td class="u k">Set</td></tr>
+        <tr><td>Rack, inner joint height</td><td>204.4 mm, 6.8 mm above stock</td><td class="u k">Set</td></tr>
+        <tr><td>Track, front / rear</td><td>1522 / 1486 mm (the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
+        <tr><td>Roll centre height, front / rear</td><td>28 / 93 mm</td><td class="u k">Follows</td></tr>
         <tr><th>Stock car, published by Mazda</th><th></th><th></th></tr>
         <tr><td>Wheelbase</td><td>2265 mm</td><td class="u k">Published</td></tr>
         <tr><td>Track, front / rear</td><td>1415 / 1440 mm</td><td class="u k">Published</td></tr>
@@ -186,33 +186,37 @@
         <tr><td>Damper force at 0.1 and 0.3 m/s</td><td>Rebound 62 / 115 kgf. Bump 35 / 57 kgf front, 35 / 77 kgf rear</td><td class="u k">Published</td></tr>
         <tr><td>Steering</td><td>Rack stroke 121 mm, 2.6 turns, full lock 38° inner / 33° outer</td><td class="u k">Published</td></tr>
         <tr><td>Wheels and tires</td><td>Mazda lists 15×6JJ, offset +40 mm, 195/50R15 at 180 kPa. The Stock button uses 16 in rims (Coen's car came with 16s) so wheel sizes can be compared; loaded radius stays 274 mm</td><td class="u k">Published, rim set</td></tr>
+        <tr><th>Measured on the parts</th><th></th><th></th></tr>
+        <tr><td>Front knuckle</td><td>Upper ball joint 120.7 mm (4¾ in) above the axle, lower ball joint 92.1 mm (3⅝ in) below it and 88.9 mm (3½ in) in from the wheel face</td><td class="u k">Photo with a tape</td></tr>
+        <tr><td>Front tie rod, outer joint</td><td>135 mm ahead of the ball joint axis</td><td class="u k">Coen</td></tr>
+        <tr><td>Rear chassis pivots</td><td>Lower 243.9 mm and upper 387.3 mm from the centreline, upper 192.1 mm above lower. Lower pivots 320.4 mm apart front to back, upper 164.5 mm</td><td class="u k">Pickup drawing</td></tr>
+        <tr><td>Rear arms</td><td>Lower 393.7 mm, upper 212.7 mm (8⅜ in), pivot line to outer joint</td><td class="u k">Arm drawings</td></tr>
+        <tr><td>Rear upright</td><td>230.2 mm between the arm mounts (1.5 in more than the chassis pivot gap), axle about 103 mm above the lower mount</td><td class="u k">Coen, photo</td></tr>
         <tr><th>Measured by others</th><th></th><th></th></tr>
         <tr><td>Motion ratio, front / rear</td><td>0.686 / 0.721</td><td class="u k">Owner measurement</td></tr>
         <tr><td>CG height, whole car</td><td>449 mm, from static stability factor 1.59</td><td class="u k">NHTSA</td></tr>
         <tr><th>NA drawing values, kept</th><th></th><th></th></tr>
         <tr><td>Front lower / upper pivots apart</td><td>656 / 756 mm</td><td class="u k">Drawing</td></tr>
         <tr><td>Upper pivots above lower</td><td>183 mm + 5.8 mm lower-pivot drop for the NB</td><td class="u k">Drawing + published</td></tr>
-        <tr><td>Front lower arm</td><td>350 mm</td><td class="u k">Drawing</td></tr>
-        <tr><th>Fitted to the numbers above</th><th></th><th></th></tr>
-        <tr><td>Front pivot heights, lower / upper</td><td>132.5 / 321.3 mm</td><td class="u k">Fitted</td></tr>
-        <tr><td>Front upper arm</td><td>261.1 mm</td><td class="u k">Fitted</td></tr>
-        <tr><td>Front upright, ball joint to ball joint</td><td>240 mm</td><td class="u k">Fitted</td></tr>
+                <tr><th>Fitted to the numbers above</th><th></th><th></th></tr>
+        <tr><td>Front pivot heights, lower / upper</td><td>170.1 / 358.9 mm</td><td class="u k">Fitted</td></tr>
+        <tr><td>Front lower / upper arm</td><td>331.8 / 240.4 mm. The lower arm was 350 mm from the NA drawing; it had to change to fit the measured knuckle.</td><td class="u k">Fitted</td></tr>
+        <tr><td>Front upright, ball joint to ball joint</td><td>217.2 mm: the measured heights, leaned to Mazda's 11°39′ kingpin</td><td class="u k">Measured + published</td></tr>
         <tr><td>Hub face position, kingpin offset, tie rod joints, coilover mounts</td><td>See the Geometry tab</td><td class="u k">Fitted</td></tr>
-        <tr><td>Rear arms, seen from above</td><td>Lower arm reaches 386 mm sideways (inner pivots 306 mm apart, two outer pivots 132 mm apart). Upper arm reaches 186 mm (inner pivots 142 mm apart). Scale taken from the front arms in the same drawing.</td><td class="u k">Bushing-kit drawing</td></tr>
-        <tr><td>Rear pivot positions, hub face, damper top mount</td><td>Fitted to roll centre 120 mm, track 1440 mm, motion ratio 0.721. See the Geometry tab.</td><td class="u k">Fitted</td></tr>
+        <tr><td>Rear pivot height, hub face, damper mount</td><td>Lower pivot 202.5 mm above ground, hub face 138.6 mm from the kingpin axis, fitted to track 1440 mm and motion ratio 0.721. The roll centre comes out at 115 mm; Mazda publishes 120 mm and the measured arms cannot reach it.</td><td class="u k">Fitted</td></tr>
         <tr><th>Estimates</th><th></th><th></th></tr>
-        <tr><td>Lower ball joint height</td><td>160 mm</td><td class="u k">Estimate</td></tr>
-        <tr><td>Unsprung mass per corner</td><td>32 kg</td><td class="u k">Estimate</td></tr>
+                <tr><td>Unsprung mass per corner</td><td>32 kg</td><td class="u k">Estimate</td></tr>
         <tr><td>Front weight share</td><td>52 %</td><td class="u k">Estimate</td></tr>
         <tr><td>Roll / pitch inertia, sprung</td><td>260 / 1050 kg·m²</td><td class="u k">Estimate</td></tr>
         <tr><td>Tire rate and loaded radius</td><td>185 N/mm, 274 mm, from the size and pressure</td><td class="u k">Estimate</td></tr>
         <tr><td>Anti-roll bar at the wheel, front / rear</td><td>8.0 / 1.4 N/mm, from 22 / 11 mm bars</td><td class="u k">Estimate</td></tr>
-        <tr><td>Bump steer</td><td>Zero, front and rear</td><td class="u k">Estimate</td></tr>
+        <tr><td>Bump steer</td><td>Zero front and rear on the stock car. The front rack height (197.6 mm) is set to give that.</td><td class="u k">Estimate</td></tr>
         <tr><td>Grip limit</td><td>0.9 g</td><td class="u k">Estimate</td></tr>
         <tr><th>Checks, not used in the fit</th><th></th><th></th></tr>
-        <tr><td>NA roll centre: lower pivot 5.8 mm higher</td><td>59.7 mm. Mazda: 61 mm</td><td class="u k">Check</td></tr>
-        <tr><td>NA caster trail at 4°26′</td><td>11.8 mm. Mazda: 11.6 mm</td><td class="u k">Check</td></tr>
-        <tr><td>Turning radius, outer front tire</td><td>4.50 m. Mazda: 4.6 m</td><td class="u k">Check</td></tr>
+        <tr><td>NA roll centre: lower pivot 5.8 mm higher</td><td>62.9 mm. Mazda: 61 mm</td><td class="u k">Check</td></tr>
+        <tr><td>NA caster trail at 4°26′</td><td>11.6 mm. Mazda: 11.6 mm</td><td class="u k">Check</td></tr>
+        <tr><td>Full lock with the tie rod at 135 mm</td><td>27° inner / 25° outer. Mazda: 38° / 33°. The measured tie rod position and the published rack stroke do not agree.</td><td class="u k">Check, fails</td></tr>
+        <tr><td>Turning radius, outer front tire</td><td>5.78 m. Mazda: 4.6 m, for the same reason</td><td class="u k">Check, fails</td></tr>
       </table></div>
       <h3>Sources</h3>
       <ul>

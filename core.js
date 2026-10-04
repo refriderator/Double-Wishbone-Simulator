@@ -36,11 +36,11 @@ function stockCar(){
     veh:{M:902,mu:32,L:2.265,wf:0.523,h:0.474,Ixx:260,Iyy:1050},
     steer:{c:0.0465,rmax:0.0605,speed:60/3.6,grip:0.9,link:0},
     ax:[
-      {g:{Ll:0.35,Lu:0.2611,Lk:0.24,yli:0.328,zli:0.1325,yui:0.378,zui:0.3213,xlf:-0.0129,xlr:-0.3529,xuf:0.096,xur:-0.124,ee:0.13,hsp:0.1054,hf:0.0931,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
-          xto:0.0978,yto:0.6953,zto:0.215,xti:0.0978,yti:0.3609,zti:0.1734,fMount:0.757,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
+      {g:{Ll:0.3318,Lu:0.2404,Lk:0.2172,yli:0.328,zli:0.1701,yui:0.378,zui:0.3589,xlf:-0.0129,xlr:-0.3529,xuf:0.096,xur:-0.124,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
+          xto:0.1309,yto:0.6953,zto:0.215,xti:0.1309,yti:0.3609,zti:0.1976,fMount:0.7765,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
-      {g:{Ll:0.3872,Lu:0.1884,Lk:0.24,yli:0.2596,zli:0.185,yui:0.4549,zui:0.3808,xlf:0.091,xlr:-0.215,xuf:0.071,xur:-0.071,ee:0.132,hsp:0.105,hf:0.1125,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:-0.7,caster:0,toe:0.15,kt:185000,
-          xto:-0.132,yto:0.6464,zto:0.1675,xti:-0.215,yti:0.2596,zti:0.185,fMount:0.9,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
+      {g:{Ll:0.3937,Lu:0.2127,Lk:0.2302,yli:0.2439,zli:0.2025,yui:0.3873,zui:0.3946,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.103,hf:0.1386,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:-0.7,caster:0,toe:0.15,kt:185000,
+          xto:-0.132,yto:0.6464,zto:0.1675,xti:-0.215,yti:0.2596,zti:0.185,fMount:0.8659,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
        s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0]
@@ -48,8 +48,8 @@ function stockCar(){
 }
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
        for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000});
-       Object.assign(P.ax[0].g,{cam0:-3.5,caster:3,toe:-0.5,zti:0.1802,sp:0.030});
-       Object.assign(P.ax[1].g,{cam0:-1.5,toe:0,sp:0.012});
+       Object.assign(P.ax[0].g,{cam0:-3.9711,caster:3,toe:-0.8621,zti:0.2044,xto:0.1277,xti:0.1277,sp:0.030});
+       Object.assign(P.ax[1].g,{cam0:-2.4979,toe:0,sp:0.012,droop:0.080});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
        P.dh=[-0.026,-0.026,-0.038,-0.038]; return P; }
