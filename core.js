@@ -16,7 +16,9 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
      192.1 mm apart in height), rear arms (lower 393.7 mm, upper 212.7 mm).
    MEASURED by others: spring motion ratios 0.686 / 0.721; static stability factor 1.59 (NHTSA), CG 449 mm for the whole car.
    FITTED so the model reproduces the published numbers: front inner pivot positions, all pivot heights, rear upright (240 mm),
-     spindle and hub-face positions, tie-rod joints, rack height (zero bump steer), coilover mount positions.
+     spindle and hub-face positions, tie rod outer joint (full lock 38° / 33°), rack height (least bump steer), coilover mount positions.
+   OWNER'S ESTIMATE, not measured: the rack's inner joints are 50 mm ahead of the lower arm's front pivot and about 25 in apart, roughly in
+     line with the lower arm pivots (646 mm apart).
    ESTIMATES: unsprung mass, roll, pitch and yaw inertia, tire rate, anti-roll bar rates, front weight share, and every tire grip
      number (typical values for the kind of tire, not measured).
    The Miata has no rear toe link. Its rear lower arm has two outer pivots; the model draws the arm as two legs (front leg to the
@@ -25,8 +27,8 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
    15x7 ET35 wheels with 30 / 12 mm spacers, 185/45R15 tires, ride height -26 mm front and -38 mm rear (measured at the body, so
    it includes the 14 mm smaller tire radius), rack 6.8 mm higher, caster 3°, toe -0.5° front and 0° rear at ride height.
    Camber: the adjusters give -2° front and -1.5° rear at ride height on uncut arms (Coen's alignment); the front upper arm is then
-   10.5 mm shorter (239.5 mm), which brings the front to -4.64°. 10.5 mm is the smallest cut that keeps either front wheel from going
-   to positive camber at full lock; Coen's real cut is not measured. Travel limits are the stock dampers' stops, which sit 14 mm
+   10.5 mm shorter (239.5 mm), which brings the front to -4.64°. 10.5 mm brings the inside front wheel to about zero camber
+   at full lock (+0.15°); Coen's real cut is not measured. Travel limits are the stock dampers' stops, which sit 14 mm
    further from ride height on the smaller tire (96 / 79 mm front, 94 / 82 mm rear).
    The wheel is fixed on the knuckle (version 41): camber = knuckle angle (inc) - kingpin inclination + adjuster (cadj, +1 to -3°).
    look says which body and rims the 3D view draws (0: Roadster RS, 1: Coen's). It has no effect on the numbers. */
@@ -36,7 +38,7 @@ function stockCar(){
     steer:{c:0.0465,rmax:0.0605,speed:60/3.6,link:0,cut:0,cutL:0.020},
     ax:[
       {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:11.712479,cadj:0,caster:5.6667,toe:0.15,kt:185000,
-          xto:0.0987,yto:0.6846,zto:0.215,xti:0.0987,yti:0.3609,zti:0.2002,fMount:0.777,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
+          xto:0.1012,yto:0.6571,zto:0.215,xti:0.0242,yti:0.3175,zti:0.2,fMount:0.777,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:8.046475,cadj:0,caster:0,toe:0.15,kt:185000,
           fMount:0.8735,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
@@ -50,7 +52,7 @@ function stockCar(){
 const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
        for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000},TIRE_PRESETS.sport);
-       Object.assign(P.ax[0].g,{Lu:0.2395,cadj:-1.7,caster:3,toe:-0.9112,zti:0.207,sp:0.030,bump:0.096,droop:0.079});
+       Object.assign(P.ax[0].g,{Lu:0.2395,cadj:-1.7,caster:3,toe:-0.863,zti:0.2068,sp:0.030,bump:0.096,droop:0.079});
        Object.assign(P.ax[1].g,{cadj:0.05,toe:0,sp:0.012,bump:0.094,droop:0.082});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
