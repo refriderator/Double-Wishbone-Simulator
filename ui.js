@@ -12,6 +12,7 @@ let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.
 function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}   // an edit makes the current setup the session setup
 function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
 let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="stock";}
+P.steer.link=0;                                                        // Assess turn-in is a mode, not part of a setup: every load starts with it off (floor still)
 let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
@@ -98,7 +99,7 @@ function renderForms(){
   chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> On'; lf.insertBefore(chk,lf.children[1]);
   const hint=document.createElement("p"); hint.className="hint";
   hint.textContent="Turns off the lateral slider on the Forces tab. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[2]);
-  $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; save(); syncLink();};
+  $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; syncLink();};
   buildHeights();
 }
 function syncLink(){
@@ -147,7 +148,7 @@ function loadPreset(name){
       if(!t) q=defaults();                                               // no session saved yet: it starts as the start-up car
       else {const j=JSON.parse(t); q=noSp(merge(defaults(),j),j);}
     } else q=PRESETS[name]();
-    makeModel(q); P=q;
+    makeModel(q); q.steer.link=0; P=q;
   }catch(e){setStatus(e.message,true); return;}
   model=makeModel(P); presetLock=true; presetName=name; save(); presetLock=false; try{localStorage.setItem("dws.preset",name);}catch(e){} markPreset();
   ["ay","ax","fp"].forEach(id=>$(id).value=0); swDeg=0; inp.rack=0; $("sw").value=0; ayManual=0;
