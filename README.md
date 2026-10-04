@@ -73,7 +73,7 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 | Geometry | Arms, chassis pivots, upright, alignment, per axle |
 | Wheels & tires | Wheel, tire size and rate, tire grip, per axle |
 | Springs & heights | Springs, dampers, anti-roll bar, coilover mount, travel limits, ride height |
-| Steering | Steering wheel, turn-in response (steady speed, step steer), rack, cut knuckles, tie rod |
+| Steering | Steering wheel, Assess turn-in (grip) with steady speed and step steer, rack, cut knuckles, tie rod |
 | Forces | Lateral and longitudinal g, a point load, road bumps |
 | Vehicle | Mass, inertias, wheelbase, CG |
 
@@ -89,7 +89,7 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 - **Telemetry** shows each tire's slip angle and the share of its grip in use.
 - **Setup sheet** shows the cornering limit of the front and rear tires, which end runs out first, and the understeer gradient.
 - **Curve → Grip in use** plots both axles against lateral g. The line that reaches 100 % first sets the limit.
-- **Steering → Assess turn-in response** runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. **Step steer** (only while it is on) centres the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
+- **Steering → Assess turn-in (grip)** runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. **Step steer** (only while it is on) centres the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
 - Speed is constant, the road is flat, and no drive or brake force acts at the tires. If the car slides sideways faster than it moves forward it has spun, and the page centres the steering.
 
 ## Good to know

@@ -89,7 +89,7 @@
   <div class="pane" id="p-load" role="tabpanel" hidden>
     <fieldset><legend>Body acceleration / steady</legend>
       <div class="sl"><label for="ay">Lateral, + = right turn</label><output id="ayO"></output><input type="range" id="ay" min="-1.5" max="1.5" step="0.01" value="0"></div>
-      <p class="hint" id="ayNote" hidden>Turn-in response is on (Steering tab), so lateral g comes from the tires.</p>
+      <p class="hint" id="ayNote" hidden>Assess turn-in (grip) is on (Steering tab), so lateral g comes from the tires.</p>
       <div class="sl"><label for="ax">Longitudinal, + = accelerating</label><output id="axO"></output><input type="range" id="ax" min="-1.5" max="1.2" step="0.01" value="0"></div>
     </fieldset>
     <fieldset><legend>Point load / downward</legend>
@@ -110,7 +110,7 @@
 
   <div class="pane" id="p-veh" role="tabpanel" hidden>
     <div id="vehFields" class="groups"></div>
-    <p class="hint">Sprung mass is everything the springs carry. Unsprung mass is wheel, tire, upright, brake and about half the arms and coilover. Roll inertia is about the CG. The model adds the offset to the roll axis. CG height follows the ride height. Yaw inertia is only used while turn-in response is on.</p>
+    <p class="hint">Sprung mass is everything the springs carry. Unsprung mass is wheel, tire, upright, brake and about half the arms and coilover. Roll inertia is about the CG. The model adds the offset to the roll axis. CG height follows the ride height. Yaw inertia is only used while Assess turn-in (grip) is on.</p>
     <p class="hint">The setup saves in this browser. Stock and Coen's reload that car. Any edit you make is kept as the Session setup; the Session button brings it back.</p>
   </div>
   <div class="status" id="status" role="status">Solved.</div>
@@ -246,7 +246,7 @@
         <li>Dynamics: body heave, pitch and roll (small angles) plus vertical motion of each wheel, and sideways slide and yaw while the car is driven. The body rolls about the roll axis, a tilted body carries its CG off-centre over the wheels, and the CG height follows the ride height.</li>
         <li>Tires are thin discs with a linear vertical spring and light damping. They can leave the ground. Side force follows a Magic Formula curve from slip angle, load and camber: peak grip falls as load rises, cornering stiffness flattens with load, and camber leaning into the turn adds a little grip up to an optimum. The grip numbers are typical values, not test data, so trust the direction of a change more than the size.</li>
         <li>Grip in use: the car is settled at each lateral g and each axle's side force is compared with the most its two tires can make at their loads, cambers and toes. The axle that reaches 100 % first sets the limit. The understeer gradient is the change in front minus rear slip angle between 0.2 and 0.4 g.</li>
-        <li>Assess turn-in response (Steering tab): at the set steady speed the tires make the side force from their slip angles, the car slides sideways and yaws, and lateral g comes out of that. Speed is held constant, the road is flat, and there is no drive or brake force at the tires. Past the limit the car plows or spins; that part is the least accurate. Cornering loads do not jack the body.</li>
+        <li>Assess turn-in (grip) (Steering tab): at the set steady speed the tires make the side force from their slip angles, the car slides sideways and yaws, and lateral g comes out of that. Speed is held constant, the road is flat, and there is no drive or brake force at the tires. Past the limit the car plows or spins; that part is the least accurate. Cornering loads do not jack the body.</li>
         <li>No anti-dive or anti-squat: all longitudinal load transfer goes through the springs.</li>
         <li>Lateral load transfer through the links uses each axle's roll centre height for equal travel on both sides and zero steer. The rear view shows the true roll centre for reference.</li>
         <li>Steering lifts or lowers each front tire relative to its arm (caster and kingpin inclination), which shifts load diagonally. Springs, bump stops and anti-roll bars act on arm travel.</li>
