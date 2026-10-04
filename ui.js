@@ -7,7 +7,8 @@ function merge(def,src){
   return (typeof src==="number"&&Number.isFinite(src))?src:def;
 }
 /* What the 3D view draws for a setup's look (0: the stock car, 1: Coen's): a body shell and a rim, both from body-model.js. The shells' heights
-   are measured from the hub line of the stock car at stock height, which is HUB0 above the ground in body coordinates. */
+   are measured from the hub line of the stock car at stock height, which is HUB0 above the ground in body coordinates. Both shells sit at the
+   same height on the chassis: fender lip 13.3 in (front) and 13.8 in (rear) above the wheel center on the stock car at stock height. */
 const LOOKS=[{body:"rs",rim:"rs"},{body:"gv",rim:"gl"}], HUB0=stockCar().ax[0].g.R;
 /* A stored or imported setup laid over the defaults. One saved before version 41 has a free camber field; fromOldCamber turns it into the adjuster. */
 let camNote="";
@@ -480,7 +481,8 @@ function init3D(){
     if(key!==chKey){buildChassis(); chKey=key;}
     const lk=LOOKS[P.look], showCar=!!MD&&bodyOn; chassis.visible=chassisEdge.visible=!showCar;
     for(const k in shells) shells[k].visible=false;
-    if(showCar){const bm=MD.body[lk.body], s=shell(lk.body); s.visible=true; s.position.set((model.a-model.b)/2,HUB0+bm.lift,0); s.scale.setScalar(v.L/bm.wheelbase);}   // wheel arches follow the wheelbase
+    if(showCar){const bm=MD.body[lk.body], s=shell(lk.body), lf=bm.lift; s.visible=true;       // lift: [at the front axle, at the rear axle]
+      s.position.set((model.a-model.b)/2,HUB0+(lf[0]+lf[1])/2,0); s.rotation.z=Math.atan2(lf[0]-lf[1],v.L); s.scale.setScalar(v.L/bm.wheelbase);}   // wheel arches follow the wheelbase
     for(let ax=0;ax<2;ax++){
       const g=P.ax[ax].g, w=wheels[ax], wk=[lk.rim,g.rimD,g.rimW,g.et,g.R,g.tw].join();
       if(wk===w.key) continue;
