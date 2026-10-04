@@ -90,11 +90,11 @@ function renderForms(){
    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
    const th=document.createElement("p"); th.className="hint"; th.textContent="The outer joint moves with the upright; the inner joint sits on the rack. The button moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
    $("fitTie").onclick=fitTie;}
-  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Assess turn-in (grip)");
+  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Assess turn-in");
   const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
   chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> On'; lf.insertBefore(chk,lf.children[1]);
   const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="Turns off the lateral slider on the Forces tab. Calculates reactions from steering and speed."; lf.insertBefore(hint,lf.children[2]);
+  hint.textContent="Turns off the lateral slider on the Forces tab. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[2]);
   $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; save(); syncLink();};
   buildHeights();
 }
