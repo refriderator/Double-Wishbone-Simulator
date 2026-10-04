@@ -94,19 +94,20 @@ function renderForms(){
    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
    const th=document.createElement("p"); th.className="hint"; th.textContent="The outer joint moves with the upright; the inner joint sits on the rack. The button moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
    $("fitTie").onclick=fitTie;}
-  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Drive");
-  const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
-  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> On'; lf.insertBefore(chk,lf.children[1]);
-  const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="Turns off the lateral slider on the Forces tab. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[2]);
-  $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; syncLink();};
+  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"*Drive");      // on the Forces tab, under the lateral slider that Drive takes over
+  const lf=$("linkFields").querySelector("fieldset"), hint=document.createElement("p"); hint.className="hint";
+  hint.textContent="Turns off the lateral slider above. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[1]);
   buildHeights();
 }
 function syncLink(){
-  const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
+  const on=!!P.steer.link; $("ay").disabled=on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
+  $("driveOn").setAttribute("aria-pressed",on);                     // the header button lights up
+  const tb=$("tab-load"); tb.textContent=on?"*Forces":"Forces"; tb.classList.toggle("new",on);      // the star points at the tab that holds the Drive controls
+  $("ayRow").classList.toggle("off",on); $("drvBox").hidden=!on;    // the lateral slider goes dark and the Drive controls appear under it
   $("ssGo").disabled=$("ssA").disabled=!on;
   readLoads();
 }
+$("driveOn").onclick=()=>{P.steer.link=P.steer.link?0:1; syncLink(); setStatus(P.steer.link?"Drive on: the tires make the lateral g. Speed and steering are on the Forces tab.":"Drive off.",false);};
 function applyEdit(fn,msg){
   const backup=JSON.stringify(P);
   try{fn(); model=makeModel(P); save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}
@@ -191,8 +192,8 @@ document.querySelectorAll("[data-hit]").forEach(btn=>btn.onclick=()=>{const b=bu
 
 /* ---- steering ---- */
 function swMax(){return Math.floor(P.steer.rmax/P.steer.c*360);}
-function setSw(d){const mx=swMax(); swDeg=Math.max(-mx,Math.min(mx,d)); $("sw").value=swDeg; $("swO").textContent=sgnTxt(swDeg,0)+"°";}
-$("sw").addEventListener("input",()=>setSw(+$("sw").value));
+function setSw(d){const mx=swMax(); swDeg=Math.max(-mx,Math.min(mx,d)); $("sw").value=$("sw2").value=swDeg; $("swO").textContent=$("sw2O").textContent=sgnTxt(swDeg,0)+"°";}      // sw2: the same slider again among the Drive controls
+$("sw").addEventListener("input",()=>setSw(+$("sw").value)); $("sw2").addEventListener("input",()=>setSw(+$("sw2").value));
 $("swC").onclick=()=>setSw(0); $("swL").onclick=()=>setSw(-swMax()); $("swR").onclick=()=>setSw(swMax());
 const rackTarget=()=>Math.max(-P.steer.rmax,Math.min(P.steer.rmax,model.T[0].sgn*swDeg/360*P.steer.c));
 const swNow=()=>inp.rack/(model.T[0].sgn*P.steer.c)*360;
@@ -288,7 +289,7 @@ function refreshStatic(){
   const pr=(lab,v)=>`<tr><td>${lab}</td><td>${f(v[0])}</td><td>${f(v[1])}</td><td>${f(v[2])}</td></tr>`;
   $("pts").innerHTML=`<tr><th>mm</th><th>Ahead</th><th>From center</th><th>Height</th></tr>`+pr("Lower ball joint",p.LBJ)+pr("Upper ball joint",p.UBJ)+pr("Wheel center",p.WC)+pr("Contact patch",p.CP)+
     pr("Kingpin axis at ground",[T.kp[0],T.kp[1],0])+`<tr><td>Tie rod length</td><td colspan="3">${f(T.D.Lt)}</td></tr><tr><td>Steering arm length</td><td colspan="3">${f(T.D.arm)}</td></tr>`;
-  const mx=swMax(), sw=$("sw"); sw.min=-mx; sw.max=mx; setSw(swDeg);
+  const mx=swMax(); for(const sw of [$("sw"),$("sw2")]){sw.min=-mx; sw.max=mx;} setSw(swDeg);
   scheduleBalance();
   curveStatic();
 }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Double Wishbone Simulator</title>
-<link rel="stylesheet" href="style.css?v=dc6198d0">
+<link rel="stylesheet" href="style.css?v=9bf38bcf">
 </head>
 <body>
 <div class="app">
@@ -20,13 +20,13 @@
     <div class="simbar">
       <button class="btn primary" id="play" title="Run or pause (space bar)">Pause</button>
       <button class="btn" id="reset">Settle</button>
+      <button class="btn tog" id="driveOn" aria-pressed="false" title="Drive the car at a steady speed: the tires make the lateral g. Its controls are on the Forces tab.">Drive</button>
       <div class="seg rd" id="preset" role="group" aria-label="Car"><button aria-pressed="false" data-p="stock">Stock</button><button aria-pressed="false" data-p="coen">Coen's</button><button aria-pressed="false" data-p="session" title="Your edits, kept in this browser">Session</button></div>
     </div>
     <div class="simbar">
       <div class="seg rd" id="speed" role="group" aria-label="Simulation speed">
         <button aria-pressed="true" data-v="1">1x</button><button aria-pressed="false" data-v="0.25">1/4x</button><button aria-pressed="false" data-v="0.1">1/10x</button>
       </div>
-      <span class="tag">MX-5 NB8C</span>
     </div>
     <div class="simbar files">
       <button class="btn" id="introBtn" title="Open the quick start guide">Guide</button>
@@ -80,12 +80,6 @@
       <div class="sl"><label for="sw">Angle, + = right</label><output id="swO"></output><input type="range" id="sw" min="-468" max="468" step="1" value="0"></div>
       <div class="rowbtns"><button class="btn" id="swL">Full left</button><button class="btn" id="swC">Center</button><button class="btn" id="swR">Full right</button></div>
     </fieldset>
-    <div id="linkFields" class="groups"></div>
-    <fieldset>
-      <div class="f"><label for="ssA">Step the steering wheel to</label><input id="ssA" type="number" value="30" step="5" min="-400" max="400"><span class="u">°</span></div>
-      <div class="rowbtns"><button class="btn" id="ssGo">Step steer</button></div>
-      <p class="hint" id="ssNote">Step steer centers the steering wheel, lets the car settle, then turns it to this angle (degrees at the steering wheel, + = right). The History panel shows the response.</p>
-    </fieldset>
     <table id="steerOut" class="wrap"></table>
     <div id="strFields" class="groups"></div>
     <div id="tieFields" class="groups"></div>
@@ -94,8 +88,14 @@
 
   <div class="pane" id="p-load" role="tabpanel" hidden>
     <fieldset><legend>Body acceleration / steady</legend>
-      <div class="sl"><label for="ay">Lateral, + = right turn</label><output id="ayO"></output><input type="range" id="ay" min="-1.5" max="1.5" step="0.01" value="0"></div>
-      <p class="hint" id="ayNote" hidden>Drive is on (Steering tab), so lateral g comes from the tires.</p>
+      <div class="sl" id="ayRow"><label for="ay">Lateral, + = right turn</label><output id="ayO"></output><input type="range" id="ay" min="-1.5" max="1.5" step="0.01" value="0"></div>
+      <div class="drv" id="drvBox" hidden>
+        <div id="linkFields"></div>
+        <div class="sl"><label for="sw2">Steering wheel, + = right</label><output id="sw2O"></output><input type="range" id="sw2" min="-468" max="468" step="1" value="0"></div>
+        <div class="f"><label for="ssA">Step the steering wheel to</label><input id="ssA" type="number" value="30" step="5" min="-400" max="400"><span class="u">°</span></div>
+        <div class="rowbtns"><button class="btn" id="ssGo">Step steer</button></div>
+        <p class="hint" id="ssNote">Step steer centers the steering wheel, lets the car settle, then turns it to this angle (degrees at the steering wheel, + = right). The History panel shows the response.</p>
+      </div>
       <div class="sl"><label for="ax">Longitudinal, + = accelerating</label><output id="axO"></output><input type="range" id="ax" min="-1.5" max="1.2" step="0.01" value="0"></div>
     </fieldset>
     <fieldset><legend>Point load / downward</legend>
@@ -127,7 +127,7 @@
     <div class="scan"></div>
     <div class="frame">
       <div>
-        <div class="osd"><span class="grp"><span id="oState">▶ Run</span><span id="oSpeed">1x</span></span><span id="hTime">Sim 00:00.0</span></div>
+        <div class="osd"><span class="grp"><span id="oState">▶ Run</span><span id="oSpeed">1x</span></span><span class="grp"><span class="tag">MX-5 NB8C</span><span id="hTime">Sim 00:00.0</span></span></div>
         <div class="hud">
           <div><span>Roll</span><b id="hRoll">0.00°</b></div>
           <div><span>Pitch</span><b id="hPitch">0.00°</b></div>
@@ -156,9 +156,15 @@
     </section>
     <section class="card">
       <h2>Curve <select id="curveQ" aria-label="Curve">
-        <optgroup label="Against wheel travel"><option value="cam">Camber</option><option value="toe">Toe (bump steer)</option><option value="dtr">Track change, per side</option><option value="MR">Motion ratio</option><option value="rch">Roll center height</option></optgroup>
-        <optgroup label="Against steering (front)"><option value="rw">Road-wheel angle</option><option value="camS">Camber</option><option value="lift">Body lift at the wheel</option></optgroup>
-        <optgroup label="Against lateral g"><option value="grip">Grip in use, front and rear</option></optgroup>
+        <option value="cam">Camber vs wheel travel</option>
+        <option value="toe">Toe (bump steer) vs wheel travel</option>
+        <option value="dtr">Track change per side vs wheel travel</option>
+        <option value="MR">Motion ratio vs wheel travel</option>
+        <option value="rch">Roll center height vs wheel travel</option>
+        <option value="rw">Road-wheel angle vs steering</option>
+        <option value="camS">Camber vs steering</option>
+        <option value="lift">Body lift at the wheel vs steering</option>
+        <option value="grip">Grip in use vs lateral g</option>
       </select></h2>
       <div class="lg" id="curveLg"></div>
       <div class="plot"><canvas id="curve" aria-label="Kinematic curve. Use the left and right arrow keys to read values."></canvas><div class="tip" id="curveTip" hidden></div></div>
@@ -252,7 +258,7 @@
         <li>Dynamics: body heave, pitch and roll (small angles) plus vertical motion of each wheel, and sideways slide and yaw while the car is driven. The body rolls about the roll axis, a tilted body carries its CG off-center over the wheels, and the CG height follows the ride height.</li>
         <li>Tires are thin discs with a linear vertical spring and light damping. They can leave the ground. Side force follows a Magic Formula curve from slip angle, load and camber: peak grip falls as load rises, cornering stiffness flattens with load, and camber leaning into the turn adds a little grip up to an optimum. The grip numbers are typical values, not test data, so trust the direction of a change more than the size.</li>
         <li>Grip in use: the car is settled at each lateral g and each axle's side force is compared with the most its two tires can make at their loads, cambers and toes. The axle that reaches 100 % first sets the limit. The understeer gradient is the change in front minus rear slip angle between 0.2 and 0.4 g.</li>
-        <li>Drive (Steering tab): at the set steady speed the tires make the side force from their slip angles, the car slides sideways and yaws, and lateral g comes out of that. Speed is held constant, the road is flat, and there is no drive or brake force at the tires. Past the limit the car plows or spins; that part is the least accurate. Cornering loads do not jack the body. While it is on, the floor grid in the 3D view moves under the car: it streams back at the car's speed, turns as the car yaws, and drifts sideways when the car slides. Finer grid lines fade out at speed so the motion stays readable.</li>
+        <li>Drive (the button at the top; its speed and steering controls are on the Forces tab): at the set steady speed the tires make the side force from their slip angles, the car slides sideways and yaws, and lateral g comes out of that. Speed is held constant, the road is flat, and there is no drive or brake force at the tires. Past the limit the car plows or spins; that part is the least accurate. Cornering loads do not jack the body. While it is on, the floor grid in the 3D view moves under the car: it streams back at the car's speed, turns as the car yaws, and drifts sideways when the car slides. Finer grid lines fade out at speed so the motion stays readable.</li>
         <li>No anti-dive or anti-squat: all longitudinal load transfer goes through the springs.</li>
         <li>Lateral load transfer through the links uses each axle's roll center height for equal travel on both sides and zero steer. The rear view shows the true roll center for reference.</li>
         <li>Steering lifts or lowers each front tire relative to its arm (caster and kingpin inclination), which shifts load diagonally. Springs, bump stops and anti-roll bars act on arm travel.</li>
@@ -272,11 +278,11 @@
     <h2 id="introT">Quick start</h2>
     <ol class="introSteps">
       <li><div><b><i>1</i>Set up the car</b><span>Starter setups: <em>Stock</em> · <em>Coen's</em><br>Input car geometries<br><em>Export</em> or <em>Import</em> setups</span></div>
-        <img src="intro-1.jpg?v=759f4f45" width="640" height="480" alt="The Stock, Coen's and Session buttons above the tabs, with the Geometry fields open"></li>
+        <img src="intro-1.jpg?v=c79f25ca" width="640" height="480" alt="The Pause, Settle and Drive buttons, the Stock, Coen's and Session buttons, and the tabs"></li>
       <li><div><b><i>2</i>Steer and load it</b><span>Steering wheel slider · Forces sliders</span></div>
-        <img src="intro-2.jpg?v=19d6150e" width="640" height="480" alt="The 3D view with the front wheels turned and the body leaning"></li>
+        <img src="intro-2.jpg?v=5bea5f39" width="640" height="480" alt="The 3D view with the front wheels turned and the body leaning"></li>
       <li><div><b><i>3</i>Test turn-in</b><span><em>Drive</em>: On<br>Assess turn-in reaction and grip limits of moving car</span></div>
-        <img src="intro-3.jpg?v=ffe933db" width="640" height="480" alt="The Drive group switched on, with the steady speed and the Step steer button"></li>
+        <img src="intro-3.jpg?v=7f1d9523" width="640" height="480" alt="The Drive button lit, and the Forces tab with the steady speed, steering wheel and Step steer controls"></li>
     </ol>
   </div>
 </div>
@@ -286,6 +292,6 @@
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=5b8c0312"></script>
 <script src="core.js?v=7219f528"></script>
-<script src="ui.js?v=8e497509"></script>
+<script src="ui.js?v=27b150b4"></script>
 </body>
 </html>

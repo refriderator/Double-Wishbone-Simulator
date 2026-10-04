@@ -73,8 +73,8 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 | Geometry | Arms, chassis pivots, upright, alignment, per axle |
 | Wheels & tires | Wheel, tire size and rate, tire grip, per axle |
 | Springs & heights | Springs, dampers, anti-roll bar, coilover mount, travel limits, ride height |
-| Steering | Steering wheel, Drive with steady speed and step steer, rack, cut knuckles, tie rod |
-| Forces | Lateral and longitudinal g, a point load, road bumps |
+| Steering | Steering wheel, rack, cut knuckles, tie rod |
+| Forces | Lateral and longitudinal g, a point load, road bumps. While Drive is on the tab reads *Forces, the lateral slider is dimmed, and the Drive controls (steady speed, steering wheel, step steer) sit under it |
 | Vehicle | Mass, inertias, wheelbase, CG |
 
 ## Wheels and tires
@@ -89,8 +89,8 @@ The Miata has no rear toe link. Its rear lower arm holds the upright at two oute
 - **Telemetry** shows each tire's slip angle and the share of its grip in use.
 - **Setup sheet** runs from everyday numbers to detail: alignment at ride height, wheels and ride height, springs and dampers, then roll, pitch and grip (the cornering limit of the front and rear tires, which end runs out first, and the understeer gradient), steering, and geometry detail.
 - The **space bar** runs and pauses the simulation from anywhere on the page.
-- **Curve → Grip in use** plots both axles against lateral g. The line that reaches 100 % first sets the limit.
-- **Steering → Drive** runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. It is a mode, not part of a setup: it is off every time the page opens or a car is loaded, and switching it does not change which car button is lit. **Step steer** (only while it is on) centers the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
+- The **Curve** menu names both axes of each curve (for example "Camber vs wheel travel" and "Camber vs steering"). **Grip in use vs lateral g** plots both axles against lateral g. The line that reaches 100 % first sets the limit.
+- The **Drive** button at the top (next to Pause and Settle) lights up and runs the car at the steady speed: the tires make the side force, the car slides and yaws, and lateral g comes out of that. With it off you set lateral g on the Forces tab. It is a mode, not part of a setup: it is off every time the page opens or a car is loaded, and switching it does not change which car button is lit. **Step steer** (only while it is on) centers the wheel, then turns it to the angle entered; the History panel shows lateral g, yaw rate and roll building up.
 - While Drive is on, the floor grid in the 3D view moves under the car: it streams back at the car's speed, turns as the car yaws and drifts sideways when the car slides. `GND` in `ui.js` holds the car's heading and position.
 - Speed is constant, the road is flat, and no drive or brake force acts at the tires. If the car slides sideways faster than it moves forward it has spun, and the page centers the steering.
 
