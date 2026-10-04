@@ -12,11 +12,11 @@ let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.
 function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}   // an edit makes the current setup the session setup
 function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
 let P=loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="stock";}
-P.steer.link=0;                                                        // Assess turn-in is a mode, not part of a setup: every load starts with it off (floor still)
+P.steer.link=0;                                                        // Drive is a mode, not part of a setup: every load starts with it off (floor still)
 let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
-/* Where the car is on the ground while it is driven (Assess turn-in): heading psi (+ = turned right) and position, wrapped to the floor grid's
+/* Where the car is on the ground while it is driven (Drive): heading psi (+ = turned right) and position, wrapped to the floor grid's
    coarsest spacing. The 3D view keeps the car still and moves the floor the opposite way. d is the distance covered in the last drawn frame. */
 const GND={psi:0,x:0,y:0,d:0}, GWRAP=4;
 const BODY_LIFT=0.038;      // the Assetto Corsa shell is a lowered car: raise it 38 mm on the wheels so it sits right at stock height (drawing only, no effect on the numbers)
@@ -94,7 +94,7 @@ function renderForms(){
    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
    const th=document.createElement("p"); th.className="hint"; th.textContent="The outer joint moves with the upright; the inner joint sits on the rack. The button moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
    $("fitTie").onclick=fitTie;}
-  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Assess turn-in");
+  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Drive");
   const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
   chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> On'; lf.insertBefore(chk,lf.children[1]);
   const hint=document.createElement("p"); hint.className="hint";
@@ -139,11 +139,12 @@ $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!
 $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"Run";};
 function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear(); GND.psi=GND.x=GND.y=0;}
 $("reset").onclick=()=>resettle(4);
-function loadPreset(name){
+function loadPreset(name,q0){
   const label=name==="stock"?"Stock":name==="session"?"Session":"Coen's";
   try{
     let q;
-    if(name==="session"){
+    if(q0) q=q0;                                                         // a setup read from a file
+    else if(name==="session"){
       let t=null; try{t=localStorage.getItem(SKEY);}catch(e){}
       if(!t) q=defaults();                                               // no session saved yet: it starts as the start-up car
       else {const j=JSON.parse(t); q=noSp(merge(defaults(),j),j);}
@@ -738,13 +739,48 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-/* ---- quick start: shown once on a first visit, and again from the ? button ---- */
-{const box=$("intro"), show=on=>{box.hidden=!on; if(on) $("introX").focus(); else try{localStorage.setItem("dws.intro","1");}catch(e){}};
+/* ---- setup files: Export saves the car on screen as a .json file; Import loads such a file as the session setup ---- */
+async function exportSetup(){
+  const d=new Date(), p2=n=>String(n).padStart(2,"0"), name=presetName==="coen"?"coens":(presetName||"session");
+  const file="dws-"+name+"-"+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+".json";
+  const text=JSON.stringify({app:"double-wishbone-simulator",format:1,name,saved:d.toISOString(),setup:P},null,1);
+  let dl=null; try{if(window.claude&&window.claude.use) dl=await window.claude.use("downloads");}catch(e){}      // inside a Claude artifact the viewer saves the file
+  if(dl){
+    try{await dl.save({filename:file,data:text}); setStatus("Setup exported as "+file+".",false);}
+    catch(e){if(e&&e.code==="declined") setStatus("Export cancelled.",false); else setStatus("Export is not available in this view.",true);}
+    return;
+  }
+  try{
+    const a=document.createElement("a"), u=URL.createObjectURL(new Blob([text],{type:"application/json"}));
+    a.href=u; a.download=file; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
+    setStatus("Setup exported as "+file+".",false);
+  }catch(e){setStatus("Export failed: "+e.message,true);}
+}
+function importSetup(f){
+  const rd=new FileReader();
+  rd.onerror=()=>setStatus("Import failed: the file could not be read.",true);
+  rd.onload=()=>{
+    try{
+      let j; try{j=JSON.parse(rd.result);}catch(e){throw new Error("the file is not a setup file.");}
+      const src=j&&j.setup?j.setup:j;
+      if(!src||typeof src!=="object"||!Array.isArray(src.ax)||!src.veh) throw new Error("the file is not a setup file.");
+      const q=noSp(merge(defaults(),src),src); makeModel(q);                // throws if the geometry in the file cannot be built
+      try{localStorage.setItem(SKEY,JSON.stringify(q));}catch(e){}
+      loadPreset("session",q); setStatus("Setup imported from "+f.name+". It is now the session setup.",false);
+    }catch(e){setStatus("Import failed: "+e.message,true);}
+  };
+  rd.readAsText(f);
+}
+$("expBtn").onclick=exportSetup;
+$("impBtn").onclick=()=>$("impFile").click();
+$("impFile").onchange=()=>{const f=$("impFile").files[0]; $("impFile").value=""; if(f) importSetup(f);};
+
+/* ---- quick start: opens every time the page loads, and again from the Guide button ---- */
+{const box=$("intro"), show=on=>{box.hidden=!on; if(on) $("introX").focus();};
  $("introX").onclick=()=>show(false); $("introBtn").onclick=()=>show(true);
  box.addEventListener("click",e=>{if(e.target===box) show(false);});
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!box.hidden) show(false);});
- let seen=false; try{seen=!!localStorage.getItem("dws.intro");}catch(e){}
- if(!seen) show(true);}
+ show(true);}
 
 /* boot */
 settle(model,S,inp,3); S.t=0;

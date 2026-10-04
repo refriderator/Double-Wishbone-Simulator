@@ -58,6 +58,7 @@ aside{background:var(--glass);border:1px solid var(--hairline);display:flex;flex
 h1{margin:0;font:400 28px/1.15 var(--font-display);letter-spacing:.04em;text-transform:uppercase;text-shadow:var(--chroma-bleed-sm)}
 .osdline{margin:0;color:var(--vinyl-dim);font:400 20px/20px var(--font-osd);letter-spacing:.06em;text-transform:uppercase}
 .simbar{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.simbar.files .btn{flex:1 1 0;min-width:0;padding:0 var(--space-2)}
 
 /* ---- buttons: outline by default, one primary with the cut corner, ghost for the way out ---- */
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 var(--space-4);border:1px solid var(--edge);border-radius:0;background:none;color:var(--vinyl);
@@ -212,7 +213,8 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
 .introSteps div{display:grid;gap:var(--space-1);align-content:start}
 .introSteps b{display:flex;align-items:center;gap:var(--space-2);font:400 13px/18px var(--font-display);letter-spacing:.1em;text-transform:uppercase}
 .introSteps i{flex:none;display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--vinyl);font:400 20px/1 var(--font-osd);font-style:normal}
-.introSteps span{color:var(--vinyl-dim);min-height:40px}
+.introSteps span{color:var(--vinyl-dim);min-height:60px}
+.introSteps em{font-style:normal;color:var(--vinyl)}
 .introSteps img{display:block;width:100%;height:auto;border:1px solid var(--edge)}
 @media (max-width:760px){
   .introBox{padding:var(--space-4)}
