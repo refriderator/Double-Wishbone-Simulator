@@ -34,10 +34,10 @@ const G=9.81, D2R=Math.PI/180;
 function stockCar(){
   return {
     veh:{M:902,mu:32,L:2.265,wf:0.523,h:0.474,Ixx:260,Iyy:1050},
-    steer:{c:0.0465,rmax:0.0605,speed:60/3.6,grip:0.9,link:0},
+    steer:{c:0.0465,rmax:0.0605,speed:60/3.6,grip:0.9,link:0,cut:0,cutL:0.020},
     ax:[
-      {g:{Ll:0.3318,Lu:0.2404,Lk:0.2172,yli:0.328,zli:0.1701,yui:0.378,zui:0.3589,xlf:-0.0129,xlr:-0.3529,xuf:0.096,xur:-0.124,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
-          xto:0.0986,yto:0.6844,zto:0.215,xti:0.0986,yti:0.3609,zti:0.1981,fMount:0.7765,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
+      {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:0.0333,caster:5.6667,toe:0.15,kt:185000,
+          xto:0.0987,yto:0.6846,zto:0.215,xti:0.0987,yti:0.3609,zti:0.2002,fMount:0.777,ydm:0.378,zdm:0.5825,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.4064,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,cam0:-0.7,caster:0,toe:0.15,kt:185000,
           xto:-0.132,yto:0.6464,zto:0.1675,xti:-0.215,yti:0.2596,zti:0.185,fMount:0.8735,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
@@ -48,7 +48,7 @@ function stockCar(){
 }
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
        for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000});
-       Object.assign(P.ax[0].g,{cam0:-3.9656,caster:3,toe:-0.9650,zti:0.2049,sp:0.030});
+       Object.assign(P.ax[0].g,{cam0:-4.0037,caster:3,toe:-0.9703,zti:0.207,sp:0.030});
        Object.assign(P.ax[1].g,{cam0:-1.9437,toe:0,sp:0.012});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
@@ -80,7 +80,8 @@ const VEH=[
 ];
 const STEER=[
   ["Rack",[["c","Rack travel per steering-wheel turn","mm",1e-3,1,20,150],["rmax","Rack travel each way","mm",1e-3,1,10,120]]],
-  ["SPEED",[["speed","Speed","km/h",1/3.6,5,5,250],["grip","Grip limit","g",1,0.05,0.3,2.5]]]
+  ["SPEED",[["speed","Speed","km/h",1/3.6,5,5,250],["grip","Grip limit","g",1,0.05,0.3,2.5]]],
+  ["Cut knuckles",[["cutL","Steering arm shortened by","mm",1e-3,1,0,60]]]
 ];
 function check(P){
   const one=(obj,groups,who)=>{for(const [,fs] of groups) for(const [k,lab,u,sc,,mn,mx] of fs){
@@ -149,7 +150,12 @@ function design(g,name){
   const c0=g.cam0*D2R, d0=-g.toe*D2R;                             // local steer angle is + outboard, so toe-in is negative
   const av0=[-Math.sin(d0)*Math.cos(c0),Math.cos(d0)*Math.cos(c0),-Math.sin(c0)];   // spindle direction, pointing outboard
   const rear=name==="Rear";                                      // rear: the lower arm's second leg (rear inner pivot to a second outer pivot) holds the toe
-  const TRO=rear?[xl-g.ee,k.ly,k.lz]:[g.xto,g.yto,g.zto], TRI=rear?[g.xlr,g.yli,g.zli]:[g.xti,g.yti,g.zti], Lt=vlen(vsub(TRO,TRI));
+  let TRO=rear?[xl-g.ee,k.ly,k.lz]:[g.xto,g.yto,g.zto]; const TRI=rear?[g.xlr,g.yli,g.zli]:[g.xti,g.yti,g.zti];
+  if(!rear&&g.cutL>0){                                            // cut knuckle: the outer joint moves straight toward the kingpin axis; the tie rod is re-set below, so static toe holds
+    const ax0=vunit(vsub(UBJ,LBJ)), q0=vsub(TRO,LBJ), foot=vadd(LBJ,vscale(ax0,vdot(q0,ax0))), r0=vsub(TRO,foot), a0=vlen(r0);
+    if(a0>1e-6) TRO=vadd(foot,vscale(r0,Math.max(a0-g.cutL,0)/a0));
+  }
+  const Lt=vlen(vsub(TRO,TRI));
   if(Lt<0.03) throw new Error(name+": the tie rod is shorter than 30 mm. Move its inner and outer joints apart.");
   const axis=vunit(vsub(UBJ,LBJ)), p0=vsub(TRO,LBJ), arm=vlen(vsub(p0,vscale(axis,vdot(p0,axis))));
   if(arm<0.02) throw new Error(name+": the tie rod's outer joint is within 20 mm of the kingpin axis, so it can't hold the wheel's steer angle. Move it forward or back.");
@@ -275,10 +281,13 @@ function tireFromSize(P,ax){
   return {free:OD/2000,kt,R:OD/2000-load/kt};
 }
 
+/* Front geometry as built: with cut knuckles on, the steering arm is shorter by steer.cutL. */
+function frontG(P){return P.steer.cut?Object.assign({},P.ax[0].g,{cutL:P.steer.cutL}):P.ax[0].g;}
+
 /* ---- vehicle model ---- */
 function makeModel(P){
   check(P);
-  const T=[tables(P.ax[0].g,"Front",P.steer.rmax,0),tables(P.ax[1].g,"Rear",0,1)];
+  const T=[tables(frontG(P),"Front",P.steer.rmax,0),tables(P.ax[1].g,"Rear",0,1)];
   const v=P.veh, a=v.L*(1-v.wf), b=v.L*v.wf;
   const m={P,T,a,b,xs:[a,a,-b,-b],ys:[-T[0].tHalf,T[0].tHalf,-T[1].tHalf,T[1].tHalf],W:[],Ws:[],d0:[],Fpre:[],FpreDesign:[],st:[],zt:[],arbOff:[0,0],zs:0};
   const yF=T[0].tHalf, yR=T[1].tHalf, zt=m.zt;

@@ -1,6 +1,6 @@
 /* ===== UI ===== */
 const $=id=>document.getElementById(id);
-const KEY="dws.setup.nb3", SKEY="dws.session.nb3", CN=["FL","FR","RL","RR"];
+const KEY="dws.setup.nb4", SKEY="dws.session.nb4", CN=["FL","FR","RL","RR"];
 function merge(def,src){
   if(Array.isArray(def)) return def.map((d,i)=>merge(d,src&&src[i]));
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
@@ -70,7 +70,14 @@ function renderForms(){
     $("fitTie").onclick=fitTie;}
   buildFields($("sprFields"),SPR,()=>P.ax[editAxle].s,"s",who);
   buildFields($("vehFields"),VEH,()=>P.veh,"v","");
-  buildFields($("strFields"),[STEER[0]],()=>P.steer,"st","");
+  buildFields($("strFields"),[STEER[0],STEER[2]],()=>P.steer,"st","");
+  const cf=$("strFields").querySelector('fieldset[data-g="Cut knuckles"]'), cc=document.createElement("label");
+  cc.className="chk"; cc.innerHTML='<input type="checkbox" id="cut"> Cut knuckles'; cf.insertBefore(cc,cf.children[1]);
+  const ch=document.createElement("p"); ch.className="hint";
+  ch.textContent="Shortens the front steering arm: the tie rod's outer joint moves toward the kingpin axis by this much, and the tie rod is re-set so static toe holds. The wheels turn further for the same rack travel.";
+  cf.appendChild(ch);
+  $("cut").checked=!!P.steer.cut;
+  $("cut").onchange=()=>{const on=$("cut").checked; if(!applyEdit(()=>{P.steer.cut=on?1:0;},on?"Cut knuckles on.":"Cut knuckles off.")) $("cut").checked=!!P.steer.cut;};
   buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Cornering from steering");
   const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
   chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Set lateral g from steering and speed'; lf.insertBefore(chk,lf.children[1]);
@@ -91,7 +98,7 @@ function fitTire(){
 }
 function fitTie(){
   const nm=editAxle?"Rear":"Front"; let z;
-  try{z=Math.round(bestTieHeight(P.ax[editAxle].g,nm)*1e4)/1e4;}catch(e){setStatus(e.message,true); return;}
+  try{z=Math.round(bestTieHeight(editAxle?P.ax[1].g:frontG(P),nm)*1e4)/1e4;}catch(e){setStatus(e.message,true); return;}
   if(applyEdit(()=>{P.ax[editAxle].g.zti=z;},"Inner joint moved to "+(z*1000).toFixed(1)+" mm above ground. Check the toe curve.")) $("g-zti").value=fmtIn(z,1e-3);
 }
 
