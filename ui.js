@@ -1,6 +1,6 @@
 /* ===== UI ===== */
 const $=id=>document.getElementById(id);
-const KEY="dws.setup.nb2", SKEY="dws.session.nb2", CN=["FL","FR","RL","RR"];
+const KEY="dws.setup.nb3", SKEY="dws.session.nb3", CN=["FL","FR","RL","RR"];
 function merge(def,src){
   if(Array.isArray(def)) return def.map((d,i)=>merge(d,src&&src[i]));
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
