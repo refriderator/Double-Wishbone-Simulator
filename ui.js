@@ -90,19 +90,17 @@ function renderForms(){
    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
    const th=document.createElement("p"); th.className="hint"; th.textContent="The outer joint moves with the upright; the inner joint sits on the rack. The button moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
    $("fitTie").onclick=fitTie;}
-  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Turn-in response");
+  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Assess turn-in response");
   const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
-  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Assess turn-in response'; lf.insertBefore(chk,lf.children[1]);
+  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> On'; lf.insertBefore(chk,lf.children[1]);
   const hint=document.createElement("p"); hint.className="hint";
-  hint.id="linkNote"; lf.appendChild(hint);
+  hint.textContent="On: the car runs at this speed and turns the wheel. Lateral g is then calculated, so the lateral FORCES slider is locked."; lf.appendChild(hint);
   $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; save(); syncLink();};
   buildHeights();
 }
 function syncLink(){
   const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
   $("ssGo").disabled=$("ssA").disabled=!on;
-  $("linkNote").textContent=on?"On: the car runs at this speed and turns the wheel. Lateral g is then calculated, so the lateral FORCES slider is locked."
-    :"Off: you set lateral g on the Forces tab. Tick this to use Step steer.";
   readLoads();
 }
 function applyEdit(fn,msg){
