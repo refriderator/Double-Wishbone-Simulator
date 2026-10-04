@@ -76,7 +76,7 @@ const VEH=[
 ];
 const STEER=[
   ["Rack",[["c","Rack travel per steering-wheel turn","mm",1e-3,1,20,150],["rmax","Rack travel each way","mm",1e-3,1,10,120]]],
-  ["SPEED",[["speed","Speed","km/h",1/3.6,5,5,250]]],
+  ["SPEED",[["speed","Steady speed","km/h",1/3.6,5,5,250]]],
   ["Cut knuckles",[["cutL","Steering arm shortened by","mm",1e-3,1,0,60]]]
 ];
 function check(P){

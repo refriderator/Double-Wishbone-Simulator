@@ -90,9 +90,9 @@ function renderForms(){
    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
    const th=document.createElement("p"); th.className="hint"; th.textContent="The outer joint moves with the upright; the inner joint sits on the rack. The button moves the inner joint to the height with the least toe change over the travel range."; tie.appendChild(th);
    $("fitTie").onclick=fitTie;}
-  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Drive");
+  buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"Turn-in response");
   const lf=$("linkFields").querySelector("fieldset"), chk=document.createElement("label");
-  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Drive the car'; lf.insertBefore(chk,lf.children[1]);
+  chk.className="chk"; chk.innerHTML='<input type="checkbox" id="link"> Assess turn-in response'; lf.insertBefore(chk,lf.children[1]);
   const hint=document.createElement("p"); hint.className="hint";
   hint.id="linkNote"; lf.appendChild(hint);
   $("link").checked=!!P.steer.link; $("link").onchange=()=>{P.steer.link=$("link").checked?1:0; save(); syncLink();};
@@ -101,8 +101,8 @@ function renderForms(){
 function syncLink(){
   const on=!!P.steer.link; $("ay").disabled=on; $("ayNote").hidden=!on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
   $("ssGo").disabled=$("ssA").disabled=!on;
-  $("linkNote").textContent=on?"On: the car runs at this speed and the steering wheel below turns it. The tires set the lateral g, so the Forces tab's lateral slider is locked."
-    :"Off: the car stands still. The steering wheel only turns the front wheels, and you set lateral g on the Forces tab. Tick this to use Step steer.";
+  $("linkNote").textContent=on?"On: the car runs at this speed and the tires set the lateral g. The Forces tab's lateral slider is locked."
+    :"Off: you set lateral g on the Forces tab. Tick this to use Step steer.";
   readLoads();
 }
 function applyEdit(fn,msg){
