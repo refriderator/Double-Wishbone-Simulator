@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Double Wishbone Simulator</title>
-<link rel="stylesheet" href="style.css?v=bc7053e8">
+<link rel="stylesheet" href="style.css?v=b3bf5ef6">
 </head>
 <body>
 <div class="app">
@@ -46,12 +46,26 @@
 
   <div class="pane" id="p-geo" role="tabpanel">
     <div class="rowbtns"><div class="seg axleSel" role="group" aria-label="Axle"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></div><button class="btn" id="copyGeo">Copy to rear</button></div>
-    <p class="hint">Dimensions at design ride height. Lateral from the centerline, height from the ground, fore-aft from the axle line. The solver finds the lower-arm angle that puts the tire on the ground. Wheels and tires, coilover mounts and the tie rod are on their own tabs.</p>
+    <div class="seg part" id="partSel" role="group" aria-label="Part to adjust"><button type="button" aria-pressed="true" data-part="uarm">Upper arm</button><button type="button" aria-pressed="false" data-part="larm">Lower arm</button><button type="button" aria-pressed="false" data-part="kn">Knuckle</button><button type="button" aria-pressed="false" data-part="align">Alignment</button></div>
     <div id="geoFields" class="groups"></div>
+    <fieldset id="solveBox"><legend>Solve for</legend>
+      <p class="hint">Let the program work out a change.</p>
+      <ol class="hint steps">
+        <li>Tick the numbers you want and type their values.</li>
+        <li>Tick the box beside every field it may change: the column marked “Solve for may change” on each part above, or the list under More fields. Fields left unticked stay as they are.</li>
+        <li>Press Solve. It finds the smallest change that hits the targets at ride height, and changes nothing until you apply it.</li>
+      </ol>
+      <div id="solveT" class="tgrid"></div>
+      <details id="moreF"><summary>More fields it may change</summary><p class="hint">These are on the Wheels, Steering and Springs tabs.</p><div id="moreT" class="tgrid"></div></details>
+      <div class="rowbtns"><button class="btn" id="solveGo" type="button">Solve</button></div>
+      <p class="hint" id="freeList"></p>
+      <div id="solveOut"></div>
+    </fieldset>
     <fieldset><legend>Solved points</legend>
       <div class="tw"><table class="pts wrap" id="pts"></table></div>
       <p class="hint">At design height.</p>
     </fieldset>
+    <p class="hint">Everything here is at design ride height. Pivot positions are measured from the centerline, the ground and the axle line; an arm's and a knuckle's own numbers are measured on the part. The red dot in each drawing is where its numbers start. The solver finds the lower-arm angle that puts the tire on the ground. Wheels and tires, coilover mounts and the rack are on their own tabs. Click a lettered number in a drawing to go to its field.</p>
   </div>
 
   <div class="pane" id="p-whl" role="tabpanel" hidden>
@@ -83,7 +97,7 @@
     <table id="steerOut" class="wrap"></table>
     <div id="strFields" class="groups"></div>
     <div id="tieFields" class="groups"></div>
-    <p class="hint">Cut knuckles is off in both cars; the 20 mm is a placeholder, so enter what was cut from yours. Caster and static toe are on the Geometry tab. The rack follows the steering wheel at up to 900°/s.</p>
+    <p class="hint">Cut knuckles is off in both cars; the 20 mm is a placeholder, so enter what was cut from yours. Caster and static toe are on the Geometry tab, under Alignment. The rack follows the steering wheel at up to 900°/s.</p>
   </div>
 
   <div class="pane" id="p-load" role="tabpanel" hidden>
@@ -116,7 +130,7 @@
 
   <div class="pane" id="p-veh" role="tabpanel" hidden>
     <div id="vehFields" class="groups"></div>
-    <p class="hint">Sprung mass is everything the springs carry. Unsprung mass is wheel, tire, upright, brake and about half the arms and coilover. Roll inertia is about the CG. The model adds the offset to the roll axis. CG height follows the ride height. Yaw inertia is only used while Drive is on.</p>
+    <p class="hint">Sprung mass is everything the springs carry. Unsprung mass is wheel, tire, knuckle, brake and about half the arms and coilover. Roll inertia is about the CG. The model adds the offset to the roll axis. CG height follows the ride height. Yaw inertia is only used while Drive is on.</p>
     <p class="hint">The setup saves in this browser. Stock and Coen's reload that car. Any edit you make is kept as the Session setup; the Session button brings it back.</p>
   </div>
   <div class="status" id="status" role="status">Solved.</div>
@@ -152,12 +166,13 @@
     <section class="card">
       <h2>Rear view <span class="seg" id="viewAxle" role="group" aria-label="Axle shown"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></span></h2>
       <div class="plot"><canvas id="rear" role="img" aria-label="Rear view of the selected axle with wishbones, instant centers and roll center"></canvas></div>
-      <p class="hint">Seen from behind, ground level, live. The body rolls and the camber labels are relative to the road. Dashed lines extend each wishbone to its instant center. The solid lines from each contact patch through its instant center cross at the roll center.</p>
+      <p class="hint">Seen from behind, ground level, live. The body rolls and the camber labels are relative to the road. Dashed lines run from the ball joints to the knuckle's instant center: with the pivot axes parallel to the centerline they are the wishbones extended. The solid lines from each contact patch through its instant center cross at the roll center.</p>
     </section>
     <section class="card">
       <h2>Curve <select id="curveQ" aria-label="Curve">
         <option value="cam">Camber vs wheel travel</option>
         <option value="toe">Toe (bump steer) vs wheel travel</option>
+        <option value="cas">Caster vs wheel travel</option>
         <option value="dtr">Track change per side vs wheel travel</option>
         <option value="MR">Motion ratio vs wheel travel</option>
         <option value="rch">Roll center height vs wheel travel</option>
@@ -196,14 +211,15 @@
         <tr><td>Dampers</td><td>Fortune Auto 510 coilovers; their curves are not measured. Low-speed slopes give 0.45 (bump) and 0.70 (rebound) of critical damping at the wheel, with a knee at 75 mm/s and 30 % of the slope above it: front 5.82 / 9.06 N·s/mm, rear 4.40 / 6.84 N·s/mm.</td><td class="u k">Estimate</td></tr>
         <tr><td>Wheels and tires</td><td>15×7 ET35, 195/45R15 at 240 kPa, loaded radius 267.5 mm and 234 N/mm from the size; wheel spacers 30 mm front and 12 mm rear (effective offset ET5 front, ET23 rear)</td><td class="u k">Set</td></tr>
         <tr><td>Front lower arm</td><td>341.6 mm: an extension moves the ball joint about 5 mm out. The shock and anti-roll bar mounts stay put, so the shock mount is 0.697 of the arm and the bar rate at the wheel is 14.2 N/mm.</td><td class="u k">Owner's estimate</td></tr>
-        <tr><td>Front camber and upper arm</td><td>−4.2° at ride height (my choice), camber adjuster at 0, kingpin 15.9°. Lowered, with the extension, stock-length upper arms and the eccentrics centered the car reads −1.76°; the upper arm is cut 9.7 mm (240.3 mm) for the rest. 1 mm of cut is 0.25°. The inside front wheel is at +1.0° at full lock. The real arm is not measured.</td><td class="u k">Set + worked out</td></tr>
+        <tr><td>Front camber and upper arm</td><td>−4.2° at ride height (my choice), camber adjuster at 0, kingpin 15.9°. Lowered, with the extension, stock-length upper arms and the eccentrics centered the car reads −1.77°; the upper arm is cut 9.7 mm (240.3 mm) for the rest. 1 mm of cut is 0.25°. The inside front wheel is at +1.0° at full lock. The real arm is not measured.</td><td class="u k">Set + worked out</td></tr>
         <tr><td>Camber, rear</td><td>−1.5° at ride height on the adjuster (+0.39°), arms uncut</td><td class="u k">Set</td></tr>
-        <tr><td>Caster and toe</td><td>Caster 3°. Toe at ride height −0.5° per wheel front, 0° rear</td><td class="u k">Set</td></tr>
+        <tr><td>Caster and toe</td><td>Caster 3° at design height (3.01° at ride height). Toe at ride height −0.5° per wheel front, 0° rear</td><td class="u k">Set</td></tr>
         <tr><td>Ride height</td><td>−26 mm front, −38 mm rear from stock height, measured at the body, so it includes the 6.5 mm smaller tire radius (Heights tab, same zero as Stock)</td><td class="u k">Set</td></tr>
         <tr><td>Travel limits, bump / droop</td><td>From ride height: 62.5 / 67 mm front, 48.5 / 69 mm rear. Bump stops where the stock dampers have them; droop ends where an unpreloaded spring goes loose. The coilovers' real stroke is not known.</td><td class="u k">Estimate</td></tr>
-        <tr><td>Rack and tie rod</td><td>Rack where stock has it (187.3 mm). The tie rod's outer joint is carried with the knuckle, so the steering arm is the stock part: the joint sits at 183.3 mm at design height. Least bump steer would want the rack 4.3 mm lower.</td><td class="u k">Follows</td></tr>
+        <tr><td>Knuckles, chassis pivots, rear arms</td><td>The stock parts in the stock positions: on the Geometry tab they read the same as Stock.</td><td class="u k">Stock</td></tr>
+        <tr><td>Rack and tie rod</td><td>Rack where stock has it (187.3 mm). The tie rod end is part of the stock knuckle: it sits at 183.4 mm at design height. Least bump steer would want the rack 4.4 mm lower.</td><td class="u k">Follows</td></tr>
         <tr><td>Track, front / rear</td><td>1517 / 1468 mm (the extension, the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
-        <tr><td>Roll center height, front / rear</td><td>15 / 89 mm</td><td class="u k">Follows</td></tr>
+        <tr><td>Roll center height, front / rear</td><td>16 / 89 mm</td><td class="u k">Follows</td></tr>
         <tr><th>Stock car, published by Mazda</th><th></th><th></th></tr>
         <tr><td>Wheelbase</td><td>2265 mm</td><td class="u k">Published</td></tr>
         <tr><td>Track, front / rear</td><td>1415 / 1440 mm</td><td class="u k">Published</td></tr>
@@ -223,7 +239,7 @@
         <tr><td>Front arms</td><td>Lower 336.6 mm from the pivot line to the ball joint, inner pivots 325 mm apart, ball joint 25 mm ahead of the front pivot. Upper 250 mm, inner pivots 220 mm apart, ball joint midway</td><td class="u k">Arm drawings</td></tr>
         <tr><td>Rear chassis pivots</td><td>Lower 243.9 mm and upper 387.3 mm from the centerline, upper 192.1 mm above lower. Lower pivots 320.4 mm apart front to back, upper 164.5 mm</td><td class="u k">Pickup drawing</td></tr>
         <tr><td>Rear arms</td><td>Lower 393.7 mm, upper 212.7 mm (8⅜ in), pivot line to outer joint</td><td class="u k">Arm drawings</td></tr>
-        <tr><td>Rear upright</td><td>Axle sits 45 % of the way up from the lower arm mount to the upper one</td><td class="u k">Photo</td></tr>
+        <tr><td>Rear knuckle</td><td>Axle sits 45 % of the way up from the lower arm mount to the upper one</td><td class="u k">Photo</td></tr>
         <tr><th>Measured by others</th><th></th><th></th></tr>
         <tr><td>Motion ratio, front / rear</td><td>0.686 / 0.721</td><td class="u k">Owner measurement</td></tr>
         <tr><td>CG height, whole car</td><td>449 mm, from static stability factor 1.59</td><td class="u k">NHTSA</td></tr>
@@ -232,15 +248,16 @@
                 <tr><th>Fitted to the numbers above</th><th></th><th></th></tr>
         <tr><td>Front pivots apart, lower / upper</td><td>646 / 736 mm. The NA drawing has 656 / 756 mm.</td><td class="u k">Fitted</td></tr>
         <tr><td>Front pivot heights, lower / upper</td><td>171.8 / 360.6 mm</td><td class="u k">Fitted</td></tr>
-        <tr><td>Front upright, ball joint to ball joint</td><td>217.2 mm: the measured heights, leaned to Mazda's 11°39′ kingpin</td><td class="u k">Measured + published</td></tr>
-        <tr><td>Hub face position, kingpin offset, tie rod joints</td><td>See the Geometry tab</td><td class="u k">Fitted</td></tr>
+        <tr><td>Front knuckle, ball joint to ball joint</td><td>217.2 mm in front view: the measured heights, leaned to Mazda's 11°39′ kingpin. With the caster that is 218.2 mm from joint to joint, the number on the Geometry tab.</td><td class="u k">Measured + published</td></tr>
+        <tr><td>Hub face position, kingpin offset, tie rod joints</td><td>See the Geometry tab (Knuckle) and the Steering tab</td><td class="u k">Fitted</td></tr>
+        <tr><td>Pivot axis angles</td><td>0° in side view and in top view on both cars: every axis parallel to the centerline. The NB's real angles are not measured. A CAD model of the NA has its front upper axis 4.5° in side view and 2.5° in top view; the NB's front subframe and upper arms differ.</td><td class="u k">Not measured</td></tr>
         <tr><td>Shock towers, center to center</td><td>Front 981 mm, rear 984 mm (underbody projected dimensions)</td><td class="u k">Published, body manual</td></tr>
         <tr><td>Shock top mount height</td><td>Front 640 mm above ground (366 mm above the wheel center), rear 537 mm. From the replacement shocks' lengths (KYB 341253: 530.1 mm fully extended; KYB 341254: 453.9 mm; eye to stud shoulder), each taken to top out at Mazda's droop of 93 / 96 mm. The body manual puts the front tower top 537 mm above its datum line, which then sits 103 mm above the ground.</td><td class="u k">Parts catalog</td></tr>
         <tr><td>Rear shock, mount on the lower arm</td><td>0.790 of the arm from the inner pivot (310.9 of 393.7 mm), from a CAD model of the NA rear suspension whose arm lengths match the drawings to 0.1 mm. With it the rear motion ratio comes out 0.732 with no fitting (measured: 0.721).</td><td class="u k">CAD model</td></tr>
         <tr><td>Front shock, mount on the lower arm</td><td>0.707 of the arm from the inner pivot (238 mm from the pivot line), fitted to the 0.686 motion ratio. Two direct measurements disagree with it and with each other: 273.5 mm from a drawing of the NB arm (that would give 0.776), and 222 mm, 30 mm above the arm line, in the CAD of the NA arm (0.650).</td><td class="u k">Fitted</td></tr>
         <tr><td>Shock stroke, OEM Showa</td><td>Front: body 342 mm, stroke 119 mm, 463 mm at full length. Rear: body 246 mm, stroke 131 mm, 378 mm. Mazda's wheel strokes use 119.9 mm (front) and 129.8 mm (rear) of shock travel in the model, so the strokes agree with both motion ratios.</td><td class="u k">Check</td></tr>
-        <tr><td>Rear upright, pivot height, hub face</td><td>Upright 240 mm between the arm mounts, lower pivot 186.4 mm above ground, hub face 137.9 mm from the kingpin axis, fitted to roll center 120 mm, track 1440 mm and motion ratio 0.721. A rough 230 mm estimate of the upright could not give that roll center with enough droop reach.</td><td class="u k">Fitted</td></tr>
-        <tr><td>Front tie rod, outer joint</td><td>105 mm ahead of the kingpin axis and 4 mm outboard of it, fitted to the published full lock with the rack where it is below. Its height, 200 mm above ground (18 mm above the lower ball joint), is an estimate. A rough 135 mm measurement gave 27° / 25° of lock, so it was not used.</td><td class="u k">Fitted</td></tr>
+        <tr><td>Rear knuckle, pivot height, hub face</td><td>Knuckle 240 mm between the arm mounts, lower pivot 186.4 mm above ground, hub face 137.9 mm from the kingpin axis (137.5 mm on the Geometry tab, where the wheel's 40 mm offset is taken along the spindle), fitted to roll center 120 mm, track 1440 mm and motion ratio 0.721. A rough 230 mm estimate of the knuckle could not give that roll center with enough droop reach.</td><td class="u k">Fitted</td></tr>
+        <tr><td>Front tie rod, outer joint</td><td>105 mm ahead of the kingpin axis and 4 mm outboard of it, fitted to the published full lock with the rack where it is below. Its height, 200 mm above ground (18 mm above the lower ball joint), is an estimate. A rough 135 mm measurement gave 27° / 25° of lock, so it was not used. The Geometry tab gives the same joint on the knuckle itself, along and square to the leaning kingpin: 104.8 mm ahead, 1.7 mm outboard, 7.7 mm up.</td><td class="u k">Fitted</td></tr>
         <tr><td>Steering rack, inner joints</td><td>50 mm ahead of the lower arm's front pivot and 650 mm apart, in line with the lower arm pivots (646 mm apart). By eye, not measured. Tie rods 343.8 mm.</td><td class="u k">Owner's estimate</td></tr>
         <tr><th>Estimates</th><th></th><th></th></tr>
                 <tr><td>Unsprung mass per corner</td><td>32 kg</td><td class="u k">Estimate</td></tr>
@@ -269,17 +286,19 @@
     <section class="card wide">
       <details open><summary>Model notes</summary>
       <ul>
-        <li>Each corner is a rigid upright on two wishbones and a tie rod, solved in 3D. The wishbone pivot axes run parallel to the car's centerline, so camber, track, motion ratio and roll center come from the front view. Caster, kingpin inclination, toe, bump steer and Ackermann come from the 3D solve. The wheel is fixed on the knuckle: camber is the knuckle's own angle minus the kingpin inclination the arms give, so arm lengths and pivots set it, and a camber adjuster adds at most +1° or −3° on top. Wheel offset and spacers slide the wheel along the spindle. A change of tire radius raises or lowers the car and leaves the suspension where it was.</li>
+        <li>Each corner is a rigid knuckle on two wishbones and a tie rod, solved in 3D. Each wishbone swings about its own pivot axis, which can be angled in side view and in top view (Geometry tab), so its ball joint rides a circle around that axis. Camber, caster, kingpin inclination, toe, bump steer, Ackermann, track, motion ratio and roll center all come from that one solve. With both axes parallel to the centerline, as on Stock and Coen's, this is the same as solving in front view, which is what earlier versions did.</li>
+        <li>The knuckle is one part with its own dimensions: ball joint to ball joint, the angle between kingpin and spindle, where the wheel bolts on and where the tie rod bolts on. The wheel is fixed on it, so the arms set the camber, and a camber adjuster adds at most +1° or −3° on top. Caster is not stored as a number: it comes from where the two ball joints sit along their arms, and typing a caster on the Alignment part moves both. Static toe is set by the tie rod's length. Wheel offset and spacers slide the wheel along the spindle. A change of tire radius raises or lowers the car and leaves the suspension where it was.</li>
+        <li>Solve for (Geometry tab) finds the smallest change to the fields you tick that puts chosen setup-sheet numbers on target at ride height. It refuses when there are more targets than ticked fields, when the ticked fields cannot move the targets independently, or when no geometry within the fields' limits gets there.</li>
         <li>Dynamics: body heave, pitch and roll (small angles) plus vertical motion of each wheel, and sideways slide and yaw while the car is driven. The body rolls about the roll axis, a tilted body carries its CG off-center over the wheels, and the CG height follows the ride height.</li>
         <li>Tires are thin discs with a linear vertical spring and light damping. They can leave the ground. Side force follows a Magic Formula curve from slip angle, load and camber: peak grip falls as load rises, cornering stiffness flattens with load, and camber leaning into the turn adds a little grip up to an optimum. The grip numbers are typical values, not test data, so trust the direction of a change more than the size.</li>
         <li>Grip in use: the car is settled at each lateral g and each axle's side force is compared with the most its two tires can make at their loads, cambers and toes. The axle that reaches 100 % first sets the limit. The understeer gradient is the change in front minus rear slip angle between 0.2 and 0.4 g.</li>
         <li>Drive (the button at the top; its speed and steering controls are on the Forces tab): at the set steady speed the tires make the side force from their slip angles, the car slides sideways and yaws, and lateral g comes out of that. Speed is held constant, the road is flat, and there is no drive or brake force at the tires. Past the limit the car plows or spins; that part is the least accurate. Cornering loads do not jack the body. While it is on, the floor grid in the 3D view moves under the car: it streams back at the car's speed, turns as the car yaws, and drifts sideways when the car slides. Finer grid lines fade out at speed so the motion stays readable. While it is on, each tire leaves a faint track on the floor.</li>
-        <li>No anti-dive or anti-squat: all longitudinal load transfer goes through the springs.</li>
-        <li>Lateral load transfer through the links uses each axle's roll center height for equal travel on both sides and zero steer. The rear view shows the true roll center for reference.</li>
+        <li>Anti-dive: the setup sheet shows what the geometry gives under braking (it needs a pivot axis angled in side view, and uses the front share of braking on the Vehicle tab). The dynamics do not use it yet: all longitudinal load transfer still goes through the springs. No anti-squat.</li>
+        <li>Lateral load transfer through the links uses each axle's roll center height for equal travel on both sides and zero steer. The roll center is taken from the arms alone, with the wheel held straight, which is the kind that is published; toe change with travel is left out of it. The rear view shows the roll center of the car as it sits for reference.</li>
         <li>Steering lifts or lowers each front tire relative to its arm (caster and kingpin inclination), which shifts load diagonally. Springs, bump stops and anti-roll bars act on arm travel.</li>
         <li>Coil springs cannot pull: they unseat at full droop. Anti-roll bar links are assumed adjusted for zero preload at the target heights.</li>
         <li>Bump stops engage at the end of the published wheel stroke. The real car's stops touch earlier and build up progressively.</li>
-        <li>The Miata has no rear toe link. Its rear lower arm holds the upright at two outer pivots. The model draws that arm as two legs, the front leg to the ball joint and the rear leg to a second outer point, and the rear leg holds the toe. Both legs swing about the same axis, so the rear has no toe change by construction.</li>
+        <li>The Miata has no rear toe link. Its rear lower arm holds the knuckle at two outer pivots. The model draws that arm as two legs, the front leg to the ball joint and the rear leg to a second outer point, and the rear leg holds the toe. Both legs swing about the same axis, so the rear has no toe change by construction. The rear's pivot axes are kept parallel to the centerline: with rigid joints that arm only moves freely that way.</li>
         <li>Left and right sides share one geometry, and the CG is on the centerline.</li>
         <li>The car bodies and rims in the 3D view are a drawing only. They are reduced from Assetto Corsa car models: the Mazda Roadster 1.8 RS (NB) and the Mazda Roadster (NB8C) Garage Vary by Sam S., and a rim from the ADC Mazda MX-5 NB Stock by Aussie Drift Co. Each wheel is drawn to its axle's rim diameter, rim width, offset, tire width and loaded radius.</li>
       </ul></details>
@@ -307,7 +326,7 @@
 <script src="three.min.js"></script>
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=3635bb84"></script>
-<script src="core.js?v=0889c1d7"></script>
-<script src="ui.js?v=12eb1532"></script>
+<script src="core.js?v=5d053f27"></script>
+<script src="ui.js?v=39fe629a"></script>
 </body>
 </html>

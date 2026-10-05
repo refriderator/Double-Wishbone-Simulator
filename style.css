@@ -27,7 +27,7 @@ img{max-width:100%}
   --midnight:#081141;      /* brand field: the 3D frame */
   --ice:#8f969e;           /* signal color, small areas: primary button, links, focus ring */
   --on-ice:var(--void);
-  --rec:#ff2233;           /* error text only */
+  --rec:#ff2233;           /* error text, and the origin dots in the Geometry drawings */
   --chroma-bleed-sm:-1px 0 0 #a4b9d0, 1px 0 0 #6c727c;
   --glow-ice:0 0 24px rgba(164,185,208,0.4);
   --lift:0 16px 40px rgba(0,0,0,0.6);
@@ -128,6 +128,62 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--vinyl-ghost)}
 .chk input{width:18px;height:18px;margin:0;accent-color:var(--ice)}
 .zeta{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-1) var(--space-3);color:var(--vinyl-dim)}
 .zeta b{color:var(--vinyl);font:400 18px/20px var(--font-osd);letter-spacing:.04em}
+
+/* ---- geometry builder: the part selector, drawings with lettered dimensions, tick boxes, Solve for ---- */
+.pane>.seg.part{align-self:stretch}
+.seg.part{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--edge)}
+.seg.part button{min-height:36px;background:var(--glass)}
+.seg.part button+button{border-left:0}
+.seg.part button[aria-pressed="true"]{background:var(--gunmetal)}
+.f.tk{grid-template-columns:minmax(0,1fr) 96px 30px 24px}
+.f input.tick,.t input.tick,input.tick{width:18px;height:18px;padding:0;margin:0;border:0;background:none;justify-self:center;accent-color:var(--ice)}
+.sl.tk{grid-template-columns:minmax(0,1fr) auto 24px}
+.sl.tk input.tick{align-self:center}
+@media (pointer:coarse){.f input.tick,.t input.tick,input.tick{width:24px;height:24px}}
+.let{display:inline-block;min-width:18px;margin-right:6px;padding:0 3px;border:1px solid var(--edge);color:var(--vinyl);font:400 10px/16px var(--font-display);text-align:center;vertical-align:1px}
+.fhead{text-align:right;color:var(--vinyl-ghost);font:400 11px/16px var(--font-sans);letter-spacing:.1em;text-transform:uppercase}
+.sub{color:var(--vinyl-ghost);font:400 11px/16px var(--font-sans);letter-spacing:.1em;text-transform:uppercase}
+.subrow{display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);margin-top:var(--space-2)}
+.holdrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:var(--space-2);color:var(--vinyl-dim)}
+.holdrow .seg button{font-size:10px;letter-spacing:.1em;padding:0 var(--space-2)}
+.btn[data-wheel]{min-height:28px;padding:0 var(--space-2);font-size:10px;letter-spacing:.1em}
+.btn[data-wheel][aria-pressed="true"]{background:var(--gunmetal)}
+.sketch{display:block;width:100%;height:auto;background:var(--void);border:1px solid var(--hairline)}
+.sketch text{font:400 20px var(--font-sans);fill:var(--vinyl-dim)}
+.sketch .ttl{font-size:15px;letter-spacing:.08em;fill:var(--vinyl-ghost)}
+.sketch .whl{fill:var(--gunmetal);fill-opacity:.5;stroke:var(--edge);stroke-opacity:.45;stroke-width:1}
+.sketch .ref{stroke:var(--gunmetal);stroke-width:1.5;fill:none}
+.sketch .dimline{stroke:var(--vinyl-ghost);stroke-width:1.5;fill:none}
+.sketch .leg{stroke-width:6;stroke-linecap:round;fill:none}
+.sketch .kn{stroke:var(--vinyl);stroke-width:5;stroke-linecap:round;fill:none}
+.sketch .tie{stroke:var(--ice);stroke-width:4;fill:var(--void)}
+.sketch .hot.dimline,.sketch .hot.leg{stroke:var(--vinyl);stroke-width:5}
+.sketch .hot.kn{stroke-width:8} .sketch .hot.tie{stroke:var(--vinyl)}
+.sketch .org{fill:var(--rec);stroke:var(--void);stroke-width:1.5}      /* the origin of a drawing: red on request, the one use of red besides errors */
+.sketch .lbl{cursor:pointer}
+.sketch .lbl .pl{fill:var(--void);opacity:.82;stroke:none}
+.sketch .lbl .bx{fill:var(--void);stroke:var(--edge);stroke-width:1.5}
+.sketch .lbl .lt{font:400 12px var(--font-display);fill:var(--vinyl)}
+.sketch .lbl.hot .bx{stroke:var(--vinyl);stroke-width:2.5}
+.sketch .lbl.hot text{fill:var(--vinyl);font-weight:700}
+.tgrid{display:grid;gap:var(--space-2)}
+.t{display:grid;grid-template-columns:24px minmax(0,1fr) 96px 62px;gap:var(--space-1) var(--space-2);align-items:center}
+.t input[type=number]{width:100%;height:36px;padding:0 var(--space-2);border:1px solid var(--edge);border-radius:0;background:var(--glass-raised);color:var(--vinyl);font:400 16px/24px var(--font-sans);font-variant-numeric:tabular-nums;text-align:right}
+.t input[type=number]:focus-visible{border-color:var(--ice)}
+.t .u{color:var(--vinyl-dim)}
+.t .cur{grid-column:2/-1;margin-top:-4px;color:var(--vinyl-ghost);font-size:12px;line-height:16px}
+.t .v{justify-self:end;font-variant-numeric:tabular-nums}
+.hint.steps{padding-left:20px;display:grid;gap:var(--space-1)}
+#moreF summary{color:var(--vinyl-dim);font:400 12px/16px var(--font-display);letter-spacing:.14em}
+#moreF[open] summary,#moreF .hint{margin-bottom:var(--space-2)}
+.result{display:grid;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--edge);border-left:2px solid var(--vinyl)}
+.chg{display:grid;gap:var(--space-1)}
+.chg>div{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);align-items:baseline;justify-content:space-between}
+.chg b{font:400 18px/22px var(--font-osd);letter-spacing:.04em}
+.chg .let{margin-right:2px}
+.chg .u{color:var(--vinyl-dim)}
+.tag.no{border-color:var(--rec);color:var(--rec)}
+.tag.sm{height:18px;padding:0 var(--space-1);font-size:14px;line-height:18px}
 
 /* ---- the frame: 3D rig on a midnight field, scanlines over it, read-outs on top ---- */
 main{min-width:0;min-height:0;overflow:auto;display:grid;gap:var(--space-6);align-content:start;scroll-padding-top:calc(var(--viewh) + var(--space-6))}
