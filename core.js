@@ -16,15 +16,16 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
      192.1 mm apart in height), rear arms (lower 393.7 mm, upper 212.7 mm).
    MEASURED by others: spring motion ratios 0.686 / 0.721; static stability factor 1.59 (NHTSA), CG 449 mm for the whole car.
    FITTED so the model reproduces the published numbers: front inner pivot positions, all pivot heights, rear upright (240 mm),
-     spindle and hub-face positions, tie rod outer joint (full lock 38° / 33°), rack height (least bump steer), rear coilover mounts, and where the
-     front shock tops are across the car (698.6 mm apart, from the 0.686 motion ratio with the measured mount on the lower arm).
+     spindle and hub-face positions, tie rod outer joint (full lock 38° / 33°), rack height (least bump steer), where the front shock tops are
+     across the car (698.6 mm apart, from the 0.686 motion ratio with the measured mount on the lower arm), and the rear shock's mount
+     on the lower arm (0.829 of the arm, from the 0.721 motion ratio with the tops 879.4 mm apart).
    MEASURED on the lower arm: the front shock bolts on 273.5 mm from the arm's front inner pivot, on the line to the ball joint in top
      view (0.8103 of the arm's reach).
-   FROM THE REPLACEMENT SHOCK: front top mount height 579.0 mm. KYB 341253 (1999-2005 front) is 530.1 mm long fully extended, eye to
-     stud shoulder, and the shock is taken to top out at Mazda's 93 mm of droop. Its 112 mm stroke is 8 mm short of what Mazda's 175 mm
-     wheel stroke needs at 0.686; using the whole stroke instead puts the tops 614 mm apart and 555 mm high (motion ratio 0.642).
-     An owner's estimate of 981 mm between the tops was not used: with the measured lower mount it gives a motion ratio of 0.776 and
-     needs 136 mm of shock travel.
+   FROM THE SHOCKS: top mount heights 579.0 mm front and 519.9 mm rear. The replacement shocks are 530.1 mm (KYB 341253, front) and
+     453.9 mm (KYB 341254, rear) long fully extended, eye to stud shoulder, and each is taken to top out at Mazda's droop (93 / 96 mm).
+     The OEM Showa shocks have 119 mm (front) and 131 mm (rear) of stroke; Mazda's wheel strokes use 119.9 and 127.6 mm of that in
+     the model, which is an independent check on the two motion ratios. Front tops 880 or 981 mm apart (owner's estimates) were not
+     used: with the measured lower mount they give motion ratios of 0.753 and 0.776 and need 132 and 136 mm of shock travel.
    OWNER'S ESTIMATE, not measured: the rack's inner joints are 50 mm ahead of the lower arm's front pivot and 650 mm apart, in line
      with the lower arm pivots (646 mm apart).
    ESTIMATES: unsprung mass, roll, pitch and yaw inertia, tire rate, anti-roll bar rates, front weight share, and every tire grip
@@ -49,7 +50,7 @@ function stockCar(){
           xto:0.1011,yto:0.6567,zto:0.215,xti:0.0242,yti:0.325,zti:0.2001,fMount:0.8103,ydm:0.3493,zdm:0.579,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:8.046475,cadj:0,caster:0,toe:0.15,kt:185000,
-          fMount:0.8735,ydm:0.4397,zdm:0.465,bump:0.080,droop:0.096},
+          fMount:0.8287,ydm:0.4397,zdm:0.5199,bump:0.080,droop:0.096},
        s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0],
