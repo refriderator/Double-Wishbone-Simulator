@@ -233,10 +233,11 @@
         <tr><td>Front pivot heights, lower / upper</td><td>171.8 / 360.6 mm</td><td class="u k">Fitted</td></tr>
         <tr><td>Front upright, ball joint to ball joint</td><td>217.2 mm: the measured heights, leaned to Mazda's 11°39′ kingpin</td><td class="u k">Measured + published</td></tr>
         <tr><td>Hub face position, kingpin offset, tie rod joints</td><td>See the Geometry tab</td><td class="u k">Fitted</td></tr>
-        <tr><td>Front shock, mount on the lower arm</td><td>273.5 mm from the arm's front inner pivot, on the line to the ball joint in top view: 0.810 of the arm's reach, 64 mm inboard of the ball joint</td><td class="u k">Measured</td></tr>
-        <tr><td>Front shock, top mounts</td><td>699 mm apart and 579 mm above ground (305 mm above the wheel center). Worked out from three things: the measured mount on the lower arm, the 0.686 motion ratio, and the replacement shock's length (KYB 341253: 530.1 mm fully extended, eye to stud shoulder, taken to top out at Mazda's 93 mm of droop). The shock is 469 mm long at ride height and leans 31.7°. My own estimates of 880 and 981 mm apart were not used: with the measured lower mount they give motion ratios of 0.753 and 0.776 and need 132 and 136 mm of shock travel.</td><td class="u k">Worked out</td></tr>
-        <tr><td>Rear shock, mounts</td><td>Tops 879 mm apart (as before, not measured) and 520 mm above ground; mount on the lower arm 0.829 of the arm from the inner pivot. Worked out from the 0.721 motion ratio and the replacement shock's length (KYB 341254: 453.9 mm fully extended, taken to top out at Mazda's 96 mm of droop). The shock is 384 mm long at ride height. Before, the model's rear shock was 42 mm too short.</td><td class="u k">Worked out</td></tr>
-        <tr><td>Shock stroke, OEM Showa</td><td>Front: body 342 mm, stroke 119 mm, 463 mm at full length. Rear: body 246 mm, stroke 131 mm, 378 mm. Mazda's wheel strokes use 119.9 mm (front) and 127.6 mm (rear) of shock travel in the model, so the strokes agree with both motion ratios.</td><td class="u k">Check</td></tr>
+        <tr><td>Shock towers, center to center</td><td>Front 981 mm, rear 984 mm (underbody projected dimensions)</td><td class="u k">Published, body manual</td></tr>
+        <tr><td>Shock top mount height</td><td>Front 640 mm above ground (366 mm above the wheel center), rear 537 mm. From the replacement shocks' lengths (KYB 341253: 530.1 mm fully extended; KYB 341254: 453.9 mm; eye to stud shoulder), each taken to top out at Mazda's droop of 93 / 96 mm. The body manual puts the front tower top 537 mm above its datum line, which then sits 103 mm above the ground.</td><td class="u k">Parts catalog</td></tr>
+        <tr><td>Rear shock, mount on the lower arm</td><td>0.790 of the arm from the inner pivot (310.9 of 393.7 mm), from a CAD model of the NA rear suspension whose arm lengths match the drawings to 0.1 mm. With it the rear motion ratio comes out 0.732 with no fitting (measured: 0.721).</td><td class="u k">CAD model</td></tr>
+        <tr><td>Front shock, mount on the lower arm</td><td>0.707 of the arm from the inner pivot (238 mm from the pivot line), fitted to the 0.686 motion ratio. Two direct measurements disagree with it and with each other: 273.5 mm from a drawing of the NB arm (that would give 0.776), and 222 mm, 30 mm above the arm line, in the CAD of the NA arm (0.650).</td><td class="u k">Fitted</td></tr>
+        <tr><td>Shock stroke, OEM Showa</td><td>Front: body 342 mm, stroke 119 mm, 463 mm at full length. Rear: body 246 mm, stroke 131 mm, 378 mm. Mazda's wheel strokes use 119.9 mm (front) and 129.8 mm (rear) of shock travel in the model, so the strokes agree with both motion ratios.</td><td class="u k">Check</td></tr>
         <tr><td>Rear upright, pivot height, hub face</td><td>Upright 240 mm between the arm mounts, lower pivot 186.4 mm above ground, hub face 137.9 mm from the kingpin axis, fitted to roll center 120 mm, track 1440 mm and motion ratio 0.721. A rough 230 mm estimate of the upright could not give that roll center with enough droop reach.</td><td class="u k">Fitted</td></tr>
         <tr><td>Front tie rod, outer joint</td><td>105 mm ahead of the kingpin axis and 4 mm outboard of it, fitted to the published full lock with the rack where it is below. A rough 135 mm measurement gave 27° / 25° of lock, so it was not used.</td><td class="u k">Fitted</td></tr>
         <tr><td>Steering rack, inner joints</td><td>50 mm ahead of the lower arm's front pivot and 650 mm apart, in line with the lower arm pivots (646 mm apart). By eye, not measured. Tie rods 340.8 mm.</td><td class="u k">Owner's estimate</td></tr>
@@ -293,7 +294,7 @@
       <li><div><b><i>1</i>Set up the car</b><span>Starter setups: <em>Stock</em> · <em>Coen's</em><br>Input car geometries<br><em>Export</em> or <em>Import</em> setups</span></div>
         <img src="intro-1.jpg?v=c79f25ca" width="640" height="480" alt="The Pause, Settle and Drive buttons, the Stock, Coen's and Session buttons, and the tabs"></li>
       <li><div><b><i>2</i>Steer and load it</b><span>Steering wheel slider · Forces sliders</span></div>
-        <img src="intro-2.jpg?v=e011fd9c" width="640" height="480" alt="The 3D view with the front wheels turned and the body leaning"></li>
+        <img src="intro-2.jpg?v=ed0dcb9e" width="640" height="480" alt="The 3D view with the front wheels turned and the body leaning"></li>
       <li><div><b><i>3</i>Test turn-in</b><span><em>Drive</em>: On<br>Assess turn-in reaction and grip limits of moving car</span></div>
         <img src="intro-3.jpg?v=7f1d9523" width="640" height="480" alt="The Drive button lit, and the Forces tab with the steady speed, steering wheel and Step steer controls"></li>
     </ol>
@@ -304,7 +305,7 @@
 <script src="three.min.js"></script>
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=3635bb84"></script>
-<script src="core.js?v=db2c8320"></script>
+<script src="core.js?v=afff9266"></script>
 <script src="ui.js?v=b33cecb8"></script>
 </body>
 </html>

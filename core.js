@@ -16,16 +16,18 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
      192.1 mm apart in height), rear arms (lower 393.7 mm, upper 212.7 mm).
    MEASURED by others: spring motion ratios 0.686 / 0.721; static stability factor 1.59 (NHTSA), CG 449 mm for the whole car.
    FITTED so the model reproduces the published numbers: front inner pivot positions, all pivot heights, rear upright (240 mm),
-     spindle and hub-face positions, tie rod outer joint (full lock 38° / 33°), rack height (least bump steer), where the front shock tops are
-     across the car (698.6 mm apart, from the 0.686 motion ratio with the measured mount on the lower arm), and the rear shock's mount
-     on the lower arm (0.829 of the arm, from the 0.721 motion ratio with the tops 879.4 mm apart).
-   MEASURED on the lower arm: the front shock bolts on 273.5 mm from the arm's front inner pivot, on the line to the ball joint in top
-     view (0.8103 of the arm's reach).
-   FROM THE SHOCKS: top mount heights 579.0 mm front and 519.9 mm rear. The replacement shocks are 530.1 mm (KYB 341253, front) and
-     453.9 mm (KYB 341254, rear) long fully extended, eye to stud shoulder, and each is taken to top out at Mazda's droop (93 / 96 mm).
-     The OEM Showa shocks have 119 mm (front) and 131 mm (rear) of stroke; Mazda's wheel strokes use 119.9 and 127.6 mm of that in
-     the model, which is an independent check on the two motion ratios. Front tops 880 or 981 mm apart (owner's estimates) were not
-     used: with the measured lower mount they give motion ratios of 0.753 and 0.776 and need 132 and 136 mm of shock travel.
+     spindle and hub-face positions, tie rod outer joint (full lock 38° / 33°), rack height (least bump steer), and the front shock's
+     mount on the lower arm (0.707 of the arm, 238 mm from the pivot line, from the 0.686 motion ratio).
+   SHOCK TOWERS, from Mazda's body manual (underbody projected dimensions): front tower centers 981 mm apart, rear 984 mm.
+   SHOCKS: top mount heights 640.3 mm front and 536.8 mm rear, from the replacement shocks' lengths: 530.1 mm (KYB 341253, front) and
+     453.9 mm (KYB 341254, rear) fully extended, eye to stud shoulder, each taken to top out at Mazda's droop (93 / 96 mm).
+     The OEM Showa shocks have 119 mm (front) and 131 mm (rear) of stroke; Mazda's wheel strokes use 119.9 and 129.8 mm of that in
+     the model, which checks both motion ratios independently.
+   FROM A CAD MODEL of the NA suspension (third party, part numbers NA01-...): the rear shock bolts to the lower arm 0.7897 of the
+     way out (310.9 of 393.7 mm). With that, the tower spacing and the shock length, the rear motion ratio comes out 0.732 without
+     any fitting (measured: 0.721). The same CAD has the NA front shock bolt 222 mm from the pivot line and 30 mm above the arm
+     line; a drawing measurement of 273.5 mm for the NB arm was not used (it gives a motion ratio of 0.776 and needs 136 mm of
+     travel from a 119 mm shock).
    OWNER'S ESTIMATE, not measured: the rack's inner joints are 50 mm ahead of the lower arm's front pivot and 650 mm apart, in line
      with the lower arm pivots (646 mm apart).
    ESTIMATES: unsprung mass, roll, pitch and yaw inertia, tire rate, anti-roll bar rates, front weight share, and every tire grip
@@ -47,10 +49,10 @@ function stockCar(){
     steer:{c:0.0465,rmax:0.0605,speed:60/3.6,link:0,cut:0,cutL:0.020},
     ax:[
       {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:11.712479,cadj:0,caster:5.6667,toe:0.15,kt:185000,
-          xto:0.1011,yto:0.6567,zto:0.215,xti:0.0242,yti:0.325,zti:0.2001,fMount:0.8103,ydm:0.3493,zdm:0.579,bump:0.082,droop:0.093},
+          xto:0.1011,yto:0.6567,zto:0.215,xti:0.0242,yti:0.325,zti:0.2001,fMount:0.707,ydm:0.4905,zdm:0.6403,bump:0.082,droop:0.093},
        s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:8.046475,cadj:0,caster:0,toe:0.15,kt:185000,
-          fMount:0.8287,ydm:0.4397,zdm:0.5199,bump:0.080,droop:0.096},
+          fMount:0.7897,ydm:0.492,zdm:0.5368,bump:0.080,droop:0.096},
        s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0],
