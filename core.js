@@ -43,18 +43,18 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
    tires (loaded radius 267.5 mm and 234 N/mm from the size), Fortune Auto 510 coilovers with Swift 8 / 6 kgf/mm springs, ride height
    -26 mm front and -38 mm rear measured at the body (so it includes the 6.5 mm smaller tire radius), caster 3°, toe -0.5° front and
    0° rear at ride height, rear camber -1.5° on its adjuster.
-   Front lower arm: an extension moves the ball joint out; Coen's estimate is 10 to 15 mm, 12.5 mm is used. The shock and the
-   anti-roll bar stay where they were on the arm, so the shock mount is 0.6817 of the longer arm and the bar acts 7 % less at the wheel.
-   Front upper arm: 247.5 mm (2.5 mm shorter than stock) with the camber adjuster at 0, which reads -4.26° at ride height: Coen's
-   choice of -4.25°. The arm is worked out, not measured. With stock-length arms the same car reads -3.63°, and zero camber on the
-   inside wheel at full lock would take -5.5° (242.5 mm); at -4.26° that wheel is at +1.0°. Each 1 mm more extension wants the
-   arm 1 mm longer.
+   Front lower arm: an extension moves the ball joint out; Coen's estimate is about 5 mm. The shock and the anti-roll bar stay where
+   they were on the arm, so the shock mount is 0.6967 of the longer arm and the bar acts 3 % less at the wheel.
+   Front camber: -4.2° at ride height (Coen's choice), with the camber adjuster at 0. Lowered, with the extension, stock-length upper
+   arms and the eccentrics centered, the car reads -1.76°; the upper arm is cut 9.7 mm (240.3 mm) for the rest. The cut is worked
+   out, not measured. How the camber is split between the eccentrics and the cut changes nothing that matters (same grip, same camber
+   at full lock, because camber + kingpin angle is fixed by the knuckle), so the eccentrics are left centered. 1 mm of cut is 0.25°.
    Tie rod: its outer joint is carried with the knuckle (carryTieRod), so the knuckle is the stock part; until version 52 the joint
-   stayed where stock has it in the car, 19 mm too high on this car's knuckle, and the rack was 6.8 mm above stock for no known reason.
+   stayed where stock has it in the car, about 20 mm too high on this car's knuckle, and the rack was 6.8 mm above stock for no known reason.
    Dampers: not measured. Low-speed slopes set for 0.45 (bump) and 0.70 (rebound) of critical at the wheel, knee at 75 mm/s of shaft
    speed, 30 % of the slope above it, as a typical single-adjuster digressive monotube; Fortune Auto ships a dyno sheet with each set.
    Travel: bump stops where the stock dampers have them (62.5 / 48.5 mm above ride height); droop ends where an unpreloaded spring
-   goes loose (69.5 / 69 mm below ride height). The coilovers' real stroke is not known.
+   goes loose (67 / 69 mm below ride height). The coilovers' real stroke is not known.
    The wheel is fixed on the knuckle (version 41): camber = knuckle angle (inc) - kingpin inclination + adjuster (cadj, +1 to -3°).
    look says which body and rims the 3D view draws (0: Roadster RS, 1: Coen's). It has no effect on the numbers. */
 function stockCar(){
@@ -77,10 +77,10 @@ function stockCar(){
 const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
 function coensCar(){ const P=stockCar(), S=stockCar().ax[0].g, f=P.ax[0].g, r=P.ax[1].g;
        for(const g of [f,r]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.195,ar:0.45,pk:240000,R:0.2675,kt:234000},TIRE_PRESETS.sport);
-       Object.assign(f,{Ll:0.3491,fMount:0.6817,Lu:0.2475,cadj:0,caster:3,toe:-0.3359,sp:0.030,bump:0.0885,droop:0.0435});   // lower arm 12.5 mm longer at the ball joint; the shock mount stays 238 mm from the pivots
+       Object.assign(f,{Ll:0.3416,fMount:0.6967,Lu:0.2403,cadj:0,caster:3,toe:-0.3344,sp:0.030,bump:0.0885,droop:0.041});   // lower arm 5 mm longer at the ball joint; the shock mount stays 238 mm from the pivots
        Object.assign(r,{cadj:0.388,toe:0,sp:0.012,bump:0.0865,droop:0.031});
        carryTieRod(f,S);                                           // same knuckle as stock, so its tie rod end goes where these arms, caster, toe and tires put it; the rack stays where stock has it
-       Object.assign(P.ax[0].s,{k:78450,arb:13640,cbl:5940,cbh:1780,vkb:0.075,crl:9240,crh:2770,vkr:0.075});
+       Object.assign(P.ax[0].s,{k:78450,arb:14240,cbl:5820,cbh:1750,vkb:0.075,crl:9060,crh:2720,vkr:0.075});
        Object.assign(P.ax[1].s,{k:58840,cbl:4400,cbh:1320,vkb:0.075,crl:6840,crh:2050,vkr:0.075});
        P.dh=[-0.026,-0.026,-0.038,-0.038]; P.look=1; return P; }
 const PRESETS={stock:stockCar,coen:coensCar};
