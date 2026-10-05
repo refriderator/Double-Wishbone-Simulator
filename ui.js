@@ -28,7 +28,7 @@ let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayM
    coarsest spacing. The 3D view keeps the car still and moves the floor the opposite way. d is the distance covered in the last drawn frame.
    roll is how far the wheels have rolled. It gains at most ROLL_MAX a frame, so at speed the spokes turn steadily forward instead of seeming
    to stand still or run backwards. */
-const GND={psi:0,x:0,y:0,d:0,roll:0}, GWRAP=4, ROLL_MAX=0.08;
+const GND={psi:0,x:0,y:0,d:0,roll:0,wx:0,wy:0,clear:false}, GWRAP=4, ROLL_MAX=0.08;      // x, y wrap every GWRAP m for the endless grid; wx, wy do not, for the wheel tracks
 let bodyOn=false; try{bodyOn=localStorage.getItem("dws.body")==="car";}catch(e){}      // 3D view: the plain chassis box (the start-up view), or the car body
 /* Colors and fonts come from the OL! tokens in style.css. The palette is closed (black, grays, midnight, ice),
    so parts and data series differ by lightness, line weight and dash, never by hue. */
@@ -164,7 +164,7 @@ $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"
 {const sp=e=>(e.code==="Space"||e.key===" ")&&!e.ctrlKey&&!e.metaKey&&!e.altKey;
  document.addEventListener("keydown",e=>{if(!sp(e)) return; e.preventDefault(); if(!e.repeat) $("play").click();},true);
  document.addEventListener("keyup",e=>{if(sp(e)) e.preventDefault();},true);}
-function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear(); GND.psi=GND.x=GND.y=0;}
+function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear(); GND.psi=GND.x=GND.y=GND.wx=GND.wy=0; GND.clear=true;}
 $("reset").onclick=()=>resettle(4);
 function loadPreset(name,q0){
   const label=CAR[name][0];
@@ -364,6 +364,45 @@ function init3D(){
     car:std({transparent:true,opacity:0.09,depthWrite:false,flatShading:true,side:THREE.DoubleSide,metalness:0,roughness:0.8})};
   const LM={edge:new THREE.LineBasicMaterial({transparent:true,opacity:0.9}),coil:new THREE.LineBasicMaterial({}),axis:new THREE.LineDashedMaterial({dashSize:0.06,gapSize:0.04}),car:new THREE.LineBasicMaterial({transparent:true,opacity:0.55})};
   let grid=null, gridLv=[], chassis=null, chassisEdge=null, chKey="";
+  /* Wheel tracks: a faint ribbon on the floor behind each tire, as wide as the tire, laid down while Drive moves the car over the ground.
+     Points are kept in ground coordinates (newest first) and the group is turned and shifted like the floor grid, so a track stays where
+     it was laid. It fades over its length; where two tracks overlap their light adds up. */
+  const TRK={len:14,step:0.08,max:400,g:new THREE.Group(),w:[],mat:new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,side:THREE.DoubleSide})};
+  for(let i=0;i<4;i++){
+    const geo=new THREE.BufferGeometry(), idx=[]; for(let k=0;k<TRK.max;k++) idx.push(2*k,2*k+1,2*k+2,2*k+1,2*k+3,2*k+2);
+    geo.setAttribute("position",new THREE.BufferAttribute(new Float32Array((TRK.max+1)*6),3)); geo.setAttribute("color",new THREE.BufferAttribute(new Float32Array((TRK.max+1)*6),3));
+    geo.setIndex(idx); geo.setDrawRange(0,0);
+    const mesh=new THREE.Mesh(geo,TRK.mat); mesh.frustumCulled=false; TRK.g.add(mesh); TRK.w.push({pts:[],geo});
+  }
+  TRK.g.position.y=0.003; scene.add(TRK.g);
+  function tracks(){
+    if(GND.clear){for(const w of TRK.w) w.pts.length=0; GND.clear=false;}
+    if(Math.abs(GND.wx)>200||Math.abs(GND.wy)>200){                 // keep the numbers small: move the origin of the ground coordinates to the car
+      for(const w of TRK.w) for(const q of w.pts){q[0]-=GND.wx; q[2]-=GND.wx; q[1]-=GND.wy; q[3]-=GND.wy;}
+      GND.wx=0; GND.wy=0;
+    }
+    const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);
+    for(let i=0;i<4;i++){
+      const w=TRK.w[i], pts=w.pts, side=i%2===0?-1:1, g=P.ax[i<2?0:1].g, p=FR.p[i];
+      const f=model.xs[i]+p.CP[0], r=side*p.CP[1];                // contact patch in the car's frame: forward, to the right
+      let af=side*p.av[0], ar=p.av[1]; const al=g.tw/2/(Math.hypot(af,ar)||1); af*=al; ar*=al;      // half the tread width along the axle
+      const G=(a,b)=>[GND.wx+a*cs-b*sn,GND.wy+a*sn+b*cs], A=G(f-af,r-ar), B=G(f+af,r+ar), head=[A[0],A[1],B[0],B[1]];
+      const mid=q=>[(q[0]+q[2])/2,(q[1]+q[3])/2], hm=mid(head);
+      if(!pts.length) pts.unshift(head);
+      else {const m0=mid(pts[0]); if(Math.hypot(hm[0]-m0[0],hm[1]-m0[1])>TRK.step) pts.unshift(head);}
+      const pos=w.geo.attributes.position.array, col=w.geo.attributes.color.array; let d=0, last=hm, n=0;
+      const put=(q,v)=>{const o=n*6; pos[o]=q[0]; pos[o+1]=0; pos[o+2]=q[1]; pos[o+3]=q[2]; pos[o+4]=0; pos[o+5]=q[3]; col[o]=col[o+1]=col[o+2]=col[o+3]=col[o+4]=col[o+5]=v; n++;};
+      put(head,1);
+      for(let k=0;k<pts.length&&n<=TRK.max;k++){
+        const m=mid(pts[k]); d+=Math.hypot(m[0]-last[0],m[1]-last[1]); last=m;
+        if(d>=TRK.len){pts.length=k; break;}
+        const u=1-d/TRK.len; put(pts[k],u*u);
+      }
+      if(pts.length>TRK.max) pts.length=TRK.max;
+      w.geo.setDrawRange(0,Math.max(0,n-1)*6); w.geo.attributes.position.needsUpdate=true; w.geo.attributes.color.needsUpdate=true;
+    }
+    TRK.g.rotation.y=GND.psi; TRK.g.position.set(-GND.wx*cs-GND.wy*sn,0.003,GND.wx*sn-GND.wy*cs);
+  }
   const pivot=new THREE.Group(), bodyG=new THREE.Group(); pivot.add(bodyG); scene.add(pivot);
   const UP=new THREE.Vector3(0,1,0), ZA=new THREE.Vector3(0,0,1), tmp=new THREE.Vector3(), nv=new THREE.Vector3();
   const rod=(mat,r)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,12),mat); bodyG.add(m); return m;};
@@ -459,6 +498,7 @@ function init3D(){
     M.tire.color=c("gunmetal"); M.rim.color=c("edge"); M.body.color=c("gunmetal"); M.cg.color=c("vinyl"); M.bumpm.color=c("edge");
     LM.edge.color=c("edge"); LM.coil.color=c("vinyl"); LM.axis.color=c("dim"); M.car.color=c("armU"); LM.car.color=c("armU");
     corners.forEach(k=>k.arrow.setColor(c("vinyl")));
+    TRK.mat.color=c("ice").multiplyScalar(0.2);
     /* Floor: three line spacings (0.25, 1 and 4 m). A spacing fades out when the floor moves too far per frame for its lines to read as motion. */
     if(grid){scene.remove(grid); gridLv.forEach(l=>{l.seg.geometry.dispose(); l.seg.material.dispose();});}
     grid=new THREE.Group(); gridLv=[];
@@ -522,6 +562,7 @@ function init3D(){
     {const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);            // the floor seen from the car: the world turned back by the heading and shifted back by the position
      grid.rotation.y=GND.psi; grid.position.set(-GND.x*cs-GND.y*sn,0,GND.x*sn-GND.y*cs);
      for(const l of gridLv){const a=Math.max(0,Math.min(1,(0.45-GND.d/l.sp)/0.25)); l.seg.material.opacity=a; l.seg.visible=a>0.01;}}
+    tracks();
     controls.update(); renderer.render(scene,camera);
   }
   return {update,resize,theme};
@@ -874,7 +915,8 @@ function frame(now){
       step(model,S,inp,DT,0);
       if(inp.U>0){                                               // the car's path over the ground, for the moving floor
         const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);
-        GND.x+=(inp.U*cs-S.vy*sn)*DT; GND.y+=(inp.U*sn+S.vy*cs)*DT; GND.psi+=S.r*DT; moved+=Math.hypot(inp.U,S.vy)*DT;
+        const dx=(inp.U*cs-S.vy*sn)*DT, dy=(inp.U*sn+S.vy*cs)*DT;
+        GND.x+=dx; GND.y+=dy; GND.wx+=dx; GND.wy+=dy; GND.psi+=S.r*DT; moved+=Math.hypot(inp.U,S.vy)*DT;
       }
       if(++hAcc>=40){hAcc=0; histPush();}
     }
