@@ -30,7 +30,12 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
      travel from a 119 mm shock).
    OWNER'S ESTIMATE, not measured: the rack's inner joints are 50 mm ahead of the lower arm's front pivot and 650 mm apart, in line
      with the lower arm pivots (646 mm apart).
-   ESTIMATES: unsprung mass, roll, pitch and yaw inertia, tire rate, anti-roll bar rates, front weight share, and every tire grip
+   ANTI-ROLL BARS, worked out from Fat Cat Motorsports' suspension spreadsheet (measured arm and bar lengths, bar motion ratios):
+     22 mm front bar, 215.9 mm arms (NB), 822.3 mm long, motion ratio 0.548; 11 mm rear bar, 122.2 mm arms, 812.8 mm long, 0.586.
+     In roll that is 29.3 N/mm at each front wheel and 6.6 N/mm at each rear wheel; the arb field is half of that (14.67 / 3.31),
+     because the model applies arb to the difference between left and right wheel travel.
+   ESTIMATES: unsprung mass, roll, pitch and yaw inertia, tire rate, front weight share, the height of the tie rod's outer joint
+     (18 mm above the lower ball joint), and every tire grip
      number (typical values for the kind of tire, not measured).
    The Miata has no rear toe link. Its rear lower arm has two outer pivots; the model draws the arm as two legs (front leg to the
    ball joint, rear leg to a second outer point ee behind it) and the rear leg holds the toe, so no rear tie-rod numbers are used.
@@ -49,11 +54,11 @@ function stockCar(){
     steer:{c:0.0465,rmax:0.0605,speed:60/3.6,link:0,cut:0,cutL:0.020},
     ax:[
       {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:11.712479,cadj:0,caster:5.6667,toe:0.15,kt:185000,
-          xto:0.1011,yto:0.6567,zto:0.215,xti:0.0242,yti:0.325,zti:0.2001,fMount:0.707,ydm:0.4905,zdm:0.6403,bump:0.082,droop:0.093},
-       s:{k:28440,arb:8000,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
+          xto:0.1027,yto:0.6595,zto:0.2,xti:0.0242,yti:0.325,zti:0.1873,fMount:0.707,ydm:0.4905,zdm:0.6403,bump:0.082,droop:0.093},
+       s:{k:28440,arb:14670,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:8.046475,cadj:0,caster:0,toe:0.15,kt:185000,
           fMount:0.7897,ydm:0.492,zdm:0.5368,bump:0.080,droop:0.096},
-       s:{k:20590,arb:1400,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
+       s:{k:20590,arb:3310,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0],
     look:0
@@ -63,7 +68,7 @@ function stockCar(){
 const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
 function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
        for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000},TIRE_PRESETS.sport);
-       Object.assign(P.ax[0].g,{Lu:0.2395,cadj:-1.7,caster:3,toe:-0.8782,zti:0.2069,sp:0.030,bump:0.096,droop:0.079});
+       Object.assign(P.ax[0].g,{Lu:0.2395,cadj:-1.7,caster:3,toe:-0.8703,zti:0.1941,sp:0.030,bump:0.096,droop:0.079});
        Object.assign(P.ax[1].g,{cadj:0.05,toe:0,sp:0.012,bump:0.094,droop:0.082});
        P.ax[0].s.k=78450; P.ax[1].s.k=58840;
        for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
