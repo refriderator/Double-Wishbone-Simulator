@@ -45,8 +45,10 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
    0° rear at ride height, rear camber -1.5° on its adjuster.
    Front lower arm: an extension moves the ball joint out; Coen's estimate is 10 to 15 mm, 12.5 mm is used. The shock and the
    anti-roll bar stay where they were on the arm, so the shock mount is 0.6817 of the longer arm and the bar acts 7 % less at the wheel.
-   Front upper arm: 242.5 mm (7.5 mm shorter than stock) with the camber adjuster at 0, worked out, not measured: it brings the inside
-   front wheel to zero camber at full lock. Static camber is then -5.53°. Each 1 mm more extension wants the arm 1 mm longer.
+   Front upper arm: 247.5 mm (2.5 mm shorter than stock) with the camber adjuster at 0, which reads -4.26° at ride height: Coen's
+   choice of -4.25°. The arm is worked out, not measured. With stock-length arms the same car reads -3.63°, and zero camber on the
+   inside wheel at full lock would take -5.5° (242.5 mm); at -4.26° that wheel is at +1.0°. Each 1 mm more extension wants the
+   arm 1 mm longer.
    Tie rod: its outer joint is carried with the knuckle (carryTieRod), so the knuckle is the stock part; until version 52 the joint
    stayed where stock has it in the car, 19 mm too high on this car's knuckle, and the rack was 6.8 mm above stock for no known reason.
    Dampers: not measured. Low-speed slopes set for 0.45 (bump) and 0.70 (rebound) of critical at the wheel, knee at 75 mm/s of shaft
@@ -75,7 +77,7 @@ function stockCar(){
 const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
 function coensCar(){ const P=stockCar(), S=stockCar().ax[0].g, f=P.ax[0].g, r=P.ax[1].g;
        for(const g of [f,r]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.195,ar:0.45,pk:240000,R:0.2675,kt:234000},TIRE_PRESETS.sport);
-       Object.assign(f,{Ll:0.3491,fMount:0.6817,Lu:0.2425,cadj:0,caster:3,toe:-0.3379,sp:0.030,bump:0.0885,droop:0.0435});   // lower arm 12.5 mm longer at the ball joint; the shock mount stays 238 mm from the pivots
+       Object.assign(f,{Ll:0.3491,fMount:0.6817,Lu:0.2475,cadj:0,caster:3,toe:-0.3359,sp:0.030,bump:0.0885,droop:0.0435});   // lower arm 12.5 mm longer at the ball joint; the shock mount stays 238 mm from the pivots
        Object.assign(r,{cadj:0.388,toe:0,sp:0.012,bump:0.0865,droop:0.031});
        carryTieRod(f,S);                                           // same knuckle as stock, so its tie rod end goes where these arms, caster, toe and tires put it; the rack stays where stock has it
        Object.assign(P.ax[0].s,{k:78450,arb:13640,cbl:5940,cbh:1780,vkb:0.075,crl:9240,crh:2770,vkr:0.075});
