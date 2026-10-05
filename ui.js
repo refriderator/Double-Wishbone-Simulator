@@ -125,8 +125,9 @@ function syncLink(){
 $("driveOn").onclick=()=>{P.steer.link=P.steer.link?0:1; syncLink(); setStatus(P.steer.link?"Drive on: the tires make the lateral g. Speed and steering are on the Forces tab.":"Drive off.",false);};
 /* A different loaded radius raises or lowers the car on that axle and leaves the suspension where it was, as a tire change does:
    the height targets move by the change. The travel limits move the other way, because the bump and droop stops stay with the dampers. */
-function tireMoved(ax,dR){const g=P.ax[ax].g, lim=v=>Math.min(0.2,Math.max(0.01,v)); P.dh[ax*2]+=dR; P.dh[ax*2+1]+=dR; g.bump=lim(g.bump-dR); g.droop=lim(g.droop+dR);}
-const tireMsg=(ax,dR)=>"Loaded radius changed by "+sgnTxt(dR*1000,1)+" mm: the "+(ax?"rear":"front")+" of the car sits "+Math.abs(dR*1000).toFixed(1)+" mm "+(dR<0?"lower":"higher")+". Travel limits moved with it.";
+function tireMoved(ax,dR){const g=P.ax[ax].g, lim=v=>Math.min(0.2,Math.max(0.01,v)); P.dh[ax*2]+=dR; P.dh[ax*2+1]+=dR; g.bump=lim(g.bump-dR); g.droop=lim(g.droop+dR);
+  if(ax===0&&Math.abs(dR)>1e-9) carryTieRod(g,Object.assign({},g,{R:g.R-dR}));}      // the tie rod end is part of the knuckle, so it stays with it
+const tireMsg=(ax,dR)=>"Loaded radius changed by "+sgnTxt(dR*1000,1)+" mm: the "+(ax?"rear":"front")+" of the car sits "+Math.abs(dR*1000).toFixed(1)+" mm "+(dR<0?"lower":"higher")+". Travel limits"+(ax?"":" and the tie rod's outer joint")+" moved with it.";
 function applyEdit(fn,msg,mode){
   const backup=JSON.stringify(P);
   try{fn(); model=makeModel(P); if(!mode) save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}

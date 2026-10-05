@@ -192,17 +192,18 @@
       <p class="hint">Two Mazda MX-5 NB 1.8 (NB8C) setups: Stock button loads the car as Mazda built it, Coen's button loads my setup, and the Session button loads whatever you last edited. Each number is marked by where it comes from. Fitted and estimated values are not Mazda data.</p>
       <div class="tw"><table class="wrap src">
         <tr><th>Coen's car, on top of stock</th><th>Value</th><th>Basis</th></tr>
-        <tr><td>Springs, front / rear</td><td>8 / 6 kgf/mm = 78.5 / 58.8 N/mm</td><td class="u k">Set</td></tr>
-        <tr><td>Dampers</td><td>Stock slopes × 1.66 front, × 1.69 rear (square root of the spring ratio)</td><td class="u k">Guess</td></tr>
-        <tr><td>Wheels and tires</td><td>15×7 ET35, 185/45R15 at 240 kPa, loaded radius 260 mm, 235 N/mm; wheel spacers 30 mm front and 12 mm rear (effective offset ET5 front, ET23 rear)</td><td class="u k">Set</td></tr>
-        <tr><td>Camber, front</td><td>−4.64° at ride height: the adjuster gives −2° on uncut arms, and the upper arm is 10.5 mm shorter (239.5 mm). That cut brings the inside front wheel to about zero camber at full lock (+0.15°); my real cut is not measured.</td><td class="u k">Set + worked out</td></tr>
-        <tr><td>Camber, rear</td><td>−1.5° at ride height, arms uncut</td><td class="u k">Set</td></tr>
+        <tr><td>Springs, front / rear</td><td>Swift 8 / 6 kgf/mm = 78.5 / 58.8 N/mm</td><td class="u k">Set</td></tr>
+        <tr><td>Dampers</td><td>Fortune Auto 510 coilovers; their curves are not measured. Low-speed slopes give 0.45 (bump) and 0.70 (rebound) of critical damping at the wheel, with a knee at 75 mm/s and 30 % of the slope above it: front 5.94 / 9.24 N·s/mm, rear 4.40 / 6.84 N·s/mm.</td><td class="u k">Estimate</td></tr>
+        <tr><td>Wheels and tires</td><td>15×7 ET35, 195/45R15 at 240 kPa, loaded radius 267.5 mm and 234 N/mm from the size; wheel spacers 30 mm front and 12 mm rear (effective offset ET5 front, ET23 rear)</td><td class="u k">Set</td></tr>
+        <tr><td>Front lower arm</td><td>349.1 mm: an extension moves the ball joint 12.5 mm out (my estimate is 10 to 15 mm). The shock and anti-roll bar mounts stay put, so the shock mount is 0.682 of the arm and the bar rate at the wheel is 13.6 N/mm.</td><td class="u k">Owner's estimate</td></tr>
+        <tr><td>Front upper arm and camber</td><td>242.5 mm (7.5 mm shorter than stock), camber adjuster at 0: −5.53° at ride height, kingpin 17.3°. That length brings the inside front wheel to zero camber at full lock. Each 1 mm more extension wants the arm 1 mm longer; the real arm is not measured.</td><td class="u k">Worked out</td></tr>
+        <tr><td>Camber, rear</td><td>−1.5° at ride height on the adjuster (+0.39°), arms uncut</td><td class="u k">Set</td></tr>
         <tr><td>Caster and toe</td><td>Caster 3°. Toe at ride height −0.5° per wheel front, 0° rear</td><td class="u k">Set</td></tr>
-        <tr><td>Ride height</td><td>−26 mm front, −38 mm rear from stock height, measured at the body, so it includes the 14 mm smaller tire radius (Heights tab, same zero as Stock)</td><td class="u k">Set</td></tr>
-        <tr><td>Travel limits, bump / droop</td><td>The stock dampers' stops: 96 / 79 mm front, 94 / 82 mm rear from design height (stock's 82 / 93 and 80 / 96, moved by the 14 mm smaller tire radius)</td><td class="u k">Set</td></tr>
-        <tr><td>Rack, inner joint height</td><td>194.1 mm, 6.8 mm above stock</td><td class="u k">Set</td></tr>
-        <tr><td>Track, front / rear</td><td>1514 / 1468 mm (the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
-        <tr><td>Roll center height, front / rear</td><td>25 / 92 mm</td><td class="u k">Follows</td></tr>
+        <tr><td>Ride height</td><td>−26 mm front, −38 mm rear from stock height, measured at the body, so it includes the 6.5 mm smaller tire radius (Heights tab, same zero as Stock)</td><td class="u k">Set</td></tr>
+        <tr><td>Travel limits, bump / droop</td><td>From ride height: 62.5 / 69.5 mm front, 48.5 / 69 mm rear. Bump stops where the stock dampers have them; droop ends where an unpreloaded spring goes loose. The coilovers' real stroke is not known.</td><td class="u k">Estimate</td></tr>
+        <tr><td>Rack and tie rod</td><td>Rack where stock has it (187.3 mm). The tie rod's outer joint is carried with the knuckle, so the steering arm is the stock part: the joint sits at 180.9 mm at design height. Least bump steer would want the rack 4.3 mm lower.</td><td class="u k">Follows</td></tr>
+        <tr><td>Track, front / rear</td><td>1540 / 1468 mm (the extension, the spacers and the camber widen it)</td><td class="u k">Follows</td></tr>
+        <tr><td>Roll center height, front / rear</td><td>15 / 89 mm</td><td class="u k">Follows</td></tr>
         <tr><th>Stock car, published by Mazda</th><th></th><th></th></tr>
         <tr><td>Wheelbase</td><td>2265 mm</td><td class="u k">Published</td></tr>
         <tr><td>Track, front / rear</td><td>1415 / 1440 mm</td><td class="u k">Published</td></tr>
@@ -306,7 +307,7 @@
 <script src="three.min.js"></script>
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=3635bb84"></script>
-<script src="core.js?v=b3101457"></script>
-<script src="ui.js?v=b33cecb8"></script>
+<script src="core.js?v=4d50e55e"></script>
+<script src="ui.js?v=01e32efd"></script>
 </body>
 </html>

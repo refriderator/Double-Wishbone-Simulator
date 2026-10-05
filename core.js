@@ -39,13 +39,20 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
      number (typical values for the kind of tire, not measured).
    The Miata has no rear toe link. Its rear lower arm has two outer pivots; the model draws the arm as two legs (front leg to the
    ball joint, rear leg to a second outer point ee behind it) and the rear leg holds the toe, so no rear tie-rod numbers are used.
-   COEN'S car, on top of stock: 8 / 6 kgf/mm springs with dampers scaled up by the square root of the spring ratio (a guess),
-   15x7 ET35 wheels with 30 / 12 mm spacers, 185/45R15 tires, ride height -26 mm front and -38 mm rear (measured at the body, so
-   it includes the 14 mm smaller tire radius), rack 6.8 mm higher, caster 3°, toe -0.5° front and 0° rear at ride height.
-   Camber: the adjusters give -2° front and -1.5° rear at ride height on uncut arms (Coen's alignment); the front upper arm is then
-   10.5 mm shorter (239.5 mm), which brings the front to -4.64°. 10.5 mm brings the inside front wheel to about zero camber
-   at full lock (+0.15°); Coen's real cut is not measured. Travel limits are the stock dampers' stops, which sit 14 mm
-   further from ride height on the smaller tire (96 / 79 mm front, 94 / 82 mm rear).
+   COEN'S car, on top of stock (same pivots, same knuckles, same rack position): 15x7 ET35 wheels with 30 / 12 mm spacers, 195/45R15
+   tires (loaded radius 267.5 mm and 234 N/mm from the size), Fortune Auto 510 coilovers with Swift 8 / 6 kgf/mm springs, ride height
+   -26 mm front and -38 mm rear measured at the body (so it includes the 6.5 mm smaller tire radius), caster 3°, toe -0.5° front and
+   0° rear at ride height, rear camber -1.5° on its adjuster.
+   Front lower arm: an extension moves the ball joint out; Coen's estimate is 10 to 15 mm, 12.5 mm is used. The shock and the
+   anti-roll bar stay where they were on the arm, so the shock mount is 0.6817 of the longer arm and the bar acts 7 % less at the wheel.
+   Front upper arm: 242.5 mm (7.5 mm shorter than stock) with the camber adjuster at 0, worked out, not measured: it brings the inside
+   front wheel to zero camber at full lock. Static camber is then -5.53°. Each 1 mm more extension wants the arm 1 mm longer.
+   Tie rod: its outer joint is carried with the knuckle (carryTieRod), so the knuckle is the stock part; until version 52 the joint
+   stayed where stock has it in the car, 19 mm too high on this car's knuckle, and the rack was 6.8 mm above stock for no known reason.
+   Dampers: not measured. Low-speed slopes set for 0.45 (bump) and 0.70 (rebound) of critical at the wheel, knee at 75 mm/s of shaft
+   speed, 30 % of the slope above it, as a typical single-adjuster digressive monotube; Fortune Auto ships a dyno sheet with each set.
+   Travel: bump stops where the stock dampers have them (62.5 / 48.5 mm above ride height); droop ends where an unpreloaded spring
+   goes loose (69.5 / 69 mm below ride height). The coilovers' real stroke is not known.
    The wheel is fixed on the knuckle (version 41): camber = knuckle angle (inc) - kingpin inclination + adjuster (cadj, +1 to -3°).
    look says which body and rims the 3D view draws (0: Roadster RS, 1: Coen's). It has no effect on the numbers. */
 function stockCar(){
@@ -66,12 +73,13 @@ function stockCar(){
 }
 /* Typical grip numbers for three kinds of tire. None of them is measured data. */
 const TIRE_PRESETS={street:{tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2},sport:{tmu:1.10,tls:6e-5,tca:0.26,tcg:0.015,tgo:2.5},semi:{tmu:1.30,tls:7e-5,tca:0.32,tcg:0.018,tgo:3}};
-function coensCar(){ const P=stockCar(), sf=Math.sqrt(8/2.9), sr=Math.sqrt(6/2.1);
-       for(const g of [P.ax[0].g,P.ax[1].g]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.185,ar:0.45,pk:240000,R:0.260,kt:235000},TIRE_PRESETS.sport);
-       Object.assign(P.ax[0].g,{Lu:0.2395,cadj:-1.7,caster:3,toe:-0.8703,zti:0.1941,sp:0.030,bump:0.096,droop:0.079});
-       Object.assign(P.ax[1].g,{cadj:0.05,toe:0,sp:0.012,bump:0.094,droop:0.082});
-       P.ax[0].s.k=78450; P.ax[1].s.k=58840;
-       for(const k of ["cbl","cbh","crl","crh"]){P.ax[0].s[k]=Math.round(P.ax[0].s[k]*sf); P.ax[1].s[k]=Math.round(P.ax[1].s[k]*sr);}
+function coensCar(){ const P=stockCar(), S=stockCar().ax[0].g, f=P.ax[0].g, r=P.ax[1].g;
+       for(const g of [f,r]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.195,ar:0.45,pk:240000,R:0.2675,kt:234000},TIRE_PRESETS.sport);
+       Object.assign(f,{Ll:0.3491,fMount:0.6817,Lu:0.2425,cadj:0,caster:3,toe:-0.3379,sp:0.030,bump:0.0885,droop:0.0435});   // lower arm 12.5 mm longer at the ball joint; the shock mount stays 238 mm from the pivots
+       Object.assign(r,{cadj:0.388,toe:0,sp:0.012,bump:0.0865,droop:0.031});
+       carryTieRod(f,S);                                           // same knuckle as stock, so its tie rod end goes where these arms, caster, toe and tires put it; the rack stays where stock has it
+       Object.assign(P.ax[0].s,{k:78450,arb:13640,cbl:5940,cbh:1780,vkb:0.075,crl:9240,crh:2770,vkr:0.075});
+       Object.assign(P.ax[1].s,{k:58840,cbl:4400,cbh:1320,vkb:0.075,crl:6840,crh:2050,vkr:0.075});
        P.dh=[-0.026,-0.026,-0.038,-0.038]; P.look=1; return P; }
 const PRESETS={stock:stockCar,coen:coensCar};
 function defaults(){return stockCar();}      // the car a new visitor starts with
@@ -317,6 +325,19 @@ function fromOldCamber(P,src){
     for(let it=0;it<4;it++){let D; try{D=design(g,a?"Rear":"Front");}catch(e){break;} g.cadj=o.cam0-(g.inc+D.beta0/D2R);}
     const lim=Math.max(-3,Math.min(1,g.cadj)); if(Math.abs(lim-g.cadj)>1e-6) cut.push(a?"rear":"front"); g.cadj=+lim.toFixed(4);}
   return cut;
+}
+
+/* The tie rod's outer joint is part of the knuckle, but its three fields say where it is in the car at design height. So when a car is
+   built from another one by changing arms, caster, toe or tire radius, the joint has to be carried along with the knuckle: this moves
+   it as a rigid part of the knuckle from where ref's design position has the knuckle to where g's has it (to 0.1 mm).
+   The knuckle is located by its lower ball joint, its kingpin axis and its spindle (the camber adjuster tilts the wheel, not the knuckle). */
+function carryTieRod(g,ref){
+  const fr=o=>{const D=design(o,"Front"), k=fv(o,D.a0), d0=-o.toe*D2R, c=o.inc*D2R+k.beta, L=[D.xl,k.ly,k.lz];
+    const sp=[-Math.sin(d0)*Math.cos(c),Math.cos(d0)*Math.cos(c),-Math.sin(c)], e1=vunit(vsub([D.xu,k.uy,k.uz],L)), e2=vunit(vsub(sp,vscale(e1,vdot(sp,e1))));
+    return {L,e:[e1,e2,vcross(e1,e2)]};};
+  const a=fr(ref), b=fr(g), q=vsub([ref.xto,ref.yto,ref.zto],a.L); let p=b.L;
+  for(let i=0;i<3;i++) p=vadd(p,vscale(b.e[i],vdot(q,a.e[i])));
+  g.xto=Math.round(p[0]*1e4)/1e4; g.yto=Math.round(p[1]*1e4)/1e4; g.zto=Math.round(p[2]*1e4)/1e4; return g;
 }
 
 /* Front geometry as built: with cut knuckles on, the steering arm is shorter by steer.cutL. */
