@@ -1,18 +1,32 @@
-/* ===== UI ===== */
+/* Page logic of the Double Wishbone Simulator.
+
+   Sections
+     1  Setup and state    storage, the setup on screen, colors, number formats
+     2  Forms              the fields of every tab, and what an edit does
+     3  Geometry tab       parts, drawings, solver
+     4  Controls           tabs, cars, run and pause, Drive, loads, steering, ride height
+     5  Setup sheet
+     6  3D view
+     7  Panels             rear view, curves, history, recording, telemetry
+     8  Setup files        export, import
+     9  Guide              vocabulary, quick start
+    10  Main loop and start */
+
+
+/* ===== 1. Setup and state ===== */
 const $=id=>document.getElementById(id);
-const KEY="dws.setup.nb5", SKEY="dws.session.nb5", OLDKEY="dws.setup.nb4", OLDSKEY="dws.session.nb4", CN=["FL","FR","RL","RR"];      // nb4: what versions up to 56 saved, in their own fields; it is read when nothing newer is there, and left alone
+/* localStorage keys. The nb4 keys hold setups in the front-view fields (core.js, section 11): read when nothing newer is there, never written. */
+const KEY="dws.setup.nb5", SKEY="dws.session.nb5", OLDKEY="dws.setup.nb4", OLDSKEY="dws.session.nb4", CN=["FL","FR","RL","RR"];
+/* src laid over def: wherever def has a number, src's is taken if it has a finite one. */
 function merge(def,src){
   if(Array.isArray(def)) return def.map((d,i)=>merge(d,src&&src[i]));
   if(def&&typeof def==="object"){const o={}; for(const k in def) o[k]=merge(def[k],src&&src[k]); return o;}
   return (typeof src==="number"&&Number.isFinite(src))?src:def;
 }
-/* What the 3D view draws for a setup's look (0: the stock car, 1: Coen's): a body shell and a rim, both from body-model.js. The shells' heights
-   are measured from the hub line of the stock car at stock height, which is HUB0 above the ground in body coordinates. Both shells sit at the
-   same height on the chassis: fender lip 13.3 in (front) and 13.8 in (rear) above the wheel center on the stock car at stock height. */
+/* A setup's look picks the body and rim the 3D view draws (body-model.js). HUB0: stock wheel-center height, the level the bodies are placed from. */
 const LOOKS=[{body:"rs",rim:"rs"},{body:"gv",rim:"gl"}], HUB0=stockCar().ax[0].g.R;
-/* A stored or imported setup laid over the defaults. One from version 56 or earlier is in that version's fields: it is laid over that
-   version's defaults and then converted (core: fromLegacy), which does not change the car. One saved before version 41 also has a free
-   camber field, which fromOldCamberL turns into the adjuster first. */
+/* A stored or imported setup laid over the defaults. One in the front-view fields is laid over the stock car in those fields, then
+   converted. camNote, oldNote: what to tell the user about the last setup read. */
 let camNote="", oldNote=false;
 function fromSaved(j){
   let p, cut=[]; oldNote=isLegacy(j);
@@ -22,105 +36,25 @@ function fromSaved(j){
 function loadSaved(){try{const t=localStorage.getItem(KEY)||localStorage.getItem(OLDKEY); if(!t) return null; const p=fromSaved(JSON.parse(t)); makeModel(p); return p;}catch(e){return null;}}
 const CAR={stock:["Stock","stock"],coen:["Coen's","coens"],session:["Session","session"]};      // [name shown, name in file names]
 const stamp=(d,time)=>{const p2=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+(time?" "+p2(d.getHours())+":"+p2(d.getMinutes()):"");};
-/* ---- vocabulary: the words this page uses, in plain language. The Guide shows the list; a marked word in a description opens it there.
-   Groups of [id, word, meaning]. A description marks a word as {word} or {shown text|id}: see VT. ---- */
-const VOCAB=[
- ["Parts",[
-  ["wishbone","Wishbone","A V-shaped suspension arm: two pivots on the chassis, one ball joint at the wheel end. Each corner has an upper and a lower one."],
-  ["pivot-axis","Pivot axis","The line through an arm's two chassis pivots. The arm swings about it like a door on its hinges."],
-  ["pivot-midpoint","Pivot midpoint ◆","The point halfway between an arm's two chassis pivots. The arm's own numbers start there."],
-  ["ball-joint","Ball joint","The joint at the outer end of an arm. It carries the knuckle and lets it steer."],
-  ["reach","Reach","How far the ball joint sits from the pivot axis: the arm's working length."],
-  ["leg","Leg","One side of the V, from a chassis pivot to the ball joint."],
-  ["knuckle","Knuckle","The solid part between the two ball joints. It carries the hub, so the wheel goes where the knuckle goes. Also called the upright."],
-  ["kingpin","Kingpin","The line through the two ball joints. The wheel steers about it."],
-  ["hub","Hub","The part on the knuckle that the wheel bolts to."],
-  ["hub-angle","Hub angle on knuckle","How far the hub is tipped on the knuckle. It adds straight to camber. A real Miata adjusts camber with eccentric bolts at the lower arm's pivots; the model tips the hub instead, which leaves the kingpin where it is."],
-  ["mounting-face","Wheel mounting face","The flat face of the hub that the wheel bolts against."],
-  ["offset","Offset (ET)","How far the wheel's centerline sits inboard of the mounting face. A smaller offset moves the wheel out."],
-  ["spacer","Wheel spacer","A plate between hub and wheel. It moves the wheel out by its thickness."],
-  ["tie-rod","Tie rod","The link from the steering rack to the knuckle. It steers the wheel, and its length sets the toe."],
-  ["tie-rod-end","Tie rod end","Where the tie rod bolts to the knuckle."],
-  ["steering-arm","Steering arm","The lever on the knuckle from the kingpin to the tie rod end. A shorter one (cut knuckles) turns the wheel further for the same rack travel."],
-  ["rack","Rack","The bar that slides sideways when the steering wheel turns. It pushes and pulls the tie rods."],
-  ["coilover","Coilover","Spring and damper in one unit, between the lower arm and the body."],
-  ["perch","Spring perch","The collar the spring sits on. Moving it up or down sets the ride height."],
-  ["anti-roll-bar","Anti-roll bar","A bar that links the left and right wheel of an axle. It only works when one wheel moves more than the other, so it resists roll."],
-  ["bump-stop","Bump stop","The rubber stop that ends the wheel's upward travel."]]],
- ["Alignment",[
-  ["camber","Camber","The wheel's lean seen from behind. Negative means the top leans in toward the car."],
-  ["caster","Caster","The kingpin's lean seen from the side. Positive means the top leans back. It helps the steering self-center."],
-  ["toe","Toe","Where the wheels point seen from above. Toe-in means the fronts of the two wheels point toward each other. Static toe is the toe at design height with the steering centered."],
-  ["kingpin-inclination","Kingpin inclination","The kingpin's lean seen from behind, top toward the car."],
-  ["knuckle-angle","Knuckle angle","The angle built into the knuckle between the kingpin and the wheel. It equals kingpin inclination plus camber, so arms that add negative camber add the same kingpin inclination."],
-  ["scrub-radius","Scrub radius","On the ground, how far the middle of the tire sits outboard of the point the kingpin aims at."],
-  ["trail","Mechanical trail","On the ground, how far the middle of the tire sits behind the point the kingpin aims at. More trail means more self-centering."],
-  ["track","Track","The distance between the left and right tire of an axle, center to center on the ground."],
-  ["design-height","Design height","The height the car is drawn at: stock ride height. Every Geometry number is given there."],
-  ["ride-height","Ride height","Where the car sits now, after any lowering. The setup sheet reads the alignment there."],
-  ["cross-weight","Cross weight","The share of the car's weight on the front-left and rear-right tires. 50 % is balanced."]]],
- ["How it moves",[
-  ["wheel-travel","Wheel travel","Up and down movement of the wheel against the body. Up is bump, down is droop."],
-  ["camber-gain","Camber gain","How much the camber changes as the wheel moves up, per 10 mm. Negative means it leans in more in bump."],
-  ["bump-steer","Bump steer","How much the toe changes as the wheel moves up, per 10 mm. Near zero is usually the aim."],
-  ["instant-center","Instant center","The point the wheel is swinging about right now, seen from behind. With parallel pivot axes it is where the lines of the two arms cross."],
-  ["roll-center","Roll center","The point the body rolls about at one axle. Its height decides how much cornering load goes through the arms instead of the springs."],
-  ["roll-axis","Roll axis","The line through the front and rear roll centers."],
-  ["anti-dive","Anti-dive","How much of the nose dive under braking the front arms hold back, in %. It needs a pivot axis tilted in side view. At the rear the same number is anti-lift."],
-  ["motion-ratio","Motion ratio","How far the coilover moves for each millimeter the wheel moves."],
-  ["wheel-rate","Wheel rate","The spring's stiffness as felt at the wheel: about spring rate times motion ratio squared."],
-  ["ride-frequency","Ride frequency","How fast the body bounces on its springs, in Hz. Higher is stiffer."],
-  ["damping-ratio","Damping ratio","Damper strength compared with the amount that just stops a bounce without overshoot (1.0). LS means at low shaft speed. ζ = c·MR² ⁄ 2√(wheel rate · corner mass)."],
-  ["knee","Knee","The damper shaft speed where it changes from its low-speed slope to its high-speed slope."],
-  ["ackermann","Ackermann","How much less the outside front wheel steers than the inside one. 100 % is what a slow turn needs for both tires to roll cleanly; 0 % is both wheels steering the same."],
-  ["contact-patch","Contact patch","Where the tire touches the road."],
-  ["loaded-radius","Loaded radius","The height of the wheel center above the road with the car's weight on the tire."],
-  ["tire-rate","Tire rate","How stiff the tire is as a spring, straight up and down. The Estimate button works it out from size and pressure with Rhyne's formula."]]],
- ["Mass, balance and grip",[
-  ["sprung-mass","Sprung mass","Everything the springs carry: body, engine, people."],
-  ["unsprung-mass","Unsprung mass","What moves with the wheel: wheel, tire, knuckle, brake, and about half the arms and coilover."],
-  ["cg","CG","Center of gravity: the car's balance point."],
-  ["lateral-g","Lateral g","Cornering force as a multiple of the car's weight."],
-  ["roll-gradient","Roll gradient","Degrees of body roll per g of cornering. Pitch gradient is the same for braking and accelerating."],
-  ["load-transfer","Lateral load transfer","The load that moves from the inside tires to the outside tires in a corner. The front share is how much of it the front axle carries."],
-  ["slip-angle","Slip angle","The angle between where a tire points and where it actually goes. Tires make side force by slipping a few degrees."],
-  ["grip-in-use","Grip in use","The side force a tire is making, as a share of the most it could make right now."],
-  ["cornering-limit","Cornering limit","The lateral g at which an axle's tires run out of grip."],
-  ["understeer-gradient","Understeer gradient","How much more the front tires slip than the rear ones, per g. Positive is understeer: the car pushes wide."]]],
- ["This program",[
-  ["setup-sheet","Setup sheet","The summary of the car as it sits: alignment, rates, balance and geometry."],
-  ["solver","Solver","The box on the Geometry tab that works out a change for you. Give it targets and tick the fields to solve for."],
-  ["target","Target","A setup-sheet number you want, and the value you want it to be."],
-  ["solve-for","Solve for","The tick boxes beside the fields. Ticked fields will be solved for; unticked fields stay as they are."],
-  ["session","Session","Your own edits, kept in this browser."],
-  ["settle","Settle","Brings the car to rest as it is loaded now."],
-  ["drive","Drive","Runs the car at a steady speed, so the tires make the cornering force from the steering."],
-  ["step-steer","Step steer","A sudden turn of the steering wheel to a set angle, to see how the car reacts."]]]
-];
-const VOCAB_IDS=new Set([].concat(...VOCAB.map(([,items])=>items.map(q=>q[0]))));
-/* {word} or {shown text|id} in a description becomes a link that opens the vocabulary at that word. An id the vocabulary lacks stays plain text. */
-const VT=s=>s.replace(/\{([^{}|]+)(?:\|([^{}]+))?\}/g,(m,shown,id)=>{const k=id||shown.toLowerCase().replace(/\s+/g,"-"); return VOCAB_IDS.has(k)?`<a class="vt" href="#v-${k}" data-v="${k}">${shown}</a>`:shown;});
-let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.preset")||null;}catch(e){}      // which car button is lit; any edit clears it
-function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}   // an edit makes the current setup the session setup
+let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.preset")||null;}catch(e){}
+function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}      // an edit makes the setup on screen the session setup
 function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
-let P=PRESETS[presetName]?PRESETS[presetName]():loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="stock";}      // a lit Stock or Coen's button means that car as defined now, not a copy an older page saved
-P.steer.link=0;                                                        // Drive is a mode, not part of a setup: every load starts with it off (floor still)
+let P=PRESETS[presetName]?PRESETS[presetName]():loadSaved(); const restored=!!P; if(!P){P=defaults(); presetName="stock";}
+P.steer.link=0;
 let model=makeModel(P), S=newState();
 const inp={ay:0,ax:0,Fp:0,xp:1.1,yp:-0.6,rack:0,U:0};      // U > 0: the car is driven and the tires set the lateral g
 let running=true, speed=1, editAxle=0, viewAxle=0, linkMode="pair", swDeg=0, ayManual=0, stepAcc=0;
-/* Where the car is on the ground while it is driven (Drive): heading psi (+ = turned right) and position, wrapped to the floor grid's
-   coarsest spacing. The 3D view keeps the car still and moves the floor the opposite way. d is the distance covered in the last drawn frame.
-   roll is how far the wheels have rolled. It gains at most ROLL_MAX a frame, so at speed the spokes turn steadily forward instead of seeming
-   to stand still or run backwards. */
-const GND={psi:0,x:0,y:0,d:0,roll:0,wx:0,wy:0,clear:false}, GWRAP=4, ROLL_MAX=0.08;      // x, y wrap every GWRAP m for the endless grid; wx, wy do not, for the wheel tracks
-let bodyOn=false; try{bodyOn=localStorage.getItem("dws.body")==="car";}catch(e){}      // 3D view: the plain chassis box (the start-up view), or the car body
-/* Colors and fonts come from the OL! tokens in style.css. The palette is closed (black, grays, midnight, ice),
-   so parts and data series differ by lightness, line weight and dash, never by hue. */
+/* Where the driven car is on the ground: heading psi (+ = right) and position. x, y wrap every GWRAP m for the floor grid; wx, wy do
+   not, for the wheel tracks. d: distance covered in the last frame. roll: how far the wheels have rolled, at most ROLL_MAX more
+   per frame so the spokes never seem to stand still or run backwards. */
+const GND={psi:0,x:0,y:0,d:0,roll:0,wx:0,wy:0,clear:false}, GWRAP=4, ROLL_MAX=0.08;
+let bodyOn=false; try{bodyOn=localStorage.getItem("dws.body")==="car";}catch(e){}
+/* Colors and fonts for the canvases and the 3D view, read from the tokens in style.css. */
 let COL={};
 function readColors(){
   const cs=getComputedStyle(document.documentElement), g=n=>cs.getPropertyValue(n).trim();
   COL={vinyl:g("--vinyl"),dim:g("--vinyl-dim"),ghost:g("--vinyl-ghost"),edge:g("--edge"),hairline:g("--hairline"),gunmetal:g("--gunmetal"),glass:g("--glass"),
-       midnight:g("--midnight"),void:g("--void"),ice:g("--ice"),armL:g("--arm-lower"),armU:g("--arm-upper"),osd:g("--font-osd")};
+       midnight:g("--midnight"),ice:g("--ice"),armL:g("--arm-lower"),armU:g("--arm-upper"),osd:g("--font-osd")};
 }
 readColors();
 const OSD=px=>px+"px "+COL.osd, DASH=[7,5];      // canvas text is set in the read-out face; the right wheel's line is dashed
@@ -129,9 +63,12 @@ const unitTxt=u=>u?(u==="°"?"°":" "+u):"";
 const sgnTxt=(v,d)=>{const t=Math.abs(v).toFixed(d); return (+t===0?"":v>=0?"+":"−")+t;};
 const num=(v,d)=>{const t=v.toFixed(d); return (+t===0?Math.abs(+t).toFixed(d):t).replace("-","−");};
 
-/* ---- forms ---- */
+
+/* ===== 2. Forms ===== */
 function fmtIn(v,sc){return String(+(v/sc).toFixed(4));}
-function buildFields(host,groups,getObj,prefix,who,titleOf,mode,tickAx){      // mode: the fields are not part of a setup, so an edit is not saved as one. tickAx: each field gets a Solve for tick box, for that axle
+/* Builds the fields of some groups into host. mode: the fields are not part of a setup, so an edit is not saved as one.
+   tickAx: give each field a Solve for tick box, for that axle. */
+function buildFields(host,groups,getObj,prefix,who,titleOf,mode,tickAx){
   host.textContent="";
   for(const [title,fs] of groups){
     const fsEl=document.createElement("fieldset"), lg=document.createElement("legend");
@@ -141,7 +78,7 @@ function buildFields(host,groups,getObj,prefix,who,titleOf,mode,tickAx){      //
       row.innerHTML=slider?`<label for="${id}">${lab}</label><output id="${id}O"></output>${tick?tickBox(k,lab,tickAx):""}<input id="${id}" type="range" step="${stp}" min="${mn}" max="${mx}">`
         :`<label for="${id}">${lab}</label><input id="${id}" type="number" step="${stp}" min="${mn}" max="${mx}"><span class="u">${u}</span>`+(tick?tickBox(k,lab,tickAx):"");
       const el=row.querySelector("input:not(.tick)"), show=()=>{if(slider) row.querySelector("output").textContent=sgnTxt(+el.value,2)+unitTxt(u);}; el.value=fmtIn(getObj()[k],sc); show();
-      if(slider) el.addEventListener("input",show);      // the read-out follows the thumb; the car is re-solved when it is let go
+      if(slider) el.addEventListener("input",show);      // the read-out follows the thumb; the car is solved on release
       el.addEventListener("change",()=>{
         const x=parseFloat(el.value);
         if(!Number.isFinite(x)||x<mn||x>mx){setStatus(who+lab+" must be between "+mn+" and "+mx+(u?" "+u:"")+". Value not changed.",true); el.value=fmtIn(getObj()[k],sc); return;}
@@ -162,7 +99,7 @@ function renderForms(){
   const who=editAxle?"Rear: ":"Front: ", gObj=()=>P.ax[editAxle].g;
   renderGeoPart(); buildTargets();
   buildFields($("whlFields"),geoFor(editAxle,GEO_TABS.whl),gObj,"g",who,t=>t==="TIRE"?"Tire":t==="GRIP"?"Tire grip":t);
-  {const tf=$("whlFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div"), t=tireFromSize(P,editAxle);
+  {const tf=$("whlFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div");
    r2.className="rowbtns"; r2.innerHTML='<button class="btn" id="fitTire">Estimate from size</button>'; tf.appendChild(r2);
    const h2=document.createElement("p"); h2.className="hint"; h2.id="tireFree";
    tf.appendChild(h2); $("fitTire").onclick=fitTire;}
@@ -189,7 +126,7 @@ function renderForms(){
   buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"*Drive",true);      // on the Forces tab, under the lateral slider that Drive takes over
   const lf=$("linkFields").querySelector("fieldset"), hint=document.createElement("p"); hint.className="hint";
   hint.textContent="Turns off the lateral slider above. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[1]);
-  buildHeights(); camNow(); syncTire();
+  buildHeights(); syncTire();
 }
 /* The tire read-outs that follow from other fields: free radius, and which kind of tire the grip numbers match (Custom if none). */
 function syncTire(){
@@ -199,19 +136,9 @@ function syncTire(){
   const cur=TIRE_KINDS.find(([k])=>Object.keys(TIRE_PRESETS[k]).every(q=>Math.abs(TIRE_PRESETS[k][q]-g[q])<1e-9));
   sel.innerHTML=(cur?"":'<option value="">Custom</option>')+TIRE_KINDS.map(([k,n])=>`<option value="${k}"${cur&&cur[0]===k?" selected":""}>${n}</option>`).join("");
 }
-function camNow(cam){if($("camNow")) $("camNow").innerHTML=VT("Small {camber} slider (rest adjusts from control arm lengths).");}
-function syncLink(){
-  const on=!!P.steer.link; $("ay").disabled=on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
-  $("driveOn").setAttribute("aria-pressed",on);                     // the header button lights up
-  const tb=$("tab-load"); tb.textContent=on?"*Forces":"Forces"; tb.classList.toggle("new",on);      // the star points at the tab that holds the Drive controls
-  $("ayRow").classList.toggle("off",on); $("drvBox").hidden=!on;    // the lateral slider goes dark and the Drive controls appear under it
-  $("ssGo").disabled=$("ssA").disabled=!on;
-  readLoads();
-}
-$("driveOn").onclick=()=>{P.steer.link=P.steer.link?0:1; syncLink(); setStatus(P.steer.link?"Drive on: the tires make the lateral g. Speed and steering are on the Forces tab.":"Drive off.",false);};
-/* A different loaded radius raises or lowers the car on that axle and leaves the suspension where it was, as a tire change does:
-   the height targets move by the change. The travel limits move the other way, because the bump and droop stops stay with the dampers. */
-function tireMoved(ax,dR){const g=P.ax[ax].g, lim=v=>Math.min(0.2,Math.max(0.01,v)); P.dh[ax*2]+=dR; P.dh[ax*2+1]+=dR; g.bump=lim(g.bump-dR); g.droop=lim(g.droop+dR);}      // the tie rod end is part of the knuckle, so it goes with it by itself
+/* A new loaded radius raises or lowers that axle and leaves the suspension where it was: the height targets move with it and the
+   travel limits the other way, because the stops stay with the dampers. */
+function tireMoved(ax,dR){const g=P.ax[ax].g, lim=v=>Math.min(0.2,Math.max(0.01,v)); P.dh[ax*2]+=dR; P.dh[ax*2+1]+=dR; g.bump=lim(g.bump-dR); g.droop=lim(g.droop+dR);}
 const tireMsg=(ax,dR)=>"Loaded radius changed by "+sgnTxt(dR*1000,1)+" mm: the "+(ax?"rear":"front")+" of the car sits "+Math.abs(dR*1000).toFixed(1)+" mm "+(dR<0?"lower":"higher")+". Travel limits moved with it.";
 /* Ride height can't sit past a travel limit: each height is held 5 mm inside its bump and droop travel. True if one had to move. */
 function fitHeights(p){
@@ -222,7 +149,7 @@ function fitHeights(p){
 function applyEdit(fn,msg,mode){
   const backup=JSON.stringify(P);
   try{fn(); const held=fitHeights(P); model=makeModel(P); if(!mode) save(); setStatus((msg||"Solved. Spring perches hold the target heights.")+(held?" Ride height moved to stay inside the travel limits.":""),false); refreshStatic(); return true;}
-  catch(e){P=JSON.parse(backup); model.P=P; setStatus(e.message+" Change reverted.",true); return false;}      // model.P: the model still running must read the restored setup
+  catch(e){P=JSON.parse(backup); model.P=P; setStatus(e.message+" Change reverted.",true); return false;}      // the model still running must read the restored setup
 }
 function fitTire(){
   const t=tireFromSize(P,editAxle), kt=Math.round(t.kt/100)*100, R=Math.round(t.R*1e4)/1e4;
@@ -236,12 +163,12 @@ function fitTie(){
 }
 
 
-/* ===== Geometry tab: one part at a time (upper arm, lower arm, knuckle, alignment), then Solve for =====
-   Each arm has two drawings, each directly above the fields it labels: where its pivot axis is (front, side and top view, to scale) and
-   the arm itself laid flat. Every number in a drawing carries its field's letter in a box, the same box that sits beside the field.
-   The tire at design height is drawn behind as a gray shape and can be switched off. The knuckle is drawn in its own frame. */
-const GB={part:"uarm",hold:true,wheel:true,hot:null,free:[new Set(),new Set()],pin:[new Set(),new Set()],want:[{},{}],prop:null};      // free: fields Solve for may change; pin: its targets; want: their values (each per axle)
-try{GB.wheel=localStorage.getItem("dws.wheel")!=="0"; GB.hold=localStorage.getItem("dws.hold")!=="arm";}catch(e){}      // remembered per browser; the page works the same without it
+/* ===== 3. Geometry tab =====
+   One part at a time: upper arm, lower arm, knuckle, alignment. Each drawing sits above the fields it labels, and every number in it
+   carries its field's letter. Then the solver. */
+/* GB: the tab's state. free: ticked fields, pin: ticked targets, want: their values (each per axle); hot: the field with the focus; prop: the answer on screen. */
+const GB={part:"uarm",hold:true,wheel:true,hot:null,free:[new Set(),new Set()],pin:[new Set(),new Set()],want:[{},{}],prop:null};
+try{GB.wheel=localStorage.getItem("dws.wheel")!=="0"; GB.hold=localStorage.getItem("dws.hold")!=="arm";}catch(e){}
 const ARM_LET={ym:"A",zm:"B",xm:"C",sv:"D",pv:"E",w:"F",R:"G",t:"H",Lf:"I",Lr:"J"}, KN_LET={kLk:"A",kinc:"B",kwk:"C",kwo:"D",kwf:"E",kpk:"F",kpo:"G",kpf:"H"};
 const letterOf=key=>key==="ee"?"K":KN_LET[key]||(/^[ul]/.test(key)&&ARM_LET[key.slice(1)])||"";
 const specOf=key=>{for(const [,fs] of GEO) for(const f of fs) if(f[0]===key) return f; return null;};
@@ -249,7 +176,7 @@ const GROUP_NAME={UARM:"Upper arm",LARM:"Lower arm",KNUCKLE:"Knuckle",Alignment:
 const fmtShown=(v,sc,u)=>String(+(v/sc).toFixed(u==="°"?2:u===""?3:1));
 const nf=v=>v.toFixed(1), armCol=k=>k==="l"?"var(--arm-lower)":"var(--arm-upper)";
 const FHEAD='<div class="fhead" title="Ticked fields will be solved for. Unticked fields stay as they are.">Solve for ↓</div>';
-const tickBox=(key,lab,ax)=>`<input type="checkbox" class="tick" id="fr-${key}" data-free="${key}" data-ax="${ax}" aria-label="Solve for ${lab}"${GB.free[ax].has(key)?" checked":""}>`;
+const tickBox=(key,lab,ax)=>`<input type="checkbox" class="tick" data-free="${key}" data-ax="${ax}" aria-label="Solve for ${lab}"${GB.free[ax].has(key)?" checked":""}>`;
 function gRow(key,label,unit,step,mn,mx,tick){
   const id="g-"+key, lt=letterOf(key);
   return `<div class="f tk"><label for="${id}">${lt?`<span class="let">${lt}</span>`:""}${label}</label><input id="${id}" type="number" step="${step}"${mn!==undefined?` min="${mn}" max="${mx}"`:""} data-gk="${key}"><span class="u">${unit}</span>`+(tick?tickBox(key,label,editAxle):"<span></span>")+"</div>";
@@ -291,8 +218,8 @@ function renderGeoPart(){
   if(part==="align"){
     buildFields($("alignHost"),geoFor(ax,["Alignment"]),()=>P.ax[editAxle].g,"g",who+": ",()=>who+" alignment",false,ax);
     const al=$("alignHost").querySelector("fieldset"), hd=document.createElement("div"), p=document.createElement("p");
-    hd.innerHTML=FHEAD; al.insertBefore(hd.firstChild,al.children[1]);                    // the heading over the tick boxes
-    p.className="hint"; p.id="camNow"; al.insertBefore(p,al.children[3]);                 // under the adjuster; filled by camNow
+    hd.innerHTML=FHEAD; al.insertBefore(hd.firstChild,al.children[1]);      // the heading over the tick boxes
+    p.className="hint"; p.innerHTML=VT("Small {camber} slider (rest adjusts from control arm lengths)."); al.insertBefore(p,al.children[3]);
     const box=document.createElement("div"); box.innerHTML=gRow("caster","Caster at design height","°",0.25,-5,20)+
       `<p class="hint">${VT("Typing a {caster} slides both ball joints (H on each arm).")}</p>`;
     while(box.firstChild) al.appendChild(box.firstChild);
@@ -303,7 +230,7 @@ function renderGeoPart(){
 function syncGeoPart(){
   const host=$("geoFields"); if(!host) return;
   for(const el of host.querySelectorAll("input[data-gk]")){ if(el===document.activeElement&&el.dataset.dirty) continue; el.value=geoValue(el.dataset.gk); }
-  if(GB.part==="align"){                                             // the adjuster and the toe field are plain fields: keep them on the setup too (Solve for can change them)
+  if(GB.part==="align"){      // hub angle and toe are plain fields; the solver can change them, so refresh them too
     const g=P.ax[editAxle].g, t=$("g-toe"), c=$("g-cadj");
     if(t&&t!==document.activeElement) t.value=fmtIn(g.toe,1);
     if(c&&c!==document.activeElement){c.value=fmtIn(g.cadj,1); $("g-cadjO").textContent=sgnTxt(g.cadj,2)+"°";}
@@ -342,9 +269,8 @@ function geoEdit(el){
   host.addEventListener("change",e=>{const el=e.target; if(el.dataset.gk){delete el.dataset.dirty; geoEdit(el);}});
   host.addEventListener("focusin",e=>{const key=e.target.dataset.gk; if(key){GB.hot=key; markHot();}});
   host.addEventListener("focusout",e=>{if(e.target.dataset.gk){delete e.target.dataset.dirty; GB.hot=null; markHot();}});
-  /* A lettered number in a drawing takes you to its field. The label is noted when it is pressed, because leaving the field that was
-     being typed in can redraw the drawing before the press is over. The press itself must not move the focus (a touch would take it
-     away again), and a touch that turns into a scroll is cancelled by the browser. */
+  /* A lettered number in a drawing jumps to its field. The label is noted on press, because leaving the field being typed in can
+     redraw the drawing before the press ends. The press itself must not move the focus. */
   let down=null, downT=0;
   const goField=key=>{const el=$("g-"+key); if(el&&document.activeElement!==el){el.focus(); el.select();}};
   host.addEventListener("pointerdown",e=>{const lb=e.target.closest("g.lbl[data-k]"); down=lb?lb.dataset.k:null; downT=e.timeStamp; if(lb) e.preventDefault();});
@@ -364,23 +290,23 @@ function geoEdit(el){
       syncGeoPart();
     }
   });
-  $("partSel").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; GB.part=b.dataset.part; renderGeoPart(); camNow();});
+  $("partSel").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; GB.part=b.dataset.part; renderGeoPart();});
   document.addEventListener("change",e=>{const t=e.target; if(!t.dataset||t.dataset.free===undefined) return; const s=GB.free[+t.dataset.ax]; t.checked?s.add(t.dataset.free):s.delete(t.dataset.free); freeText();});
 }
 
-/* ---- the drawings ---- */
+/* ---- drawings ---- */
 /* Whatever shows a field in a drawing carries the class hk-<field>; the field that has the focus gets "hot" on top (bolder). */
 const hotC=key=>" hk-"+key+(GB.hot===key?" hot":"");
 function markHot(){for(const el of $("geoFields").querySelectorAll('[class*="hk-"]')) el.classList.toggle("hot",!!GB.hot&&el.classList.contains("hk-"+GB.hot));}
-const numW=s=>{let w=0; for(const ch of s) w+=ch==="."?5:ch==="°"?7:11.2; return w;};      // a number's width at 20 units: near enough to center or right-align a label
+const numW=s=>{let w=0; for(const ch of s) w+=ch==="."?5:ch==="°"?7:11.2; return w;};      // a number's width at 20 units, near enough to align a label
 const labW=txt=>29+numW(txt);
-function skLab(key,x,y,txt,anchor){                                                           // boxed letter, then the number, on a dark plate so nothing behind it gets in the way
+function skLab(key,x,y,txt,anchor){      // boxed letter, then the number, on a dark plate
   const W=labW(txt), x0=anchor==="middle"?x-W/2:anchor==="end"?x-W:x;
   return '<g class="lbl'+hotC(key)+'" data-k="'+key+'"><rect class="pl" x="'+nf(x0-3)+'" y="'+nf(y-20)+'" width="'+nf(W+6)+'" height="26"/><rect class="bx" x="'+nf(x0)+'" y="'+nf(y-18)+'" width="22" height="22"/>'+
     '<text class="lt" x="'+nf(x0+11)+'" y="'+nf(y-2.5)+'" text-anchor="middle">'+letterOf(key)+'</text><text x="'+nf(x0+29)+'" y="'+nf(y)+'">'+txt+"</text></g>";
 }
 const skDia=(x,y,col,r)=>'<path d="M'+nf(x)+" "+nf(y-r)+"L"+nf(x+r)+" "+nf(y)+"L"+nf(x)+" "+nf(y+r)+"L"+nf(x-r)+" "+nf(y)+'Z" fill="var(--void)" stroke="'+col+'" stroke-width="3"/>';
-const skOrg=(x,y)=>'<circle class="org" cx="'+nf(x)+'" cy="'+nf(y)+'" r="4.5"/>';      // the origin of a drawing: a small red dot, drawn last so nothing hides it
+const skOrg=(x,y)=>'<circle class="org" cx="'+nf(x)+'" cy="'+nf(y)+'" r="4.5"/>';      // a drawing's origin: a red dot, drawn last
 const skLine=(cls,x1,y1,x2,y2,more)=>'<line class="'+cls+'" x1="'+nf(x1)+'" y1="'+nf(y1)+'" x2="'+nf(x2)+'" y2="'+nf(y2)+'"'+(more||"")+"/>";
 const skShape=(pts,cls,more)=>'<polygon class="'+cls+'" points="'+hull(pts).map(q=>nf(q[0])+","+nf(q[1])).join(" ")+'"'+(more||"")+"/>";
 /* points round both edges of the tire tread at pose p, for drawing its outline in any view */
@@ -492,7 +418,7 @@ function drawKnSk(){
   $("knSk").innerHTML=h+L+skOrg(LBJ[0],LBJ[1])+skOrg(X2(0),Y2(0));      // origin: the lower ball joint, in both views
 }
 
-/* ---- Solve for: targets from the setup sheet, tick boxes on the fields, a proposal that changes nothing until it is applied ---- */
+/* ---- solver: targets from the setup sheet, tick boxes on the fields, an answer that changes nothing until it is applied ---- */
 const tDec=u=>u==="mm"||u==="%"?1:u==="°"?3:4;
 /* fields that live on other tabs but may be ticked here: [key, what the list calls it] */
 const MORE=[["et","Wheel offset (ET)"],["sp","Wheel spacer"],["xti","Rack joint, ahead of axle"],["yti","Rack joint, from centerline"],["zti","Rack joint, above ground"],
@@ -524,11 +450,11 @@ function solveRun(){
   for(const k of GB.pin[ax]){const v=parseFloat($("tg-"+k).value); if(!Number.isFinite(v)){GB.prop={ax,r:{ok:false,why:"Type a value for "+TARGETS.find(t=>t[0]===k)[1]+"."}}; drawSolve(); $("solveOut").scrollIntoView({block:"nearest"}); return;} tg[k]=v;}
   const a=sheet(model).ax[ax], c={s:a.st,L:P.veh.L,h:P.veh.h+model.zs,share:brakeShare(P.veh,ax)};
   let r; try{r=solveFor(ax?P.ax[1].g:frontG(P),ax?"Rear":"Front",c,tg,[...GB.free[ax]]);}catch(e){r={ok:false,why:e.message};}
-  if(r.ok&&r.changes.length){                                        // an answer must also be a car that can be built over its whole travel, or Apply would only refuse it
+  if(r.ok&&r.changes.length){      // the answer must also build over its whole travel
     const q=JSON.parse(JSON.stringify(P)); for(const ch of r.changes) q.ax[ax].g[ch.key]=ch.si;
     try{makeModel(q);}catch(e){r={ok:false,why:"The numbers can be reached at ride height, but the car can't be built that way. "+e.message};}
   }
-  GB.prop={ax,r}; drawSolve(); $("solveOut").scrollIntoView({block:"nearest"});      // the answer may be below the edge of the pane
+  GB.prop={ax,r}; drawSolve(); $("solveOut").scrollIntoView({block:"nearest"});
 }
 function drawSolve(note){
   const el=$("solveOut"); if(!el) return; const q=GB.prop;
@@ -545,7 +471,7 @@ function drawSolve(note){
   h+='</table></div><div class="rowbtns"><button class="btn primary" id="solveApply" type="button">Apply</button><button class="btn" id="solveDrop" type="button">Discard</button></div></div>';
   el.innerHTML=h;
   $("solveApply").onclick=()=>{const n=r.changes.length, ax=q.ax; GB.prop=null;
-    if(applyEdit(()=>{const g=P.ax[ax].g; for(const c of r.changes) g[c.key]=c.si;},"Applied "+n+" change"+(n===1?"":"s")+" from the solver.")){renderForms(); drawSolve("Applied.");} else drawSolve();};      // renderForms: the changed fields may be on any tab
+    if(applyEdit(()=>{const g=P.ax[ax].g; for(const c of r.changes) g[c.key]=c.si;},"Applied "+n+" change"+(n===1?"":"s")+" from the solver.")){renderForms(); drawSolve("Applied.");} else drawSolve();};      // the changed fields may be on any tab
   $("solveDrop").onclick=()=>{GB.prop=null; drawSolve();};
 }
 $("solveT").addEventListener("change",e=>{const el=e.target, ax=editAxle;
@@ -553,6 +479,8 @@ $("solveT").addEventListener("change",e=>{const el=e.target, ax=editAxle;
   else if(el.dataset.want){const k=el.dataset.want, v=parseFloat(el.value); if(!Number.isFinite(v)) return; GB.want[ax][k]=v; GB.pin[ax].add(k); $("pin-"+k).checked=true; solveNow();}});
 $("solveGo").onclick=solveRun;
 
+
+/* ===== 4. Controls ===== */
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));
   ["geo","whl","spr","str","load","veh"].forEach(t=>$("p-"+t).hidden=(t!==b.dataset.t));
@@ -571,13 +499,11 @@ $("copySpr").onclick=()=>applyEdit(()=>{P.ax[1-editAxle].s=JSON.parse(JSON.strin
 $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; speed=+b.dataset.v;
   $("speed").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); $("oSpeed").textContent=b.textContent;});
 $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"Run";};
-/* Space bar runs and pauses from anywhere on the page, whatever has the focus (so it never presses a focused button or ticks a box).
-   The one exception is the car title, where a space is a space. */
+/* The space bar runs and pauses from anywhere on the page, so it never presses a focused button. In the car title a space is a space. */
 {const sp=e=>(e.code==="Space"||e.key===" ")&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&e.target.id!=="carTag";
  document.addEventListener("keydown",e=>{if(!sp(e)) return; e.preventDefault(); if(!e.repeat) $("play").click();},true);
  document.addEventListener("keyup",e=>{if(sp(e)) e.preventDefault();},true);}
-/* The car badge in the 3D view is a title anyone can retype. It is for show: nothing reads it, no setup or export carries it.
-   Kept per browser (the page works the same without storage). Enter keeps it, Esc puts back what was there, empty goes back to the car's name. */
+/* The car badge in the 3D view can be retyped. Display only: kept per browser, read by nothing. Enter keeps it, Esc cancels, empty restores the default. */
 {const el=$("carTag"), box=el.parentElement, DEF=el.placeholder; let before=DEF;
  const fit=()=>{box.dataset.v=el.value||DEF;};
  try{const t=localStorage.getItem("dws.title"); if(t) el.value=t.slice(0,el.maxLength);}catch(e){}
@@ -593,13 +519,13 @@ function loadPreset(name,q0){
   const label=CAR[name][0];
   try{
     let q;
-    if(q0) q=q0;                                                         // a setup read from a file
+    if(q0) q=q0;      // a setup read from a file
     else if(name==="session"){
       let t=null; try{t=localStorage.getItem(SKEY)||localStorage.getItem(OLDSKEY);}catch(e){}
-      if(!t) q=defaults();                                               // no session saved yet: it starts as the start-up car
+      if(!t) q=defaults();      // no session yet: the stock car
       else {let j; try{j=JSON.parse(t);}catch(e){throw new Error("The session setup kept in this browser can't be read. Edit a field or import a file to replace it.");} q=fromSaved(j);}
     } else q=PRESETS[name]();
-    makeModel(q); q.steer.link=0; q.steer.speed=P.steer.speed; P=q;      // Drive and its speed are a mode, not part of a car
+    makeModel(q); q.steer.link=0; q.steer.speed=P.steer.speed; P=q;      // Drive and its speed are a mode, not part of a setup
   }catch(e){setStatus(e.message,true); return;}
   model=makeModel(P); presetLock=true; presetName=name; save(); presetLock=false; try{localStorage.setItem("dws.preset",name);}catch(e){} markPreset();
   ["ay","ax","fp"].forEach(id=>$(id).value=0); swDeg=0; inp.rack=0; $("sw").value=0; ayManual=0;
@@ -615,7 +541,18 @@ $("viewAxle").addEventListener("click",e=>{const b=e.target.closest("button"); i
  sel.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; bodyOn=b.dataset.b==="car"; try{localStorage.setItem("dws.body",bodyOn?"car":"box");}catch(e2){} sync();});
  sync();}
 
-/* ---- loads ---- */
+/* ---- Drive ---- */
+function syncLink(){
+  const on=!!P.steer.link; $("ay").disabled=on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
+  $("driveOn").setAttribute("aria-pressed",on);
+  const tb=$("tab-load"); tb.textContent=on?"*Forces":"Forces"; tb.classList.toggle("new",on);      // the star marks the tab that holds the Drive controls
+  $("ayRow").classList.toggle("off",on); $("drvBox").hidden=!on;
+  $("ssGo").disabled=$("ssA").disabled=!on;
+  readLoads();
+}
+$("driveOn").onclick=()=>{P.steer.link=P.steer.link?0:1; syncLink(); setStatus(P.steer.link?"Drive on: the tires make the lateral g. Speed and steering are on the Forces tab.":"Drive off.",false);};
+
+/* ---- loads and bumps ---- */
 function readLoads(){
   if(!P.steer.link){ayManual=+$("ay").value; inp.ay=ayManual;}
   inp.ax=+$("ax").value; inp.Fp=+$("fp").value; inp.xp=+$("xp").value/1000; inp.yp=+$("yp").value/1000;
@@ -637,7 +574,7 @@ document.querySelectorAll("[data-hit]").forEach(btn=>btn.onclick=()=>{const b=bu
 
 /* ---- steering ---- */
 function swMax(){return Math.floor(P.steer.rmax/P.steer.c*360);}
-function setSw(d){const mx=swMax(); swDeg=Math.max(-mx,Math.min(mx,d)); $("sw").value=$("sw2").value=swDeg; $("swO").textContent=$("sw2O").textContent=sgnTxt(swDeg,0)+"°";}      // sw2: the same slider again among the Drive controls
+function setSw(d){const mx=swMax(); swDeg=Math.max(-mx,Math.min(mx,d)); $("sw").value=$("sw2").value=swDeg; $("swO").textContent=$("sw2O").textContent=sgnTxt(swDeg,0)+"°";}      // sw2: the same slider again, among the Drive controls
 $("sw").addEventListener("input",()=>setSw(+$("sw").value)); $("sw2").addEventListener("input",()=>setSw(+$("sw2").value));
 $("swC").onclick=()=>setSw(0); $("swL").onclick=()=>setSw(-swMax()); $("swR").onclick=()=>setSw(swMax());
 const rackTarget=()=>Math.max(-P.steer.rmax,Math.min(P.steer.rmax,model.T[0].sgn*swDeg/360*P.steer.c));
@@ -649,7 +586,7 @@ $("ssGo").onclick=()=>{
   setStatus("Step steer to "+sgnTxt(swDeg,0)+"° at "+(P.steer.speed*3.6).toFixed(0)+" km/h. The History panel shows the response.",false);
 };
 
-/* ---- heights ---- */
+/* ---- ride height ---- */
 function buildHeights(){
   const host=$("htFields"); host.textContent="";
   for(let i=0;i<4;i++){
@@ -675,16 +612,17 @@ $("htLink").addEventListener("click",e=>{const b=e.target.closest("button"); if(
   $("htLink").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));});
 $("zeroHt").onclick=()=>{P.dh=[0,0,0,0]; applyEdit(()=>{}); buildHeights();};
 
-/* ---- static tables ---- */
+
+/* ===== 5. Setup sheet ===== */
 function refreshStatic(){
   const r=sheet(model), A=r.ax, mm=v=>(v*1000);
   const row=(lab,f,u)=>`<tr><td>${lab}</td><td>${f(A[0])}</td><td>${f(A[1])}</td><td class="u">${u}</td></tr>`;
   const one=(lab,val,u)=>`<tr><td>${lab}</td><td colspan="2">${val}</td><td class="u">${u}</td></tr>`;
-  const fin=(v,d)=>Number.isFinite(v)?num(v,d):"unstable", dash=(v,d)=>Number.isFinite(v)?v.toFixed(d):"–";      // dash: a spring that is loose at ride height has no rate
+  const fin=(v,d)=>Number.isFinite(v)?num(v,d):"unstable", dash=(v,d)=>Number.isFinite(v)?v.toFixed(d):"–";      // a spring that is loose at ride height has no rate
   const grp=t=>`<tr class="grp"><th colspan="4">${t}</th></tr>`;
   const inch=v=>{const t=(v/0.0254).toFixed(1); return t.endsWith(".0")?t.slice(0,-2):t;};
   const G_=a=>P.ax[A.indexOf(a)].g, S_=a=>P.ax[A.indexOf(a)].s, ht=a=>{const k=A.indexOf(a)*2; return (P.dh[k]+P.dh[k+1])/2;};
-  /* everyday setup numbers first (alignment, wheels, heights, springs), then how the car behaves, then the geometry detail */
+  /* everyday numbers first, then how the car behaves, then geometry detail */
   $("sheet").innerHTML=`<tr><th></th><th>Front</th><th>Rear</th><th></th></tr>`+
     grp("Alignment at ride height")+
     row("Camber",a=>num(a.cam,2),"°")+
@@ -739,12 +677,12 @@ function refreshStatic(){
   const pr=(lab,v)=>`<tr><td>${lab}</td><td>${f(v[0])}</td><td>${f(v[1])}</td><td>${f(v[2])}</td></tr>`;
   $("pts").innerHTML=`<tr><th>mm</th><th>Ahead</th><th>From center</th><th>Height</th></tr>`+pr("Lower ball joint",p.LBJ)+pr("Upper ball joint",p.UBJ)+pr("Wheel center",p.WC)+pr("Contact patch",p.CP)+
     pr("Kingpin axis at ground",[T.kp[0],T.kp[1],0])+`<tr><td>Tie rod length</td><td colspan="3">${f(T.D.Lt)}</td></tr><tr><td>Steering arm length</td><td colspan="3">${f(T.D.arm)}</td></tr>`;
-  camNow(A[editAxle].cam); syncGeoPart(); GB.prop=null; drawSolve(); solveNow(A); htLabels(); syncTire();
+  syncGeoPart(); GB.prop=null; drawSolve(); solveNow(A); htLabels(); syncTire();
   const mx=swMax(); for(const sw of [$("sw"),$("sw2")]){sw.min=-mx; sw.max=mx;} setSw(swDeg);
   scheduleBalance();
   curveStatic();
 }
-/* Steady cornering sweep (core: balance). It takes a few tens of milliseconds, so it runs a moment after the last edit. */
+/* The cornering sweep (core: balance) takes a few hundred milliseconds, so it runs a moment after the last edit. */
 let BAL=null, balKey="", balTimer=0;
 function fillBalance(){
   if(!$("balLim")) return;
@@ -762,19 +700,8 @@ function scheduleBalance(){
   balTimer=setTimeout(()=>{try{BAL=balance(model); balKey=key;}catch(e){BAL=null;} fillBalance(); if($("curveQ").value==="grip") curveStatic();},180);
 }
 
-/* ---- per-frame derived values shared by the views ---- */
-const FR={p:[null,null,null,null],cam:[0,0,0,0],steer:[0,0,0,0],si:null};
-function computeFrame(){
-  for(let i=0;i<4;i++){
-    const ax=i<2?0:1, g=P.ax[ax].g, T=model.T[ax], side=i%2===0?-1:1, s=S.out[i].s||0, r=ax===0?side*inp.rack:0;
-    const p=pose(g,T.D,lk2(T,T.al,s,r),r)||T.P0;
-    FR.p[i]=p; FR.steer[i]=side*p.steer/D2R;
-    FR.cam[i]=Math.asin(Math.max(-1,Math.min(1,-(p.av[2]+S.ph*side*p.av[1]+S.th*p.av[0]))))/D2R;      // camber to the road: body camber plus roll and pitch
-  }
-  FR.si=steerInfo(model,inp.rack,S.out[0].s||0,S.out[1].s||0);
-}
 
-/* ===== 3D ===== */
+/* ===== 6. 3D view ===== */
 const view=$("view");
 function init3D(){
   const renderer=new THREE.WebGLRenderer({antialias:true});
@@ -792,9 +719,8 @@ function init3D(){
     car:std({transparent:true,opacity:0.09,depthWrite:false,flatShading:true,side:THREE.DoubleSide,metalness:0,roughness:0.8})};
   const LM={edge:new THREE.LineBasicMaterial({transparent:true,opacity:0.9}),coil:new THREE.LineBasicMaterial({}),axis:new THREE.LineDashedMaterial({dashSize:0.06,gapSize:0.04}),car:new THREE.LineBasicMaterial({transparent:true,opacity:0.55})};
   let grid=null, gridLv=[], chassis=null, chassisEdge=null, chKey="";
-  /* Wheel tracks: a faint ribbon on the floor behind each tire, as wide as the tire, laid down while Drive moves the car over the ground.
-     Points are kept in ground coordinates (newest first) and the group is turned and shifted like the floor grid, so a track stays where
-     it was laid. It fades over its length; where two tracks overlap their light adds up. */
+  /* Wheel tracks: a faint ribbon behind each tire, as wide as the tire, laid while the car is driven. Points are kept in ground
+     coordinates (newest first) and the group moves with the floor grid, so a track stays where it was laid. It fades over its length. */
   const TRK={len:14,step:0.08,max:400,g:new THREE.Group(),w:[],mat:new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,side:THREE.DoubleSide})};
   for(let i=0;i<4;i++){
     const geo=new THREE.BufferGeometry(), idx=[]; for(let k=0;k<TRK.max;k++) idx.push(2*k,2*k+1,2*k+2,2*k+1,2*k+3,2*k+2);
@@ -805,14 +731,14 @@ function init3D(){
   TRK.g.position.y=0.003; scene.add(TRK.g);
   function tracks(){
     if(GND.clear){for(const w of TRK.w) w.pts.length=0; GND.clear=false;}
-    if(Math.abs(GND.wx)>200||Math.abs(GND.wy)>200){                 // keep the numbers small: move the origin of the ground coordinates to the car
+    if(Math.abs(GND.wx)>200||Math.abs(GND.wy)>200){      // keep the numbers small: move the ground origin to the car
       for(const w of TRK.w) for(const q of w.pts){q[0]-=GND.wx; q[2]-=GND.wx; q[1]-=GND.wy; q[3]-=GND.wy;}
       GND.wx=0; GND.wy=0;
     }
     const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);
     for(let i=0;i<4;i++){
       const w=TRK.w[i], pts=w.pts, side=i%2===0?-1:1, g=P.ax[i<2?0:1].g, p=FR.p[i];
-      const f=model.xs[i]+p.CP[0], r=side*p.CP[1];                // contact patch in the car's frame: forward, to the right
+      const f=model.xs[i]+p.CP[0], r=side*p.CP[1];      // contact patch in the car's frame: forward, right
       let af=side*p.av[0], ar=p.av[1]; const al=g.tw/2/(Math.hypot(af,ar)||1); af*=al; ar*=al;      // half the tread width along the axle
       const G=(a,b)=>[GND.wx+a*cs-b*sn,GND.wy+a*sn+b*cs], A=G(f-af,r-ar), B=G(f+af,r+ar), head=[A[0],A[1],B[0],B[1]];
       const mid=q=>[(q[0]+q[2])/2,(q[1]+q[3])/2], hm=mid(head);
@@ -845,13 +771,13 @@ function init3D(){
   }
   const cgMesh=new THREE.Mesh(new THREE.SphereGeometry(0.035,16,12),M.cg); bodyG.add(cgMesh);
   const axisGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]), axisLine=new THREE.Line(axisGeo,LM.axis); bodyG.add(axisLine);
-  /* Meshes from body-model.js (optional: without the file the view shows the box and plain rim discs). */
+  /* Meshes from body-model.js. Without the file the view shows the box and plain rim discs. */
   const MD=window.CAR_MODELS||null, bytes=t=>Uint8Array.from(atob(t),ch=>ch.charCodeAt(0));
   const unpack=m=>{const q=new Uint16Array(bytes(m.pos).buffer), pos=new Float32Array(q.length);      // 16-bit coordinates back to meters
     for(let i=0;i<q.length;i++) pos[i]=m.min[i%3]+q[i]/65535*m.size[i%3];
     return {pos,idx:new Uint16Array(bytes(m.idx).buffer)};};
   const meshGeo=(pos,idx)=>{const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.BufferAttribute(pos,3)); geo.setIndex(new THREE.BufferAttribute(idx,1)); return geo;};
-  /* Car body: a see-through shell with lit edges that rides on the sprung mass. Each one is built the first time its car is shown. */
+  /* Car body: a see-through shell with lit edges, on the sprung mass. Built the first time it is shown. */
   const shells={};
   function shell(name){
     if(!shells[name]){
@@ -860,17 +786,16 @@ function init3D(){
     }
     return shells[name];
   }
-  /* Wheels, built per axle from its numbers and rebuilt when one of them changes. The wheel's frame has z along the spin axis.
-     Tire: a section turned about the axis. It starts on the bead seat, is widest (the section width) at half height and reaches the loaded
-     radius at the tread, so it touches the ground. Rim: the look's rim mesh with its lip scaled to the rim diameter and its width to the rim
-     width. Its center is then set along the axis so the mounting face sits at the wheel offset, and the spokes lean to follow; the center
-     keeps its own depth unless the outer lip is nearer than that, so a high offset flattens the face and a low one leaves a dish. */
+  /* Wheels, built per axle from its numbers; z is the spin axis.
+     Tire: a section turned about the axis, from the bead seat out to the section width at half height and in to the loaded radius.
+     Rim: the look's mesh, its lip scaled to the rim diameter and its width to the rim width. The center is moved along the axis so
+     the mounting face sits at the wheel offset, and the spokes lean to follow. */
   const FLANGE=0.0175, LIPW=0.0127;      // a rim's lip stands this far above the bead seat and this far outside the nominal width, each side (m)
   const rims={}, wheels=[{key:""},{key:""}];
   function tireGeo(g){
-    const rb=Math.min(g.rimD/2,g.R-0.01), hb=g.rimW/2, H=g.R-rb, h=g.tw/2;      // bead radius (held under the tread if the rim entered is larger than the tire), bead and section half widths, section height
+    const rb=Math.min(g.rimD/2,g.R-0.01), hb=g.rimW/2, H=g.R-rb, h=g.tw/2;      // bead radius (kept under the tread), bead and section half widths, section height
     const half=[[hb,rb],[hb+(h-hb)*0.75,rb+0.25*H],[h,rb+0.5*H],[0.985*h,rb+0.72*H],[0.9*h,rb+0.9*H],[0.78*h,rb+0.975*H],[0.4*h,g.R-0.002],[0,g.R]];      // [along the axis, radius]: bead to crown
-    const pts=half.map(([a,r])=>[-a,r]).concat(half.slice(0,-1).reverse()).map(([a,r])=>new THREE.Vector2(r,a));      // inboard bead, crown, outboard bead: in this order the faces point outward
+    const pts=half.map(([a,r])=>[-a,r]).concat(half.slice(0,-1).reverse()).map(([a,r])=>new THREE.Vector2(r,a));      // inboard bead, crown, outboard bead: this order makes the faces point outward
     return new THREE.LatheGeometry(pts,48).rotateX(Math.PI/2);
   }
   function rimGeo(name,g){
@@ -888,9 +813,9 @@ function init3D(){
   for(let i=0;i<4;i++){
     const c={lf:rod(M.lower,0.012),lr:rod(M.lower,0.012),uf:rod(M.upper,0.011),ur:rod(M.upper,0.011),up:rod(M.upright,0.018),sp:rod(M.upright,0.015),
              sarm:rod(M.tie,0.011),tie:rod(M.tie,0.009),dmp:rod(M.coil,0.014)};
-    c.wheel=new THREE.Group(); bodyG.add(c.wheel); c.roll=new THREE.Group(); c.wheel.add(c.roll);      // wheel: where the spin axis points; roll: the turn about it
+    c.wheel=new THREE.Group(); bodyG.add(c.wheel); c.roll=new THREE.Group(); c.wheel.add(c.roll);      // wheel: where the spin axis points. roll: the turn about it
     c.tire=new THREE.Mesh(undefined,M.tire); c.roll.add(c.tire); c.rim=new THREE.Mesh(undefined,M.rim); c.roll.add(c.rim);
-    if(i%2===0) c.rim.rotation.y=Math.PI;      // the wheel group's z axis points to the car's right, so a left wheel's rim is turned to face outboard
+    if(i%2===0) c.rim.rotation.y=Math.PI;      // z points to the car's right, so a left rim is turned to face outboard
     const hg=new THREE.BufferGeometry(); hg.setAttribute("position",new THREE.BufferAttribute(new Float32Array(3*160),3));
     c.helix=new THREE.Line(hg,LM.coil); c.helix.frustumCulled=false; bodyG.add(c.helix);
     c.arrow=new THREE.ArrowHelper(UP,new THREE.Vector3(),0.3,0x00ff00,0.06,0.04);
@@ -898,8 +823,7 @@ function init3D(){
     c.bump=new THREE.Mesh(new THREE.BoxGeometry(0.3,1,0.3),M.bumpm); scene.add(c.bump);
     corners.push(c);
   }
-  /* Steering rack: the housing is fixed to the chassis; the rack bar slides through it and carries the two inner tie-rod joints, which
-     therefore move sideways together; each tie rod (per corner, above) keeps its length. */
+  /* Steering rack: a housing fixed to the chassis, and the bar that slides through it with the two inner tie rod joints. */
   const rackH=rod(M.rackH,0.024), rack=rod(M.tie,0.013), col=rod(M.tie,0.008), swG=new THREE.Group(); bodyG.add(swG);
   const rackJ=[0,1].map(()=>{const j=new THREE.Mesh(new THREE.SphereGeometry(0.018,14,10),M.tie); bodyG.add(j); return j;});
   swG.add(new THREE.Mesh(new THREE.TorusGeometry(0.17,0.012,8,36),M.tie));
@@ -919,15 +843,15 @@ function init3D(){
   }
   function theme(){
     const c=n=>new THREE.Color(COL[n]);
-    scene.background=c("midnight");                                   // the brand field: white vinyl on dark blue
+    scene.background=c("midnight");
     M.lower.color=c("armL").multiplyScalar(0.3); M.upper.color=c("armU").multiplyScalar(0.3); M.upright.color=c("dim");
-    M.lower.emissive=c("armL"); M.lower.emissiveIntensity=0.9; M.upper.emissive=c("armU"); M.upper.emissiveIntensity=0.8;   // the arms glow in their own color instead of washing out under the lights
+    M.lower.emissive=c("armL"); M.lower.emissiveIntensity=0.9; M.upper.emissive=c("armU"); M.upper.emissiveIntensity=0.8;      // the arms glow in their own color
     M.coil.color=c("ice"); M.tie.color=c("ice"); M.rackH.color=c("edge");
     M.tire.color=c("gunmetal"); M.rim.color=c("edge"); M.body.color=c("gunmetal"); M.cg.color=c("vinyl"); M.bumpm.color=c("edge");
     LM.edge.color=c("edge"); LM.coil.color=c("vinyl"); LM.axis.color=c("dim"); M.car.color=c("armU"); LM.car.color=c("armU");
     corners.forEach(k=>k.arrow.setColor(c("vinyl")));
     TRK.mat.color=c("ice").multiplyScalar(0.2);
-    /* Floor: three line spacings (0.25, 1 and 4 m). A spacing fades out when the floor moves too far per frame for its lines to read as motion. */
+    /* Floor: lines every 0.25, 1 and 4 m. A spacing fades out when the floor moves too far per frame for it to read as motion. */
     if(grid){scene.remove(grid); gridLv.forEach(l=>{l.seg.geometry.dispose(); l.seg.material.dispose();});}
     grid=new THREE.Group(); gridLv=[];
     const half=8, lv=[[0.25,1,"gunmetal"],[1,GWRAP,"gunmetal"],[GWRAP,0,"edge"]];
@@ -950,8 +874,8 @@ function init3D(){
     if(key!==chKey){buildChassis(); chKey=key;}
     const lk=LOOKS[P.look], showCar=!!MD&&bodyOn; chassis.visible=chassisEdge.visible=!showCar;
     for(const k in shells) shells[k].visible=false;
-    if(showCar){const bm=MD.body[lk.body], s=shell(lk.body), lf=bm.lift; s.visible=true;       // lift: [at the front axle, at the rear axle]
-      s.position.set((model.a-model.b)/2,HUB0+(lf[0]+lf[1])/2,0); s.rotation.z=Math.atan2(lf[0]-lf[1],v.L); s.scale.setScalar(v.L/bm.wheelbase);}   // wheel arches follow the wheelbase
+    if(showCar){const bm=MD.body[lk.body], s=shell(lk.body), lf=bm.lift; s.visible=true;      // lift: [at the front axle, at the rear axle]
+      s.position.set((model.a-model.b)/2,HUB0+(lf[0]+lf[1])/2,0); s.rotation.z=Math.atan2(lf[0]-lf[1],v.L); s.scale.setScalar(v.L/bm.wheelbase);}      // scaled so the wheel arches follow the wheelbase
     for(let ax=0;ax<2;ax++){
       const g=P.ax[ax].g, w=wheels[ax], wk=[lk.rim,g.rimD,g.rimW,g.et,g.R,g.tw].join();
       if(wk===w.key) continue;
@@ -963,12 +887,12 @@ function init3D(){
     for(let i=0;i<4;i++){
       const c=corners[i], side=i%2===0?-1:1, g=P.ax[i<2?0:1].g, x0=model.xs[i], p=FR.p[i];
       const L=V(x0,p.LBJ,side), U=V(x0,p.UBJ,side), Wc=V(x0,p.WC,side), TO=V(x0,p.TRO,side);
-      const rearAx=i>=2;      // rear lower arm: front leg to the ball joint, rear leg to the second outer pivot (TO); no tie rod
-      const Dk=model.T[i<2?0:1].D;      // the arms' inner pivots, wherever their axes point
+      const rearAx=i>=2;      // rear lower arm: front leg to the ball joint, rear leg to the second outer pivot (TO)
+      const Dk=model.T[i<2?0:1].D;
       place(c.lf,V(x0,Dk.lo.F,side),L); place(c.lr,V(x0,Dk.lo.B,side),rearAx?TO:L); c.tie.visible=!rearAx;
       place(c.uf,V(x0,Dk.up.F,side),U); place(c.ur,V(x0,Dk.up.B,side),U);
       c.wheel.position.copy(Wc); nv.set(side*p.av[0],side*p.av[2],p.av[1]).normalize(); c.wheel.quaternion.setFromUnitVectors(ZA,nv); c.roll.rotation.z=-GND.roll/g.R;
-      place(c.up,L,U); place(c.sp,V(x0,p.S,side),padV.copy(Wc).addScaledVector(nv,side*g.et));      // the spindle ends at the wheel's mounting face, the offset outboard of the wheel center
+      place(c.up,L,U); place(c.sp,V(x0,p.S,side),padV.copy(Wc).addScaledVector(nv,side*g.et));      // the spindle ends at the mounting face
       place(c.sarm,V(x0,vadd(p.LBJ,vscale(p.ax,vdot(vsub(p.TRO,p.LBJ),p.ax))),side),TO); if(!rearAx) place(c.tie,TO,V(x0,p.TRI,side));
       const Dm=V(x0,p.dm,side), Tm=V(x0,[0,g.ydm,g.zdm],side); place(c.dmp,Dm,Tm); helix(c.helix,Dm,Tm);
       const zg=S.out[i].zg||0, Ft=S.out[i].Ft||0;
@@ -976,19 +900,19 @@ function init3D(){
       c.arrow.visible=Ft>5; if(Ft>5) c.arrow.setLength(Math.max(0.08,Ft/8000),0.06,0.04);
       c.bump.visible=zg>0.0005; c.bump.position.set(x0,zg/2,side*p.CP[1]); c.bump.scale.set(1,Math.max(zg,1e-4),1);
     }
-    const g0=P.ax[0].g, xr=model.a+g0.xti, hh=Math.max(0.05,g0.yti-P.steer.rmax-0.03);      // housing half length: an inner joint at full lock stays 30 mm clear of it
+    const g0=P.ax[0].g, xr=model.a+g0.xti, hh=Math.max(0.05,g0.yti-P.steer.rmax-0.03);      // housing half length: 30 mm clear of an inner joint at full lock
     place(rackH,new THREE.Vector3(xr,g0.zti,-hh),new THREE.Vector3(xr,g0.zti,hh));
     rackJ[0].position.set(xr,g0.zti,inp.rack-g0.yti); rackJ[1].position.set(xr,g0.zti,inp.rack+g0.yti);
     place(rack,rackJ[0].position,rackJ[1].position);
-    pin.set(xr,g0.zti,-Math.min(0.2,0.8*hh));      // the pinion, where the column meets the housing
-    hub.set(model.a-1.0,0.76,-0.33).sub(pin).multiplyScalar(0.95);                           // steering wheel: column 5 % shorter,
-    hub.setLength(hub.length()+0.06).add(pin); hub.y-=0.1076; hub.x-=0.04;                  // then 60 mm further out along the column, 108 mm down, 40 mm straight back
+    pin.set(xr,g0.zti,-Math.min(0.2,0.8*hh));      // the pinion
+    hub.set(model.a-1.0,0.76,-0.33).sub(pin).multiplyScalar(0.95);      // steering wheel position, set by eye:
+    hub.setLength(hub.length()+0.06).add(pin); hub.y-=0.1076; hub.x-=0.04;      // along the column from the pinion, then nudged down and back
     place(col,pin,hub);
     axV.subVectors(hub,pin).normalize(); swG.position.copy(hub); q1.setFromUnitVectors(ZA,axV); q2.setFromAxisAngle(ZA,-swNow()*D2R); swG.quaternion.copy(q1).multiply(q2);
     const sF=((S.out[0].s||0)+(S.out[1].s||0))/2, sR=((S.out[2].s||0)+(S.out[3].s||0))/2, pa=axisGeo.attributes.position.array;
     pa[0]=model.a; pa[1]=S.hrc[0]+sF; pa[2]=0; pa[3]=-model.b; pa[4]=S.hrc[1]+sR; pa[5]=0;
     axisGeo.attributes.position.needsUpdate=true; axisLine.computeLineDistances();
-    {const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);            // the floor seen from the car: the world turned back by the heading and shifted back by the position
+    {const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);      // the floor seen from the car: turned back by the heading, shifted back by the position
      grid.rotation.y=GND.psi; grid.position.set(-GND.x*cs-GND.y*sn,0,GND.x*sn-GND.y*cs);
      for(const l of gridLv){const a=Math.max(0,Math.min(1,(0.45-GND.d/l.sp)/0.25)); l.seg.material.opacity=a; l.seg.visible=a>0.01;}}
     tracks();
@@ -999,12 +923,13 @@ function init3D(){
 let R3=null;
 try{R3=init3D();}catch(e){
   const d=document.createElement("div"); d.className="nogl";
-  const noLib=typeof THREE==="undefined"||!THREE.OrbitControls;      // the library files are missing, as opposed to the browser lacking WebGL
+  const noLib=typeof THREE==="undefined"||!THREE.OrbitControls;      // the library files are missing, or the browser has no WebGL
   d.textContent=(noLib?"The 3D library did not load. Check that three.min.js and OrbitControls.js sit next to index.html.":"The 3D view needs WebGL, which is not available here.")+" The rear view and read-outs below still work.";
   view.insertBefore(d,view.firstChild); console.error(e);
 }
 
-/* ===== 2D panels ===== */
+
+/* ===== 7. Panels ===== */
 const cvs={rear:$("rear"),curve:$("curve"),hist:$("hist")};
 function sizeCanvases(){for(const k in cvs){const c=cvs[k], r=c.getBoundingClientRect(), d=Math.min(2,window.devicePixelRatio||1); const w=Math.max(1,Math.round(r.width*d)), h=Math.max(1,Math.round(r.height*d)); if(c.width!==w||c.height!==h){c.width=w; c.height=h;} c._d=d;}}
 function ctx2(c){const x=c.getContext("2d"); x.setTransform(c._d||1,0,0,c._d||1,0,0); return x;}
@@ -1053,7 +978,7 @@ function drawRear(){
   const c=cvs.rear, x=ctx2(c), w=Wd(c), h=Hd(c); x.clearRect(0,0,w,h);
   const ax=viewAxle, g=P.ax[ax].g, T=model.T[ax], hh=P.veh.h, cph=Math.cos(S.ph), sph=Math.sin(S.ph), zoff=S.z+model.xs[ax*2]*S.th;
   const span=2*(T.tHalf+0.2), sc=Math.min(w/span,(h-36)/0.86), cx=w/2, base=h-16;
-  const PX=(Y,Z)=>[cx+(Y*cph-(Z-hh)*sph)*sc, base-(hh+zoff+Y*sph+(Z-hh)*cph)*sc];     // car frame (Y right, Z up) to screen
+  const PX=(Y,Z)=>[cx+(Y*cph-(Z-hh)*sph)*sc, base-(hh+zoff+Y*sph+(Z-hh)*cph)*sc];      // car frame (Y right, Z up) to screen
   x.font=OSD(18); x.lineCap="butt"; x.lineJoin="miter";
   const seg=(a,b,cl,wd,dash)=>{x.strokeStyle=cl; x.lineWidth=wd; x.setLineDash(dash||[]); x.beginPath(); x.moveTo(a[0],a[1]); x.lineTo(b[0],b[1]); x.stroke(); x.setLineDash([]);};
   seg([0,base],[w,base],COL.edge,1);
@@ -1068,7 +993,7 @@ function drawRear(){
       pts.push(Q([p.WC[0]+o*a[0]+ct*f1[0]+st*f2[0],p.WC[1]+o*a[1]+ct*f1[1]+st*f2[1],p.WC[2]+o*a[2]+ct*f1[2]+st*f2[2]]));}
     const hl=hull(pts); x.beginPath(); hl.forEach((q,k)=>k?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1])); x.closePath();
     x.globalAlpha=0.55; x.fillStyle=COL.gunmetal; x.fill(); x.globalAlpha=1; x.strokeStyle=COL.edge; x.lineWidth=1; x.stroke();
-    const In=instant(T.D,p,ax===0?side*inp.rack:0), ic=In&&In.ic, C=[side*p.CP[1],p.CP[2]]; let dir;      // the front-view instant center of the knuckle's motion (where the two arm lines cross while the pivot axes are parallel)
+    const In=instant(T.D,p,ax===0?side*inp.rack:0), ic=In&&In.ic, C=[side*p.CP[1],p.CP[2]]; let dir;      // front-view instant center
     if(ic){dir=[side*ic[0]-C[0],ic[1]-C[1]]; if(Math.hypot(ic[0],ic[1])<30){const I=PX(side*ic[0],ic[1]); seg(Q(p.LBJ),I,COL.ghost,1,[4,4]); seg(Q(p.UBJ),I,COL.ghost,1,[4,4]);}}
     else dir=In?[-side*In.v[2],In.v[1]]:[-side,0];
     con[side]={C,dir}; tri[side]=Q(p.TRI);
@@ -1096,7 +1021,7 @@ function drawRear(){
 const CURVES={
   cam:{x:"s",name:"Camber",unit:"°",dec:2,note:"Camber is relative to the body here.",f:(T,s)=>lk2(T,T.cam,s,0)},
   toe:{x:"s",name:"Toe",unit:"°",dec:3,note:"+ = toe-in.",f:(T,s)=>-lk2(T,T.steer,s,0)},
-  cas:{x:"s",name:"Caster",unit:"°",dec:2,note:"Moves only when a pivot axis is tilted in side view.",f:(T,s)=>lk2(T,T.cas,s,0)},
+  cas:{x:"s",name:"Caster",unit:"°",dec:2,note:"",f:(T,s)=>lk2(T,T.cas,s,0)},
   dtr:{x:"s",name:"Track change",unit:"mm",dec:1,note:"+ = contact patch moves outboard.",f:(T,s)=>lk1(T,T.dtr,s)*1000},
   MR:{x:"s",name:"Motion ratio",unit:"",dec:3,note:"",f:(T,s)=>lk2(T,T.MR,s,0)},
   rch:{x:"s",name:"Roll center height",unit:"mm",dec:0,note:"For equal travel on both sides.",f:(T,s)=>lk1(T,T.rch,s)*1000},
@@ -1108,7 +1033,7 @@ const CURVES={
 const SERIES={sw:["Left wheel","Right wheel","L ","R "],ay:["Front axle","Rear axle","F ","R "]};
 const ayNow=()=>Math.abs(P.steer.link?S.ay:inp.ay);
 function balAt(arr,ay){if(!BAL||!BAL.ay.length) return 0; const n=BAL.ay.length, x=Math.max(0,Math.min(n-1,ay/0.05)), i=Math.min(n-2,Math.floor(x)); return n<2?arr[0]:arr[i]+(arr[i+1]-arr[i])*(x-i);}
-function curveEval(C,xv,side){   // xv: travel in mm, steering-wheel angle in degrees, or lateral g; side: -1 left (or front axle), +1 right (or rear axle)
+function curveEval(C,xv,side){      // xv: travel (mm), steering wheel angle (deg) or lateral g. side: -1 left or front axle, +1 right or rear axle
   if(C.x==="s") return C.f(model.T[viewAxle],xv/1000);
   if(C.x==="ay") return BAL?balAt(side===-1?BAL.uF:BAL.uR,xv)*100:0;
   const T=model.T[0]; return C.f(T,model.st[side===-1?0:1],T.sgn*xv/360*P.steer.c,side);
@@ -1150,12 +1075,12 @@ function drawCurve(){
   x.textAlign="center";
   for(const t of tx){x.beginPath(); x.moveTo(X(t),Tm); x.lineTo(X(t),h-Bm); x.stroke(); x.fillText(tickTxt(t,tx.step),X(t),h-Bm+18);}
   x.textAlign="left"; x.fillText(kind==="sw"?"STEERING WHEEL ° / + RIGHT":kind==="ay"?"LATERAL g":"WHEEL TRAVEL mm / + BUMP",Lm,h-6);
-  x.fillText(C.name.toUpperCase()+(C.unit?" "+C.unit:""),0,16);                    // the y-axis title sits above the plot, flush left
+  x.fillText(C.name.toUpperCase()+(C.unit?" "+C.unit:""),0,16);
   x.strokeStyle=COL.edge; x.beginPath(); x.moveTo(X(0),Tm); x.lineTo(X(0),h-Bm); x.stroke();
   if(kind==="ay"&&hi>100){x.setLineDash([3,4]); x.beginPath(); x.moveTo(Lm,Y(100)); x.lineTo(w-Rm,Y(100)); x.stroke(); x.setLineDash([]); x.fillStyle=COL.dim; x.textAlign="right"; x.fillText("LIMIT",w-Rm-2,Y(100)-5); x.textAlign="left";}
   const cols=two?[COL.vinyl,COL.ice]:[COL.vinyl];
   ys.forEach((arr,j)=>{x.strokeStyle=cols[j]; x.lineWidth=2; x.setLineDash(j?DASH:[]); x.beginPath(); arr.forEach((v,k)=>{const px=X(d[0]+(d[1]-d[0])*k/N), py=Y(v); k?x.lineTo(px,py):x.moveTo(px,py);}); x.stroke(); x.setLineDash([]);});
-  // where each wheel is now: a disc for the left wheel, a square for the right
+      // where each wheel is now: a disc for the left, a square for the right
   const dots=[-1,1].map((sd,j)=>{
     const xv=kind==="sw"?swNow():kind==="ay"?ayNow():Math.max(d[0],Math.min(d[1],(S.out[viewAxle*2+j].s||0)*1000)), cx=Math.max(d[0],Math.min(d[1],xv));
     return {px:X(cx),py:Y(curveEval(C,cx,sd)),v:curveEval(C,cx,sd),col:j?COL.ice:COL.vinyl,tag:two?SERIES[kind][2+j]:(j?"R ":"L ")};
@@ -1185,7 +1110,7 @@ const HS=11, HWIN=10, HN=HWIN*100, hist=new Float32Array(HN*HS); let hCount=0, h
 /* The recording has its own buffer and its own clock (0 at the start). REC.on: recording now. REC.n > 0 with REC.on false: a finished
    recording, shown in place of the live history until it is discarded. */
 const RMAX=60, REC={on:false,n:0,buf:new Float32Array(RMAX*100*HS),meta:null};
-function histClear(){hCount=0; hHead=0; hAcc=0; if(REC.on) REC.n=0;}      // a restart of the simulation (Settle, Step steer, a car loaded) restarts a recording in progress
+function histClear(){hCount=0; hHead=0; hAcc=0; if(REC.on) REC.n=0;}      // Settle, Step steer or a new car restarts a recording in progress
 function histSample(a,o,t){
   a[o]=t; a[o+1]=S.ph/D2R; a[o+2]=S.th/D2R; a[o+3]=S.z*1000;
   for(let i=0;i<4;i++) a[o+4+i]=S.out[i].Ft||0;
@@ -1216,7 +1141,7 @@ function plotHist(x,w,h,V,hx){
   else for(let s=0;s<=HWIN;s+=2) tick(V.t1-s,s?"−"+s+" s":"NOW");
   let hk=-1;
   if(hx!==null&&hx>=Lm-6&&V.n-V.j0>0){const th=V.t0+(Math.min(w-Rm,Math.max(Lm,hx))-Lm)/(w-Lm-Rm)*span; let best=1e9; for(let j=V.j0;j<V.n;j++){const dd=Math.abs(a[V.idx(j)]-th); if(dd<best){best=dd;hk=j;}}}
-  const stp=Math.max(1,Math.ceil((V.n-V.j0)/2400));      // a long recording is drawn with every 2nd or 3rd sample
+  const stp=Math.max(1,Math.ceil((V.n-V.j0)/2400));      // a long recording is drawn from every 2nd or 3rd sample
   HROWS.forEach((R,ri)=>{
     const y0=2+ri*rh; let lo=Infinity, hi=-Infinity;
     for(let j=V.j0;j<V.n;j++){const o=V.idx(j); for(const cI of R.cols){const v=a[o+cI]; if(v<lo)lo=v; if(v>hi)hi=v;}}
@@ -1326,50 +1251,11 @@ function drawTele(){
   histTable();
 }
 
-/* ===== loop ===== */
-function applyTheme(){readColors(); if(R3) R3.theme();}      // one look, night only: read the tokens once
-const clock=t=>{const d=Math.round(t*10), m=Math.floor(d/600); return String(m).padStart(2,"0")+":"+((d-600*m)/10).toFixed(1).padStart(4,"0");};      // whole tenths first, so 59.96 s reads 01:00.0
-function resize(){if(R3) R3.resize(); sizeCanvases();}
-new ResizeObserver(resize).observe(view);
-new ResizeObserver(sizeCanvases).observe(document.querySelector(".grid"));
 
-let last=performance.now(), teleT=0;
-function frame(now){
-  const dtF=Math.min(0.25,Math.max(0,(now-last)/1000)); last=now;
-  if(running){
-    stepAcc+=dtF*speed/DT; const n=Math.min(1200,Math.floor(stepAcc)); stepAcc-=Math.floor(stepAcc);
-    const tgt=rackTarget(), rr=900/360*P.steer.c*DT;
-    inp.U=P.steer.link?P.steer.speed:0;
-    let moved=0;
-    for(let k=0;k<n;k++){
-      const d=tgt-inp.rack; inp.rack+=d>rr?rr:(d<-rr?-rr:d);
-      step(model,S,inp,DT,0);
-      if(inp.U>0){                                               // the car's path over the ground, for the moving floor
-        const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);
-        const dx=(inp.U*cs-S.vy*sn)*DT, dy=(inp.U*sn+S.vy*cs)*DT;
-        GND.x+=dx; GND.y+=dy; GND.wx+=dx; GND.wy+=dy; GND.psi+=S.r*DT; moved+=Math.hypot(inp.U,S.vy)*DT;
-      }
-      if(++hAcc>=40){hAcc=0; histPush();}
-    }
-    GND.x-=GWRAP*Math.round(GND.x/GWRAP); GND.y-=GWRAP*Math.round(GND.y/GWRAP); GND.d+=(moved-GND.d)*0.3; GND.roll+=Math.min(moved,ROLL_MAX);
-    if(S.spun||!finite(S)) recStop();                         // a recording keeps what led up to a spin; the reset below does not wipe it
-    if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centered.",true);}
-    else if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
-    if(P.steer.link) inp.ay=S.ay;
-  } else GND.d*=0.7;
-  computeFrame();
-  $("hRoll").textContent=num(S.ph/D2R,2)+"°"; $("hPitch").textContent=num(S.th/D2R,2)+"°"; $("hHeave").textContent=num(S.z*1000,1)+" mm";
-  $("hSteer").textContent=num(swNow(),0)+"°"; $("hAy").textContent=num(inp.ay,2)+" g"; $("hTime").textContent="Sim "+clock(S.t);
-  $("oState").textContent=running?"▶ Run":"■ Hold";
-  if(P.steer.link){$("ay").value=inp.ay; $("ayO").textContent=sgnTxt(inp.ay,2)+" g";}
-  if(R3) R3.update();
-  drawRear(); drawCurve(); drawHist();
-  if(now-teleT>100){drawTele(); teleT=now;}
-  requestAnimationFrame(frame);
-}
+/* ===== 8. Setup files =====
+   Export saves the setup on screen as a .json file. Import loads one as the session setup. */
 
-/* ---- setup files: Export saves the car on screen as a .json file; Import loads such a file as the session setup ---- */
-/* Hands a generated file to the person: inside a Claude artifact the viewer saves it, on the web it is a normal browser download. */
+/* Hands a file to the user: through the host's download service when the page runs inside one, otherwise as a browser download. */
 async function saveFile(file,data,what){
   let dl=null; try{if(window.claude&&window.claude.use) dl=await window.claude.use("downloads");}catch(e){}
   if(dl){
@@ -1395,7 +1281,7 @@ function importSetup(f){
       let j; try{j=JSON.parse(rd.result);}catch(e){throw new Error("the file is not a setup file.");}
       const src=j&&j.setup?j.setup:j;
       if(!src||typeof src!=="object"||!Array.isArray(src.ax)||!src.veh) throw new Error("the file is not a setup file.");
-      const q=fromSaved(src), note=(oldNote?" It was saved by an older version; its geometry is now in today's fields and the car is the same.":"")+camNote; makeModel(q);      // throws if the geometry in the file cannot be built
+      const q=fromSaved(src), note=(oldNote?" Saved by an older version: converted, same car.":"")+camNote; makeModel(q);      // throws if the setup can't be built
       try{localStorage.setItem(SKEY,JSON.stringify(q));}catch(e){}
       loadPreset("session",q); setStatus("Setup imported from "+f.name+". It is now the session setup."+note,false);
     }catch(e){setStatus("Import failed: "+e.message,true);}
@@ -1406,11 +1292,89 @@ $("expBtn").onclick=exportSetup;
 $("impBtn").onclick=()=>$("impFile").click();
 $("impFile").onchange=()=>{const f=$("impFile").files[0]; $("impFile").value=""; if(f) importSetup(f);};
 
-/* ---- guide: the quick start (opens every time the page loads, and from the Guide button) and the vocabulary.
-   A marked word in a description (class vt) opens the vocabulary at that word; closing puts the focus back on it. ---- */
+
+/* ===== 9. Guide =====
+   Two pages: the quick start, which opens with the page, and the vocabulary.
+   VOCAB: groups of [id, word, meaning]. A description marks a word as {word} or {shown text|id}, and VT() turns the mark into a link
+   that opens the vocabulary at that word. A mark whose id is not in the vocabulary stays plain text. */
+const VOCAB=[
+ ["Parts",[
+  ["wishbone","Wishbone","A V-shaped suspension arm: two pivots on the chassis, one ball joint at the wheel end. Each corner has an upper and a lower one."],
+  ["pivot-axis","Pivot axis","The line through an arm's two chassis pivots. The arm swings about it like a door on its hinges."],
+  ["pivot-midpoint","Pivot midpoint ◆","The point halfway between an arm's two chassis pivots. The arm's own numbers start there."],
+  ["ball-joint","Ball joint","The joint at the outer end of an arm. It carries the knuckle and lets it steer."],
+  ["reach","Reach","How far the ball joint sits from the pivot axis: the arm's working length."],
+  ["leg","Leg","One side of the V, from a chassis pivot to the ball joint."],
+  ["knuckle","Knuckle","The solid part between the two ball joints. It carries the hub, so the wheel goes where the knuckle goes. Also called the upright."],
+  ["kingpin","Kingpin","The line through the two ball joints. The wheel steers about it."],
+  ["hub","Hub","The part on the knuckle that the wheel bolts to."],
+  ["hub-angle","Hub angle on knuckle","How far the hub is tipped on the knuckle. It adds straight to camber. A real Miata adjusts camber with eccentric bolts at the lower arm's pivots; the model tips the hub instead, which leaves the kingpin where it is."],
+  ["mounting-face","Wheel mounting face","The flat face of the hub that the wheel bolts against."],
+  ["offset","Offset (ET)","How far the wheel's centerline sits inboard of the mounting face. A smaller offset moves the wheel out."],
+  ["spacer","Wheel spacer","A plate between hub and wheel. It moves the wheel out by its thickness."],
+  ["tie-rod","Tie rod","The link from the steering rack to the knuckle. It steers the wheel, and its length sets the toe."],
+  ["tie-rod-end","Tie rod end","Where the tie rod bolts to the knuckle."],
+  ["steering-arm","Steering arm","The lever on the knuckle from the kingpin to the tie rod end. A shorter one (cut knuckles) turns the wheel further for the same rack travel."],
+  ["rack","Rack","The bar that slides sideways when the steering wheel turns. It pushes and pulls the tie rods."],
+  ["coilover","Coilover","Spring and damper in one unit, between the lower arm and the body."],
+  ["perch","Spring perch","The collar the spring sits on. Moving it up or down sets the ride height."],
+  ["anti-roll-bar","Anti-roll bar","A bar that links the left and right wheel of an axle. It only works when one wheel moves more than the other, so it resists roll."],
+  ["bump-stop","Bump stop","The rubber stop that ends the wheel's upward travel."]]],
+ ["Alignment",[
+  ["camber","Camber","The wheel's lean seen from behind. Negative means the top leans in toward the car."],
+  ["caster","Caster","The kingpin's lean seen from the side. Positive means the top leans back. It helps the steering self-center."],
+  ["toe","Toe","Where the wheels point seen from above. Toe-in means the fronts of the two wheels point toward each other. Static toe is the toe at design height with the steering centered."],
+  ["kingpin-inclination","Kingpin inclination","The kingpin's lean seen from behind, top toward the car."],
+  ["knuckle-angle","Knuckle angle","The angle built into the knuckle between the kingpin and the wheel. It equals kingpin inclination plus camber, so arms that add negative camber add the same kingpin inclination."],
+  ["scrub-radius","Scrub radius","On the ground, how far the middle of the tire sits outboard of the point the kingpin aims at."],
+  ["trail","Mechanical trail","On the ground, how far the middle of the tire sits behind the point the kingpin aims at. More trail means more self-centering."],
+  ["track","Track","The distance between the left and right tire of an axle, center to center on the ground."],
+  ["design-height","Design height","The height the car is drawn at: stock ride height. Every Geometry number is given there."],
+  ["ride-height","Ride height","Where the car sits now, after any lowering. The setup sheet reads the alignment there."],
+  ["cross-weight","Cross weight","The share of the car's weight on the front-left and rear-right tires. 50 % is balanced."]]],
+ ["How it moves",[
+  ["wheel-travel","Wheel travel","Up and down movement of the wheel against the body. Up is bump, down is droop."],
+  ["camber-gain","Camber gain","How much the camber changes as the wheel moves up, per 10 mm. Negative means it leans in more in bump."],
+  ["bump-steer","Bump steer","How much the toe changes as the wheel moves up, per 10 mm. Near zero is usually the aim."],
+  ["instant-center","Instant center","The point the wheel is swinging about right now, seen from behind. With parallel pivot axes it is where the lines of the two arms cross."],
+  ["roll-center","Roll center","The point the body rolls about at one axle. Its height decides how much cornering load goes through the arms instead of the springs."],
+  ["roll-axis","Roll axis","The line through the front and rear roll centers."],
+  ["anti-dive","Anti-dive","How much of the nose dive under braking the front arms hold back, in %. It needs an angled pivot axis. At the rear the same number is anti-lift."],
+  ["motion-ratio","Motion ratio","How far the coilover moves for each millimeter the wheel moves."],
+  ["wheel-rate","Wheel rate","The spring's stiffness as felt at the wheel: about spring rate times motion ratio squared."],
+  ["ride-frequency","Ride frequency","How fast the body bounces on its springs, in Hz. Higher is stiffer."],
+  ["damping-ratio","Damping ratio","Damper strength compared with the amount that just stops a bounce without overshoot (1.0). LS means at low shaft speed. ζ = c·MR² ⁄ 2√(wheel rate · corner mass)."],
+  ["knee","Knee","The damper shaft speed where it changes from its low-speed slope to its high-speed slope."],
+  ["ackermann","Ackermann","How much less the outside front wheel steers than the inside one. 100 % is what a slow turn needs for both tires to roll cleanly; 0 % is both wheels steering the same."],
+  ["contact-patch","Contact patch","Where the tire touches the road."],
+  ["loaded-radius","Loaded radius","The height of the wheel center above the road with the car's weight on the tire."],
+  ["tire-rate","Tire rate","How stiff the tire is as a spring, straight up and down. The Estimate button works it out from size and pressure with Rhyne's formula."]]],
+ ["Mass, balance and grip",[
+  ["sprung-mass","Sprung mass","Everything the springs carry: body, engine, people."],
+  ["unsprung-mass","Unsprung mass","What moves with the wheel: wheel, tire, knuckle, brake, and about half the arms and coilover."],
+  ["cg","CG","Center of gravity: the car's balance point."],
+  ["lateral-g","Lateral g","Cornering force as a multiple of the car's weight."],
+  ["roll-gradient","Roll gradient","Degrees of body roll per g of cornering. Pitch gradient is the same for braking and accelerating."],
+  ["load-transfer","Lateral load transfer","The load that moves from the inside tires to the outside tires in a corner. The front share is how much of it the front axle carries."],
+  ["slip-angle","Slip angle","The angle between where a tire points and where it actually goes. Tires make side force by slipping a few degrees."],
+  ["grip-in-use","Grip in use","The side force a tire is making, as a share of the most it could make right now."],
+  ["cornering-limit","Cornering limit","The lateral g at which an axle's tires run out of grip."],
+  ["understeer-gradient","Understeer gradient","How much more the front tires slip than the rear ones, per g. Positive is understeer: the car pushes wide."]]],
+ ["This program",[
+  ["setup-sheet","Setup sheet","The summary of the car as it sits: alignment, rates, balance and geometry."],
+  ["solver","Solver","The box on the Geometry tab that works out a change for you. Give it targets and tick the fields to solve for."],
+  ["target","Target","A setup-sheet number you want, and the value you want it to be."],
+  ["solve-for","Solve for","The tick boxes beside the fields. Ticked fields will be solved for; unticked fields stay as they are."],
+  ["session","Session","Your own edits, kept in this browser."],
+  ["settle","Settle","Brings the car to rest as it is loaded now."],
+  ["drive","Drive","Runs the car at a steady speed, so the tires make the cornering force from the steering."],
+  ["step-steer","Step steer","A sudden turn of the steering wheel to a set angle, to see how the car reacts."]]]
+];
+const VOCAB_IDS=new Set([].concat(...VOCAB.map(([,items])=>items.map(q=>q[0]))));
+const VT=s=>s.replace(/\{([^{}|]+)(?:\|([^{}]+))?\}/g,(m,shown,id)=>{const k=id||shown.toLowerCase().replace(/\s+/g,"-"); return VOCAB_IDS.has(k)?`<a class="vt" href="#v-${k}" data-v="${k}">${shown}</a>`:shown;});
 {const box=$("intro"), voc=$("vocab"); let from=null;
  voc.innerHTML=VOCAB.map(([grp,items])=>"<section><h3>"+grp+"</h3><dl>"+items.map(([id,word,meaning])=>`<div id="v-${id}"><dt>${word}</dt><dd>${meaning}</dd></div>`).join("")+"</dl></section>").join("");
- for(const el of document.querySelectorAll("[data-vt]")) el.innerHTML=VT(el.innerHTML);      // the descriptions written in index.html
+ for(const el of document.querySelectorAll("[data-vt]")) el.innerHTML=VT(el.innerHTML);      // the descriptions in index.html
  const page=name=>{$("introSteps").hidden=name!=="start"; voc.hidden=name!=="vocab";
    for(const b of $("introTabs").children) b.setAttribute("aria-pressed",b.dataset.g===name);
    for(const e of voc.querySelectorAll(".hit")) e.classList.remove("hit"); $("introBody").scrollTop=0;};
@@ -1427,11 +1391,64 @@ $("impFile").onchange=()=>{const f=$("impFile").files[0]; $("impFile").value="";
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!box.hidden) show(false);});
  show(true); from=null;}
 
-/* boot */
+
+/* ===== 10. Main loop and start ===== */
+/* Each corner's pose, camber to the road and steer angle for the frame being drawn. */
+const FR={p:[null,null,null,null],cam:[0,0,0,0],steer:[0,0,0,0],si:null};
+function computeFrame(){
+  for(let i=0;i<4;i++){
+    const ax=i<2?0:1, g=P.ax[ax].g, T=model.T[ax], side=i%2===0?-1:1, s=S.out[i].s||0, r=ax===0?side*inp.rack:0;
+    const p=pose(T.D,lk2(T,T.al,s,r),r)||T.P0;
+    FR.p[i]=p; FR.steer[i]=side*p.steer/D2R;
+    FR.cam[i]=Math.asin(Math.max(-1,Math.min(1,-(p.av[2]+S.ph*side*p.av[1]+S.th*p.av[0]))))/D2R;      // camber to the road: camber to the body plus roll and pitch
+  }
+  FR.si=steerInfo(model,inp.rack,S.out[0].s||0,S.out[1].s||0);
+}
+function applyTheme(){readColors(); if(R3) R3.theme();}
+const clock=t=>{const d=Math.round(t*10), m=Math.floor(d/600); return String(m).padStart(2,"0")+":"+((d-600*m)/10).toFixed(1).padStart(4,"0");};      // rounded to tenths first, so 59.96 s reads 01:00.0
+function resize(){if(R3) R3.resize(); sizeCanvases();}
+new ResizeObserver(resize).observe(view);
+new ResizeObserver(sizeCanvases).observe(document.querySelector(".grid"));
+
+let last=performance.now(), teleT=0;
+function frame(now){
+  const dtF=Math.min(0.25,Math.max(0,(now-last)/1000)); last=now;
+  if(running){
+    stepAcc+=dtF*speed/DT; const n=Math.min(1200,Math.floor(stepAcc)); stepAcc-=Math.floor(stepAcc);
+    const tgt=rackTarget(), rr=900/360*P.steer.c*DT;
+    inp.U=P.steer.link?P.steer.speed:0;
+    let moved=0;
+    for(let k=0;k<n;k++){
+      const d=tgt-inp.rack; inp.rack+=d>rr?rr:(d<-rr?-rr:d);
+      step(model,S,inp,DT,0);
+      if(inp.U>0){      // the car's path over the ground, for the moving floor
+        const cs=Math.cos(GND.psi), sn=Math.sin(GND.psi);
+        const dx=(inp.U*cs-S.vy*sn)*DT, dy=(inp.U*sn+S.vy*cs)*DT;
+        GND.x+=dx; GND.y+=dy; GND.wx+=dx; GND.wy+=dy; GND.psi+=S.r*DT; moved+=Math.hypot(inp.U,S.vy)*DT;
+      }
+      if(++hAcc>=40){hAcc=0; histPush();}
+    }
+    GND.x-=GWRAP*Math.round(GND.x/GWRAP); GND.y-=GWRAP*Math.round(GND.y/GWRAP); GND.d+=(moved-GND.d)*0.3; GND.roll+=Math.min(moved,ROLL_MAX);
+    if(S.spun||!finite(S)) recStop();      // a recording keeps what led up to a spin
+    if(S.spun){setSw(0); inp.rack=0; resettle(2); setStatus("The car spun: it was sliding sideways faster than it was going forward. Steering centered.",true);}
+    else if(!finite(S)){inp.rack=rackTarget(); resettle(2); setStatus("The simulation went unstable and was reset. Try less extreme values.",true);}
+    if(P.steer.link) inp.ay=S.ay;
+  } else GND.d*=0.7;
+  computeFrame();
+  $("hRoll").textContent=num(S.ph/D2R,2)+"°"; $("hPitch").textContent=num(S.th/D2R,2)+"°"; $("hHeave").textContent=num(S.z*1000,1)+" mm";
+  $("hSteer").textContent=num(swNow(),0)+"°"; $("hAy").textContent=num(inp.ay,2)+" g"; $("hTime").textContent="Sim "+clock(S.t);
+  $("oState").textContent=running?"▶ Run":"■ Hold";
+  if(P.steer.link){$("ay").value=inp.ay; $("ayO").textContent=sgnTxt(inp.ay,2)+" g";}
+  if(R3) R3.update();
+  drawRear(); drawCurve(); drawHist();
+  if(now-teleT>100){drawTele(); teleT=now;}
+  requestAnimationFrame(frame);
+}
+
 settle(model,S,inp,3); S.t=0;
 renderForms(); readLoads(); refreshStatic(); syncLink(); applyTheme(); resize();
-setStatus(!restored?"Solved.":PRESETS[presetName]?CAR[presetName][0]+" car loaded.":"Last setup restored from this browser."+camNote,false);      // a lit Stock or Coen's button loads that car as it is defined now
-if(document.fonts&&document.fonts.load) document.fonts.load("18px VT323").catch(()=>{});      // the canvases draw their labels in the read-out face
+setStatus(!restored?"Solved.":PRESETS[presetName]?CAR[presetName][0]+" car loaded.":"Last setup restored from this browser."+camNote,false);
+if(document.fonts&&document.fonts.load) document.fonts.load("18px VT323").catch(()=>{});      // the canvases draw their labels in this face
 requestAnimationFrame(frame);
-/* If the host restored control values after an update, bring the model and the controls back in step. */
+/* A host can restore control values after its own reload: bring the controls back in step with the model. */
 setTimeout(()=>{const a=document.activeElement; if(a&&(a.tagName==="INPUT"||a.tagName==="SELECT")) return; renderForms(); setSw(+$("sw").value||0); syncLink(); curveStatic();},1200);
