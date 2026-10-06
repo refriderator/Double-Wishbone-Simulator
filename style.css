@@ -10,8 +10,7 @@ img{max-width:100%}
 @font-face{font-family:"Chakra Petch";src:url("ChakraPetch-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
 @font-face{font-family:"VT323";src:url("VT323-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
 
-/* Layout: a camcorder frame over a setup sheet. Controls sit in a glass column on the left. The 3D rig is the frame
-   (midnight field, read-out bar, scanlines) and stays pinned while the panels scroll under it. One look, night only. */
+/* Layout: controls in a column on the left. The 3D view stays pinned while the panels scroll under it. One look, night only. */
 :root{
   color-scheme:dark;
   /* OL! Racing Factory tokens, copied from the design system. The palette is closed: do not add colors. */
@@ -32,8 +31,8 @@ img{max-width:100%}
   --glow-ice:0 0 24px rgba(164,185,208,0.4);
   --lift:0 16px 40px rgba(0,0,0,0.6);
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px;
-  --scanline-alpha:0.43;   /* the design system says 0.45; turned down about 5 % on request */
-  --arm-lower:#6e9cff;     /* display colors for the control arms, outside the closed palette on request */
+  --scanline-alpha:0.43;   /* strength of the scanlines over the 3D view */
+  --arm-lower:#6e9cff;     /* the two control arm colors: the only hues outside the palette */
   --arm-upper:#a4b9d0;
   --font-display:Michroma,"Eurostile Extended","Arial Black",sans-serif;   /* uppercase, tracked: headings, labels, buttons */
   --font-sans:"Chakra Petch","Helvetica Neue",Arial,sans-serif;            /* reading text */
@@ -163,7 +162,7 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--vinyl-ghost)}
 .sketch .tie{stroke:var(--ice);stroke-width:4;fill:var(--void)}
 .sketch .hot.dimline,.sketch .hot.leg{stroke:var(--vinyl);stroke-width:5}
 .sketch .hot.kn{stroke-width:8} .sketch .hot.tie{stroke:var(--vinyl)}
-.sketch .org{fill:var(--rec);stroke:var(--void);stroke-width:1.5}      /* the origin of a drawing: red on request, the one use of red besides errors */
+.sketch .org{fill:var(--rec);stroke:var(--void);stroke-width:1.5}      /* a drawing's origin: the one use of red besides errors */
 .sketch .lbl{cursor:pointer}
 .sketch .lbl .pl{fill:var(--void);opacity:.82;stroke:none}
 .sketch .lbl .bx{fill:var(--void);stroke:var(--edge);stroke-width:1.5}
@@ -174,13 +173,14 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--vinyl-ghost)}
 .t{display:grid;grid-template-columns:24px minmax(0,1fr) 96px 62px;gap:var(--space-1) var(--space-2);align-items:center}
 .t input[type=number]{width:100%;height:36px;padding:0 var(--space-2);border:1px solid var(--edge);border-radius:0;background:var(--glass-raised);color:var(--vinyl);font:400 16px/24px var(--font-sans);font-variant-numeric:tabular-nums;text-align:right}
 .t input[type=number]:focus-visible{border-color:var(--ice)}
+.t label{overflow-wrap:anywhere}
 .t .u{color:var(--vinyl-dim)}
 .t .cur{grid-column:2/-1;margin-top:-4px;color:var(--vinyl-ghost);font-size:12px;line-height:16px}
 .t .v{justify-self:end;font-variant-numeric:tabular-nums}
 .hint.steps{padding-left:20px;display:grid;gap:var(--space-1)}
 .hint.steps b{color:var(--vinyl)}
 #moreF summary{color:var(--vinyl-dim);font:400 12px/16px var(--font-display);letter-spacing:.14em}
-#moreF[open] summary,#moreF .hint{margin-bottom:var(--space-2)}
+#moreF[open] summary{margin-bottom:var(--space-2)}
 .result{display:grid;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--edge);border-left:2px solid var(--vinyl)}
 .chg{display:grid;gap:var(--space-1)}
 .chg>div{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);align-items:baseline;justify-content:space-between}
@@ -199,6 +199,17 @@ main{min-width:0;min-height:0;overflow:auto;display:grid;gap:var(--space-6);alig
 .frame{position:absolute;inset:var(--space-3) var(--space-4);display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-2);pointer-events:none}
 .osd{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);font:400 20px/20px var(--font-osd);letter-spacing:.06em;text-transform:uppercase;text-shadow:var(--chroma-bleed-sm);white-space:nowrap}
 .osd .grp{display:inline-flex;align-items:center;gap:var(--space-3)}
+.osd .grp:first-child,.osd #hTime{flex:none}
+.osd .grp:last-child{min-width:0}
+/* The car badge can be retyped. A hidden copy of the text (::after) sets the width, so the box fits what is typed; in a full row it
+   stops growing and the text ends in an ellipsis. */
+.tag.edit{display:inline-grid;grid-template-columns:minmax(0,1fr);min-width:0;overflow:hidden;pointer-events:auto;cursor:text}
+.tag.edit::after{content:attr(data-v);grid-area:1/1;visibility:hidden;white-space:pre;padding-right:1px}
+.tag.edit input,.tag.edit input:focus-visible{grid-area:1/1;width:100%;min-width:0;height:22px;margin:0;padding:0;border:0;border-radius:0;outline:0;background:none;
+  font:inherit;letter-spacing:inherit;text-transform:inherit;text-shadow:inherit;color:inherit;text-overflow:ellipsis;caret-color:var(--vinyl);-webkit-appearance:none;appearance:none}
+.tag.edit input::placeholder{color:var(--vinyl-ghost);opacity:1}
+.tag.edit:hover{border-color:var(--ice)}
+.tag.edit:focus-within{border-color:var(--vinyl)}
 .hud{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-6);margin-top:var(--space-3)}
 .hud div{display:grid;gap:2px}
 .hud span{color:var(--vinyl-dim);font:400 12px/16px var(--font-display);letter-spacing:.14em;text-transform:uppercase}
@@ -252,7 +263,6 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
 @media (pointer:coarse){
   .f input,.f select,.card h2 select{height:44px}
   .seg button,.btn.sm{min-height:44px}
-  .tab{min-height:44px}
 }
 @media (max-width:860px){
   :root{--viewh:clamp(250px,42vh,360px);scroll-padding-top:calc(var(--viewh) + var(--space-4))}
@@ -274,7 +284,6 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
 /* ---- guide: one window with two pages. Quick start (three steps, shown on every load) and the vocabulary.
    The head stays put; the page under it scrolls. ---- */
 .intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:var(--space-4);background:rgba(0,0,0,0.72)}
-.intro[hidden]{display:none}
 .introBox{position:relative;width:min(1040px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;padding:var(--space-6);border:1px solid var(--edge);background:var(--void);box-shadow:var(--lift)}
 .introHead{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin:0 48px var(--space-4) 0}
 .introBox h2{margin:0;font:400 20px/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase}
@@ -307,4 +316,15 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
   .introSteps img{grid-column:1;grid-row:1}
   .introSteps div{grid-column:2;grid-row:1}
   .introSteps span{min-height:0}
+}
+@media (max-width:389px){
+  .tab{padding-left:0;padding-right:0;font-size:11px;letter-spacing:.08em}
+}
+@media (max-width:374px){
+  .tab{font-size:10px;letter-spacing:.05em}
+  .t{grid-template-columns:24px minmax(0,1fr) 84px 52px}
+  .osd{font-size:16px;gap:var(--space-2)}
+  .osd .grp{gap:var(--space-2)}
+  .osd .tag{height:20px;padding:0 var(--space-1);font-size:14px;line-height:20px}
+  .tag.edit input,.tag.edit input:focus-visible{height:18px}
 }
