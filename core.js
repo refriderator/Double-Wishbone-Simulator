@@ -58,7 +58,8 @@ const ET_FIT=0.040;      // the wheel offset the hub position was fitted with (M
    Travel: bump stops where the stock dampers have them (62.5 / 48.5 mm above ride height); droop ends where an unpreloaded spring
    goes loose (67 / 69 mm below ride height). The coilovers' real stroke is not known.
    The wheel is fixed on the knuckle (version 41): camber = knuckle angle (kinc; inc in the old fields) - kingpin inclination + adjuster
-   (cadj, +1 to -3°).
+   (cadj, +1 to -3°). The page calls the adjuster "Hub angle on knuckle" since version 58, because that is what the model does: it tips the
+   hub on the knuckle. The car's own adjusters are eccentric bolts at the lower arm's pivots, which also move the kingpin.
    look says which body and rims the 3D view draws (0: Roadster RS, 1: Coen's). It has no effect on the numbers.
 
    SINCE VERSION 57 the stock car is still written down below in the fields of versions 41 to 56 (legacyStock), because every number
@@ -111,7 +112,7 @@ const GEO=[
   ["TIRE",[["tw","Section width","mm",1e-3,5,125,355],["ar","Aspect ratio","%",1e-2,5,25,85],["pk","Pressure","kPa",1e3,5,100,350],["R","Loaded radius","mm",1e-3,5,150,500],["kt","Vertical rate","N/mm",1e3,10,50,1000]]],
   ["GRIP",[["tmu","Peak grip at 2.5 kN of load","",1,0.05,0.3,2.5],["tls","Grip lost per kN of extra load","/kN",1e-3,0.01,0,0.2],["tca","Cornering stiffness, share of load per degree of slip","/°",1,0.01,0.05,0.6],
            ["tcg","Camber thrust, share of load per degree","/°",1,0.001,0,0.06],["tgo","Camber into the turn that gives the most grip","°",1,0.5,0,8]]],
-  ["Alignment",[["cadj","Camber adjuster, added to what the arms give","°",1,0.05,-3,1,"slider"],["toe","Static toe per wheel, + = toe-in","°",1,0.05,-5,5]]],
+  ["Alignment",[["cadj","Hub angle on knuckle","°",1,0.05,-3,1,"slider"],["toe","Static toe per wheel, + = toe-in","°",1,0.05,-5,5]]],
   ["TIE",[["xti","Inner joint, ahead of axle (− = behind)","mm",1e-3,5,-500,500],["yti","Inner joint, from centerline","mm",1e-3,5,0,800],["zti","Inner joint, above ground","mm",1e-3,0.1,20,800]]],
   ["Coilover",[["fMount","Mount on lower arm (fraction from inner pivot)","",1,0.05,0.2,1],["ydm","Top mount, from centerline","mm",1e-3,5,0,900],["zdm","Top mount, above ground","mm",1e-3,5,100,1200]]],
   ["Travel limits",[["bump","Bump travel (to bump stop)","mm",1e-3,5,10,200],["droop","Droop travel (to limit)","mm",1e-3,5,10,200]]]
@@ -781,9 +782,9 @@ function gaussSolve(A,b){                                           // solves A 
 function solveFor(g0,name,c,targets,free){
   const keys=Object.keys(targets), m=keys.length, n=free.length, spec={}, short=l=>l.split(" (")[0].replace(/, (added to|\+ =).*$/,"");      // a field's label without its sign note, for a sentence
   for(const [grp,fs] of GEO) for(const f of fs) spec[f[0]]={label:f[1],unit:f[2],sc:f[3],mn:f[5],mx:f[6],wt:f[2]==="°"?0.25:f[2]===""?0.01:1,group:grp};
-  if(!m) return {ok:false,why:"Pick at least one number to solve for."};
-  if(!n) return {ok:false,why:"Tick at least one field that is allowed to change."};
-  if(m>n) return {ok:false,why:m+" targets but only "+n+" field"+(n>1?"s":"")+" allowed to change. Each target needs its own field to change, so this has no exact answer. Tick "+(m-n)+" more or drop a target."};
+  if(!m) return {ok:false,why:"Tick at least one target: a number you want."};
+  if(!n) return {ok:false,why:"Tick at least one field to solve for."};
+  if(m>n) return {ok:false,why:m+" targets but only "+n+" ticked field"+(n>1?"s":"")+". Each target needs a field of its own: tick "+(m-n)+" more or drop a target."};
   const T=keys.map(k=>TARGETS.find(t=>t[0]===k)), F=free.map(k=>spec[k]), x0=free.map((k,i)=>g0[k]/F[i].sc/F[i].wt);
   const evalAt=x=>{const g=Object.assign({},g0); free.forEach((k,i)=>{g[k]=x[i]*F[i].wt*F[i].sc;}); let o; try{o=axleNumbers(g,name,c);}catch(e){return null;}
     if(!o) return null; const y=T.map(t=>o[t[0]]*t[3]); return y.every(Number.isFinite)?{g,y,o}:null;};
