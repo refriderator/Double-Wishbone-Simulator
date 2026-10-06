@@ -199,6 +199,17 @@ main{min-width:0;min-height:0;overflow:auto;display:grid;gap:var(--space-6);alig
 .frame{position:absolute;inset:var(--space-3) var(--space-4);display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-2);pointer-events:none}
 .osd{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);font:400 20px/20px var(--font-osd);letter-spacing:.06em;text-transform:uppercase;text-shadow:var(--chroma-bleed-sm);white-space:nowrap}
 .osd .grp{display:inline-flex;align-items:center;gap:var(--space-3)}
+.osd .grp:first-child,.osd #hTime{flex:none}
+.osd .grp:last-child{min-width:0}
+/* The car badge is a title anyone can retype. The hidden copy of the text (::after) sets the width, so the box always fits what is typed;
+   where the row has no room left the box stops growing and the text is cut with an ellipsis. */
+.tag.edit{display:inline-grid;grid-template-columns:minmax(0,1fr);min-width:0;overflow:hidden;pointer-events:auto;cursor:text}
+.tag.edit::after{content:attr(data-v);grid-area:1/1;visibility:hidden;white-space:pre;padding-right:1px}
+.tag.edit input,.tag.edit input:focus-visible{grid-area:1/1;width:100%;min-width:0;height:22px;margin:0;padding:0;border:0;border-radius:0;outline:0;background:none;
+  font:inherit;letter-spacing:inherit;text-transform:inherit;text-shadow:inherit;color:inherit;text-overflow:ellipsis;caret-color:var(--vinyl);-webkit-appearance:none;appearance:none}
+.tag.edit input::placeholder{color:var(--vinyl-ghost);opacity:1}
+.tag.edit:hover{border-color:var(--ice)}
+.tag.edit:focus-within{border-color:var(--vinyl)}
 .hud{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-6);margin-top:var(--space-3)}
 .hud div{display:grid;gap:2px}
 .hud span{color:var(--vinyl-dim);font:400 12px/16px var(--font-display);letter-spacing:.14em;text-transform:uppercase}
@@ -307,4 +318,10 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
   .introSteps img{grid-column:1;grid-row:1}
   .introSteps div{grid-column:2;grid-row:1}
   .introSteps span{min-height:0}
+}
+@media (max-width:374px){
+  .osd{font-size:16px;gap:var(--space-2)}
+  .osd .grp{gap:var(--space-2)}
+  .osd .tag{height:20px;padding:0 var(--space-1);font-size:14px;line-height:20px}
+  .tag.edit input,.tag.edit input:focus-visible{height:18px}
 }

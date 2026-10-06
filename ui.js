@@ -559,10 +559,22 @@ $("copySpr").onclick=()=>applyEdit(()=>{P.ax[1-editAxle].s=JSON.parse(JSON.strin
 $("speed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; speed=+b.dataset.v;
   $("speed").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); $("oSpeed").textContent=b.textContent;});
 $("play").onclick=()=>{running=!running; $("play").textContent=running?"Pause":"Run";};
-/* Space bar runs and pauses from anywhere on the page, whatever has the focus (so it never presses a focused button or ticks a box). */
-{const sp=e=>(e.code==="Space"||e.key===" ")&&!e.ctrlKey&&!e.metaKey&&!e.altKey;
+/* Space bar runs and pauses from anywhere on the page, whatever has the focus (so it never presses a focused button or ticks a box).
+   The one exception is the car title, where a space is a space. */
+{const sp=e=>(e.code==="Space"||e.key===" ")&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&e.target.id!=="carTag";
  document.addEventListener("keydown",e=>{if(!sp(e)) return; e.preventDefault(); if(!e.repeat) $("play").click();},true);
  document.addEventListener("keyup",e=>{if(sp(e)) e.preventDefault();},true);}
+/* The car badge in the 3D view is a title anyone can retype. It is for show: nothing reads it, no setup or export carries it.
+   Kept per browser (the page works the same without storage). Enter keeps it, Esc puts back what was there, empty goes back to the car's name. */
+{const el=$("carTag"), box=el.parentElement, DEF=el.placeholder; let before=DEF;
+ const fit=()=>{box.dataset.v=el.value||DEF;};
+ try{const t=localStorage.getItem("dws.title"); if(t) el.value=t.slice(0,el.maxLength);}catch(e){}
+ fit();
+ el.addEventListener("focus",()=>{before=el.value; setTimeout(()=>{if(document.activeElement===el) el.select();},0);});
+ el.addEventListener("input",fit);
+ el.addEventListener("keydown",e=>{if(e.isComposing) return; if(e.key==="Enter") el.blur(); else if(e.key==="Escape"){el.value=before; el.blur();}});
+ el.addEventListener("blur",()=>{el.value=el.value.trim().replace(/\s+/g," ")||DEF; fit(); el.scrollLeft=0;
+   try{if(el.value===DEF) localStorage.removeItem("dws.title"); else localStorage.setItem("dws.title",el.value);}catch(e){}});}
 function resettle(sec){S=newState(); settle(model,S,inp,sec); S.t=0; histClear(); GND.psi=GND.x=GND.y=GND.wx=GND.wy=0; GND.clear=true;}
 $("reset").onclick=()=>resettle(4);
 function loadPreset(name,q0){

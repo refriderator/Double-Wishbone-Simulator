@@ -148,6 +148,7 @@ The Coen's car itself was redefined in version 57, so that its knuckles are the 
 
 ## Good to know
 
+- The car badge in the 3D view (`#carTag`, "MX-5 NB8C") is a title anyone can retype: click it and type. It is for show only: no setup, export or calculation reads it. The browser keeps it under `dws.title`; clearing the box brings the default back.
 - The page saves the setup in the browser. After editing `legacyStock()` or `coensCar()`, click Stock or Coen's on the page to see the change.
 - If the page stops working after an edit, open the browser console (F12, then Console) to see the error and its line number.
 - The look follows the OL! design system: night only, a closed palette (black, grays, midnight blue, ice), square corners. Change colors through the tokens at the top of `style.css`, not in the rules below them.
