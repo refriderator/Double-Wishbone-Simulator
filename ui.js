@@ -17,7 +17,7 @@ let camNote="", oldNote=false;
 function fromSaved(j){
   let p, cut=[]; oldNote=isLegacy(j);
   if(oldNote){const q=merge(legacyStock(),j); cut=fromOldCamberL(q,j); p=fromLegacy(q);} else p=merge(defaults(),j);
-  if(!LOOKS[p.look]) p.look=0; camNote=cut.length?" Its "+cut.join(" and ")+" camber was more than the hub angle allows and is held at its limit; shorten the upper arm for more.":""; return p;
+  if(!LOOKS[p.look]) p.look=0; fitHeights(p); camNote=cut.length?" Its "+cut.join(" and ")+" camber was more than the hub angle allows and is held at its limit; shorten the upper arm for more.":""; return p;
 }
 function loadSaved(){try{const t=localStorage.getItem(KEY)||localStorage.getItem(OLDKEY); if(!t) return null; const p=fromSaved(JSON.parse(t)); makeModel(p); return p;}catch(e){return null;}}
 const CAR={stock:["Stock","stock"],coen:["Coen's","coens"],session:["Session","session"]};      // [name shown, name in file names]
@@ -164,12 +164,10 @@ function renderForms(){
   buildFields($("whlFields"),geoFor(editAxle,GEO_TABS.whl),gObj,"g",who,t=>t==="TIRE"?"Tire":t==="GRIP"?"Tire grip":t);
   {const tf=$("whlFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div"), t=tireFromSize(P,editAxle);
    r2.className="rowbtns"; r2.innerHTML='<button class="btn" id="fitTire">Estimate from size</button>'; tf.appendChild(r2);
-   const h2=document.createElement("p"); h2.className="hint";
-   h2.textContent="Free radius "+(t.free*1000).toFixed(0)+" mm.";
+   const h2=document.createElement("p"); h2.className="hint"; h2.id="tireFree";
    tf.appendChild(h2); $("fitTire").onclick=fitTire;}
-  {const gf=$("whlFields").querySelector('fieldset[data-g="GRIP"]'), g=gObj(), row=document.createElement("div");
-   const cur=TIRE_KINDS.find(([k])=>Object.keys(TIRE_PRESETS[k]).every(q=>Math.abs(TIRE_PRESETS[k][q]-g[q])<1e-9));
-   row.className="f"; row.innerHTML='<label for="tireKind">Kind of tire</label><select id="tireKind" class="wide">'+(cur?"":'<option value="">Custom</option>')+TIRE_KINDS.map(([k,n])=>`<option value="${k}"${cur&&cur[0]===k?" selected":""}>${n}</option>`).join("")+'</select>';
+  {const gf=$("whlFields").querySelector('fieldset[data-g="GRIP"]'), row=document.createElement("div");
+   row.className="f"; row.innerHTML='<label for="tireKind">Kind of tire</label><select id="tireKind" class="wide"></select>';
    gf.insertBefore(row,gf.children[1]);
    $("tireKind").onchange=()=>{const k=$("tireKind").value; if(k&&applyEdit(()=>{Object.assign(P.ax[editAxle].g,TIRE_PRESETS[k]);},"Tire grip set to typical "+TIRE_KINDS.find(q=>q[0]===k)[1].toLowerCase()+" values.")) renderForms();};}
   buildFields($("sprFields"),SPR,()=>P.ax[editAxle].s,"s",who);
@@ -191,7 +189,15 @@ function renderForms(){
   buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"*Drive",true);      // on the Forces tab, under the lateral slider that Drive takes over
   const lf=$("linkFields").querySelector("fieldset"), hint=document.createElement("p"); hint.className="hint";
   hint.textContent="Turns off the lateral slider above. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[1]);
-  buildHeights(); camNow();
+  buildHeights(); camNow(); syncTire();
+}
+/* The tire read-outs that follow from other fields: free radius, and which kind of tire the grip numbers match (Custom if none). */
+function syncTire(){
+  const h=$("tireFree"), sel=$("tireKind"), g=P.ax[editAxle].g; if(!h||!sel) return;
+  h.textContent="Free radius "+(tireFromSize(P,editAxle).free*1000).toFixed(0)+" mm.";
+  if(sel===document.activeElement) return;
+  const cur=TIRE_KINDS.find(([k])=>Object.keys(TIRE_PRESETS[k]).every(q=>Math.abs(TIRE_PRESETS[k][q]-g[q])<1e-9));
+  sel.innerHTML=(cur?"":'<option value="">Custom</option>')+TIRE_KINDS.map(([k,n])=>`<option value="${k}"${cur&&cur[0]===k?" selected":""}>${n}</option>`).join("");
 }
 function camNow(cam){if($("camNow")) $("camNow").innerHTML=VT("Small {camber} slider (rest adjusts from control arm lengths).");}
 function syncLink(){
@@ -207,10 +213,16 @@ $("driveOn").onclick=()=>{P.steer.link=P.steer.link?0:1; syncLink(); setStatus(P
    the height targets move by the change. The travel limits move the other way, because the bump and droop stops stay with the dampers. */
 function tireMoved(ax,dR){const g=P.ax[ax].g, lim=v=>Math.min(0.2,Math.max(0.01,v)); P.dh[ax*2]+=dR; P.dh[ax*2+1]+=dR; g.bump=lim(g.bump-dR); g.droop=lim(g.droop+dR);}      // the tie rod end is part of the knuckle, so it goes with it by itself
 const tireMsg=(ax,dR)=>"Loaded radius changed by "+sgnTxt(dR*1000,1)+" mm: the "+(ax?"rear":"front")+" of the car sits "+Math.abs(dR*1000).toFixed(1)+" mm "+(dR<0?"lower":"higher")+". Travel limits moved with it.";
+/* Ride height can't sit past a travel limit: each height is held 5 mm inside its bump and droop travel. True if one had to move. */
+function fitHeights(p){
+  let moved=false;
+  for(let i=0;i<4;i++){const g=p.ax[i<2?0:1].g, lo=-Math.floor((g.bump-0.005)*1000)/1000, hi=Math.floor((g.droop-0.005)*1000)/1000, v=Math.min(hi,Math.max(lo,p.dh[i])); if(v!==p.dh[i]){p.dh[i]=v; moved=true;}}
+  return moved;
+}
 function applyEdit(fn,msg,mode){
   const backup=JSON.stringify(P);
-  try{fn(); model=makeModel(P); if(!mode) save(); setStatus(msg||"Solved. Spring perches hold the target heights.",false); refreshStatic(); return true;}
-  catch(e){P=JSON.parse(backup); setStatus(e.message+" Change reverted.",true); return false;}
+  try{fn(); const held=fitHeights(P); model=makeModel(P); if(!mode) save(); setStatus((msg||"Solved. Spring perches hold the target heights.")+(held?" Ride height moved to stay inside the travel limits.":""),false); refreshStatic(); return true;}
+  catch(e){P=JSON.parse(backup); model.P=P; setStatus(e.message+" Change reverted.",true); return false;}      // model.P: the model still running must read the restored setup
 }
 function fitTire(){
   const t=tireFromSize(P,editAxle), kt=Math.round(t.kt/100)*100, R=Math.round(t.R*1e4)/1e4;
@@ -585,7 +597,7 @@ function loadPreset(name,q0){
     else if(name==="session"){
       let t=null; try{t=localStorage.getItem(SKEY)||localStorage.getItem(OLDSKEY);}catch(e){}
       if(!t) q=defaults();                                               // no session saved yet: it starts as the start-up car
-      else q=fromSaved(JSON.parse(t));
+      else {let j; try{j=JSON.parse(t);}catch(e){throw new Error("The session setup kept in this browser can't be read. Edit a field or import a file to replace it.");} q=fromSaved(j);}
     } else q=PRESETS[name]();
     makeModel(q); q.steer.link=0; q.steer.speed=P.steer.speed; P=q;      // Drive and its speed are a mode, not part of a car
   }catch(e){setStatus(e.message,true); return;}
@@ -611,7 +623,7 @@ function readLoads(){
   $("fpO").textContent=inp.Fp.toFixed(0)+" N"; $("xpO").textContent=(inp.xp*1000).toFixed(0)+" mm"; $("ypO").textContent=(inp.yp*1000).toFixed(0)+" mm";
 }
 ["ay","ax","fp","xp","yp"].forEach(id=>$(id).addEventListener("input",readLoads));
-$("zeroLoads").onclick=()=>{["ay","ax","fp"].forEach(id=>$(id).value=0); readLoads();};
+$("zeroLoads").onclick=()=>{["ay","ax","fp"].forEach(id=>$(id).value=0); ayManual=0; readLoads();};
 function bumpParams(){
   const cl=(id,lo,hi,d)=>{const x=parseFloat($(id).value); return Number.isFinite(x)?Math.min(hi,Math.max(lo,x)):d;};
   return {h:cl("bh",0,150,40)/1000,len:cl("bl",50,5000,300)/1000,v:cl("bv",1,250,30)/3.6,side:$("bs").value};
@@ -654,7 +666,11 @@ function buildHeights(){
   }
   htLabels();
 }
-function htLabels(){for(let i=0;i<4;i++) $("h"+i+"O").textContent=sgnTxt(P.dh[i]*1000,0)+" mm";}
+function htLabels(){
+  for(let i=0;i<4;i++){const g=P.ax[i<2?0:1].g, el=$("h"+i); if(!el) return;
+    el.min=-Math.floor((g.bump-0.005)*1000); el.max=Math.floor((g.droop-0.005)*1000); el.value=Math.round(P.dh[i]*1000);      // the range follows the travel limits
+    $("h"+i+"O").textContent=sgnTxt(P.dh[i]*1000,0)+" mm";}
+}
 $("htLink").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; linkMode=b.dataset.v;
   $("htLink").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));});
 $("zeroHt").onclick=()=>{P.dh=[0,0,0,0]; applyEdit(()=>{}); buildHeights();};
@@ -664,7 +680,7 @@ function refreshStatic(){
   const r=sheet(model), A=r.ax, mm=v=>(v*1000);
   const row=(lab,f,u)=>`<tr><td>${lab}</td><td>${f(A[0])}</td><td>${f(A[1])}</td><td class="u">${u}</td></tr>`;
   const one=(lab,val,u)=>`<tr><td>${lab}</td><td colspan="2">${val}</td><td class="u">${u}</td></tr>`;
-  const fin=(v,d)=>Number.isFinite(v)?num(v,d):"unstable";
+  const fin=(v,d)=>Number.isFinite(v)?num(v,d):"unstable", dash=(v,d)=>Number.isFinite(v)?v.toFixed(d):"–";      // dash: a spring that is loose at ride height has no rate
   const grp=t=>`<tr class="grp"><th colspan="4">${t}</th></tr>`;
   const inch=v=>{const t=(v/0.0254).toFixed(1); return t.endsWith(".0")?t.slice(0,-2):t;};
   const G_=a=>P.ax[A.indexOf(a)].g, S_=a=>P.ax[A.indexOf(a)].s, ht=a=>{const k=A.indexOf(a)*2; return (P.dh[k]+P.dh[k+1])/2;};
@@ -683,10 +699,10 @@ function refreshStatic(){
     grp("Springs and dampers")+
     row("Spring rate",a=>(S_(a).k/1000).toFixed(1),"N/mm")+
     row("Anti-roll bar rate at wheel",a=>(S_(a).arb/1000).toFixed(1),"N/mm")+
-    row("Wheel rate",a=>(a.kw/1000).toFixed(1),"N/mm")+
-    row("Ride frequency",a=>a.fr.toFixed(2),"Hz")+
-    row("Damping ratio, bump LS",a=>a.zb.toFixed(2),"ζ")+
-    row("Damping ratio, rebound LS",a=>a.zr.toFixed(2),"ζ")+
+    row("Wheel rate",a=>dash(a.kw/1000,1),"N/mm")+
+    row("Ride frequency",a=>dash(a.fr,2),"Hz")+
+    row("Damping ratio, bump LS",a=>dash(a.zb,2),"ζ")+
+    row("Damping ratio, rebound LS",a=>dash(a.zr,2),"ζ")+
     grp("Roll, pitch and grip")+
     one("Roll gradient",fin(r.rollGrad,2),"°/g")+
     one("Pitch gradient",fin(r.pitchGrad,2),"°/g")+
@@ -712,7 +728,7 @@ function refreshStatic(){
     row("Scrub radius",a=>num(mm(a.scrub),1),"mm")+
     row("Mechanical trail",a=>num(mm(a.trail),1),"mm")+
     row("Anti-dive (front), anti-lift (rear) under braking",a=>Number.isFinite(a.antiDive)?num(a.antiDive,1):"–","%");
-  $("zeta").innerHTML=`<span>ζ bump LS, front <b>${A[0].zb.toFixed(2)}</b></span><span>rear <b>${A[1].zb.toFixed(2)}</b></span><span>ζ rebound LS, front <b>${A[0].zr.toFixed(2)}</b></span><span>rear <b>${A[1].zr.toFixed(2)}</b></span>`;
+  $("zeta").innerHTML=`<span>ζ bump LS, front <b>${dash(A[0].zb,2)}</b></span><span>rear <b>${dash(A[1].zb,2)}</b></span><span>ζ rebound LS, front <b>${dash(A[0].zr,2)}</b></span><span>rear <b>${dash(A[1].zr,2)}</b></span>`;
   let ph=`<tr><th>Corner</th><th>Perch vs design</th><th>Spring force at design length</th></tr>`;
   for(let i=0;i<4;i++){
     const k=P.ax[i<2?0:1].s.k, dp=(model.Fpre[i]-model.FpreDesign[i])/k*1000;
@@ -723,7 +739,7 @@ function refreshStatic(){
   const pr=(lab,v)=>`<tr><td>${lab}</td><td>${f(v[0])}</td><td>${f(v[1])}</td><td>${f(v[2])}</td></tr>`;
   $("pts").innerHTML=`<tr><th>mm</th><th>Ahead</th><th>From center</th><th>Height</th></tr>`+pr("Lower ball joint",p.LBJ)+pr("Upper ball joint",p.UBJ)+pr("Wheel center",p.WC)+pr("Contact patch",p.CP)+
     pr("Kingpin axis at ground",[T.kp[0],T.kp[1],0])+`<tr><td>Tie rod length</td><td colspan="3">${f(T.D.Lt)}</td></tr><tr><td>Steering arm length</td><td colspan="3">${f(T.D.arm)}</td></tr>`;
-  camNow(A[editAxle].cam); syncGeoPart(); GB.prop=null; drawSolve(); solveNow(A);
+  camNow(A[editAxle].cam); syncGeoPart(); GB.prop=null; drawSolve(); solveNow(A); htLabels(); syncTire();
   const mx=swMax(); for(const sw of [$("sw"),$("sw2")]){sw.min=-mx; sw.max=mx;} setSw(swDeg);
   scheduleBalance();
   curveStatic();
@@ -1293,13 +1309,13 @@ function drawTele(){
   for(let i=0;i<4;i++){
     const o=S.out[i], zc=S.z+model.xs[i]*S.th+model.ys[i]*S.ph; F[i]=o.Ft||0; tot+=F[i];
     const slip=drive?(o.slip||0):q.tire[i].slip, used=drive?(o.used||0):q.tire[i].used;
-    t+=`<tr><td>${CN[i]}</td><td>${num(zc*1000,1)} mm</td><td>${num((o.s||0)*1000,1)} mm</td><td>${F[i]<1?"LIFTED":F[i].toFixed(0)+" N"}</td><td>${num(FR.cam[i],2)}°</td><td>${num(FR.steer[i],2)}°</td><td>${num(slip,1)}°</td><td>${F[i]<1?"–":(used*100).toFixed(0)+" %"}</td><td>${num((o.vd||0)*1000,0)} mm/s</td></tr>`;
+    t+=`<tr><td>${CN[i]}</td><td>${num(zc*1000,1)} mm</td><td>${num((o.s||0)*1000,1)} mm</td><td>${F[i]<1?"LIFTED":F[i].toFixed(0)+" N"}</td><td>${num(FR.cam[i],2)}°</td><td>${num(FR.steer[i],2)}°</td><td>${F[i]<1||!Number.isFinite(slip)?"–":num(slip,1)+"°"}</td><td>${F[i]<1?"–":(used*100).toFixed(0)+" %"}</td><td>${num((o.vd||0)*1000,0)} mm/s</td></tr>`;
   }
   const si=FR.si, turning=Math.abs(si.kra)>1e-4;
   t+=`<tr><td colspan="3">Cross weight (FL + RR)</td><td>${tot>0?((F[0]+F[3])/tot*100).toFixed(1):"–"} %</td><td colspan="5">TOTAL ${tot.toFixed(0)} N</td></tr>`;
   let note=turning?"Steering "+(si.kra>0?"right":"left")+": inner wheel "+si.di.toFixed(1)+"°, outer "+si.dout.toFixed(1)+"°"+(Number.isFinite(si.ack)?", Ackermann "+si.ack.toFixed(0)+" %":"")+", low-speed turn radius "+si.R.toFixed(1)+" m.":"Steering straight ahead.";
-  if(!drive){const over=["Front","Rear"].filter((n,k)=>q.ax[k].used>1); if(over.length) note+=" "+over.join(" and ")+" tires cannot make "+Math.abs(inp.ay).toFixed(2)+" g: past the grip limit.";
-    else if(Math.abs(inp.ay)>0.005) note+=" Slip angle and grip in use are what the tires need to hold "+Math.abs(inp.ay).toFixed(2)+" g, steering centered.";}
+  if(!drive&&Math.abs(inp.ay)>0.005){const over=["Front","Rear"].filter((n,k)=>q.ax[k].used>1); if(over.length) note+=" "+over.join(" and ")+" tires cannot make "+Math.abs(inp.ay).toFixed(2)+" g: past the grip limit.";
+    else note+=" Slip angle and grip in use are what the tires need to hold "+Math.abs(inp.ay).toFixed(2)+" g, steering centered.";}
   $("teleNote").textContent=note;
   $("tele").innerHTML=t;
   const U=P.steer.speed, ayK=U*U*si.kay/G, kmh=(U*3.6).toFixed(0);
@@ -1312,7 +1328,7 @@ function drawTele(){
 
 /* ===== loop ===== */
 function applyTheme(){readColors(); if(R3) R3.theme();}      // one look, night only: read the tokens once
-const clock=t=>{const m=Math.floor(t/60); return String(m).padStart(2,"0")+":"+(t-60*m).toFixed(1).padStart(4,"0");};
+const clock=t=>{const d=Math.round(t*10), m=Math.floor(d/600); return String(m).padStart(2,"0")+":"+((d-600*m)/10).toFixed(1).padStart(4,"0");};      // whole tenths first, so 59.96 s reads 01:00.0
 function resize(){if(R3) R3.resize(); sizeCanvases();}
 new ResizeObserver(resize).observe(view);
 new ResizeObserver(sizeCanvases).observe(document.querySelector(".grid"));
@@ -1358,7 +1374,7 @@ async function saveFile(file,data,what){
   let dl=null; try{if(window.claude&&window.claude.use) dl=await window.claude.use("downloads");}catch(e){}
   if(dl){
     try{await dl.save({filename:file,data}); setStatus(what+" exported as "+file+".",false);}
-    catch(e){if(e&&e.code==="declined") setStatus("Export cancelled.",false); else setStatus("Export is not available in this view.",true);}
+    catch(e){if(e&&e.code==="declined") setStatus("Export canceled.",false); else setStatus("Export is not available in this view.",true);}
     return;
   }
   try{
