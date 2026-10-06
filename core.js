@@ -282,10 +282,12 @@ function instant(D,p,r){
   const h=1e-5, A=poseK(D,p.al+h,0,r), B=poseK(D,p.al-h,0,r); if(!A||!B) return null;
   const d=(a,b)=>[(a[0]-b[0])/(2*h),(a[1]-b[1])/(2*h),(a[2]-b[2])/(2*h)];
   let w=vscale(vadd(vadd(vcross(p.f,d(A.f,B.f)),vcross(p.o,d(A.o,B.o))),vcross(p.ax,d(A.k,B.k))),0.5);      // angular velocity from the frame's rate of change
-  w=vadd(w,vscale(p.ax,-w[2]/p.ax[2]));                                                                   // minus the part that steers the wheel
+  const hd=x=>{const c=vcross(x,p.av); return p.av[0]*c[1]-p.av[1]*c[0];};                                // how fast a rotation x turns the spindle's heading
+  w=vadd(w,vscale(p.ax,-hd(w)/hd(p.ax)));                                                                 // minus the turn about the kingpin that steers the wheel
   const v=vadd(d(A.LBJ,B.LBJ),vcross(w,vsub(p.CP,p.LBJ)));
   if(!(Math.abs(v[2])>1e-9)) return null;
-  return {v,w,rch:v[1]/v[2]*p.CP[1],side:v[0]/v[2],ic:Math.abs(w[0])>1e-7?[p.CP[1]-v[2]/w[0],p.CP[2]+v[1]/w[0]]:null};
+  const up=vsub(p.WC,p.CP), hu=-(w[2]*up[0]-w[0]*up[2])/v[2]*p.CP[1];                                     // the height at which the links carry the unsprung mass's side force
+  return {v,w,rch:v[1]/v[2]*p.CP[1],hu,side:v[0]/v[2],ic:Math.abs(w[0])>1e-7?[p.CP[1]-v[2]/w[0],p.CP[2]+v[1]/w[0]]:null};
 }
 /* Share of the car's braking force at an axle, signed so that a positive anti-dive number always means less pitch under braking:
    the front's contact patch must move forward in bump for that, the rear's rearward. */
@@ -325,7 +327,7 @@ function buildAxle(g,name,rmax){
   const armTravel=al=>{let x=(al-aG[0])/da; if(x<0)x=0; else if(x>NA-1)x=NA-1; let i=x|0; if(i>NA-2)i=NA-2; return s0[i]+(s0[i+1]-s0[i])*(x-i);};
   const nr=rmax>0?41:1, ns=241, dS=(sHi-sLo)/(ns-1), rLo=-rmax, dR=nr>1?2*rmax/(nr-1):1, j0=(nr-1)/2, N=nr*ns;
   const T={D,nr,ns,sLo,sHi,dS,rLo,dR,L:new Float64Array(N),MR:new Float64Array(N),cam:new Float64Array(N),steer:new Float64Array(N),
-           al:new Float64Array(N),sa:new Float64Array(N),cas:new Float64Array(N),rch:new Float64Array(ns),dtr:new Float64Array(ns)};
+           al:new Float64Array(N),sa:new Float64Array(N),cas:new Float64Array(N),rch:new Float64Array(ns),hu:new Float64Array(ns),dtr:new Float64Array(ns)};
   const sj=new Float64Array(NA); let bind=Infinity;
   for(let j=0;j<nr;j++){
     const r=nr>1?rLo+j*dR:0;
@@ -348,7 +350,7 @@ function buildAxle(g,name,rmax){
   const P0=pose(g,D,D.a0,0);
   for(let q=0;q<ns;q++){
     const p=pose(g,D,T.al[j0*ns+q],0), I=instant(D,p,0);
-    T.rch[q]=I?I.rch:0; T.dtr[q]=p.CP[1]-P0.CP[1];
+    T.rch[q]=I?I.rch:0; T.hu[q]=I?I.hu:0; T.dtr[q]=p.CP[1]-P0.CP[1];
   }
   T.P0=P0; T.tHalf=P0.CP[1]; T.L0=P0.L; T.MR0=lk2(T,T.MR,0,0);
   const t=-P0.LBJ[2]/(P0.UBJ[2]-P0.LBJ[2]);
@@ -533,7 +535,9 @@ function makeModel(P){
   check(P);
   const T=[tables(frontG(P),"Front",P.steer.rmax,0),tables(P.ax[1].g,"Rear",0,1)];
   const v=P.veh, a=v.L*(1-v.wf), b=v.L*v.wf;
-  const m={P,T,a,b,xs:[a,a,-b,-b],ys:[-T[0].tHalf,T[0].tHalf,-T[1].tHalf,T[1].tHalf],W:[],d0:[],Fpre:[],FpreDesign:[],st:[],zt:[],arbOff:[0,0],zs:0};
+  const m={P,T,a,b,xs:[a,a,-b,-b],ys:[-T[0].tHalf,T[0].tHalf,-T[1].tHalf,T[1].tHalf],W:[],d0:[],Fpre:[],FpreDesign:[],st:[],zt:[],arbOff:[0,0],zs:0,
+           xc:2*v.mu*(a-b)/(v.M+4*v.mu),                          // whole-car CG ahead of the sprung CG (the four unsprung masses sit at the axles)
+           Rm:v.wf*P.ax[0].g.R+(1-v.wf)*P.ax[1].g.R};             // wheel-center height, weighted by axle load
   const yF=T[0].tHalf, yR=T[1].tHalf, zt=m.zt;
   for(let i=0;i<4;i++){const g=P.ax[i<2?0:1].g; zt[i]=Math.min(g.droop-0.002,Math.max(-(g.bump-0.002),P.dh[i]));}   // target body height at each corner
   /* Body attitude at the targets (best-fit plane). A tilted body carries its CG off-center over the wheels,
@@ -541,7 +545,7 @@ function makeModel(P){
   const zF=(zt[0]+zt[1])/2, zR=(zt[2]+zt[3])/2, th=(zF-zR)/v.L, ph=(yF*(zt[1]-zt[0])+yR*(zt[3]-zt[2]))/(2*(yF*yF+yR*yR));
   m.zs=(zF*b+zR*a)/v.L;
   const hcg=v.h+m.zs, hra=lk1(T[0],T[0].rch,-zF)*v.wf+lk1(T[1],T[1].rch,-zR)*(1-v.wf), ycg=-(hcg-hra)*ph;
-  const WF=v.M*G*(v.wf-hcg*th/v.L), WR=v.M*G-WF;
+  const WF=v.M*G*(v.wf-(hcg-m.Rm)*th/v.L), WR=v.M*G-WF;        // a raked body turns about the wheel centers, so its CG shifts by (h - R) * pitch
   for(let i=0;i<4;i++){
     const ax=i<2?0:1, g=P.ax[ax].g, s=P.ax[ax].s, Tx=T[ax], side=i%2===0?-1:1;
     const Wn=v.M*G*(ax===0?v.wf:1-v.wf)/2, W=(ax===0?WF:WR)*(0.5+side*ycg/(2*(ax===0?yF:yR)));
@@ -586,7 +590,7 @@ function step(m,st,inp,dt,extraDamp){
     Fw[i]=F; const o=out[i]; o.s=s[i]; o.vd=vd;
     if(inp.U>0){                                               // slip angle from the wheel's own path over the ground, with a short lag (relaxation length)
       const side=i%2===0?-1:1, de=side*cv(Tx.steer)*D2R, lean=side*(cv(Tx.cam)-side*st.ph/D2R);
-      const vx=Math.max(0.5,inp.U-y*st.r), al=de-Math.atan2(st.vy+x*st.r,vx);
+      const vx=Math.max(0.5,inp.U-y*st.r), al=de-Math.atan2(st.vy+(x-m.xc)*st.r,vx);      // vy and r are the whole car's, at its CG
       st.al[i]+=(al-st.al[i])*Math.min(1,vx*dt/TRELAX);
       const Fz=o.Ft!==undefined?o.Ft:m.W[i]+v.mu*G, Fy=tireFy(g,st.al[i]/D2R,Fz,lean), D=tirePeak(g,Fz,Fy>=0?lean:-lean);
       o.Fy=Fy; o.slip=st.al[i]/D2R; o.used=D>0?Math.abs(Fy)/D:0;
@@ -594,7 +598,7 @@ function step(m,st,inp,dt,extraDamp){
   }
   let ayDrive=0;
   if(inp.U>0){
-    const Mt=v.M+4*v.mu; let Fy=0, Mz=0; for(let i=0;i<4;i++){Fy+=out[i].Fy; Mz+=m.xs[i]*out[i].Fy;}
+    const Mt=v.M+4*v.mu; let Fy=0, Mz=0; for(let i=0;i<4;i++){Fy+=out[i].Fy; Mz+=(m.xs[i]-m.xc)*out[i].Fy;}
     ayDrive=Fy/Mt; st.vy+=(ayDrive-inp.U*st.r)*dt; st.r+=Mz/v.Izz*dt;
     if(Math.abs(st.vy)>inp.U) st.spun=true;                   // sliding sideways faster than it is going forward
   } else {st.vy=0; st.r=0; st.al[0]=st.al[1]=st.al[2]=st.al[3]=0;}
@@ -603,18 +607,21 @@ function step(m,st,inp,dt,extraDamp){
     Fw[iL]+=k*dif; Fw[iR]-=k*dif;
   }
   const ay=inp.U>0?ayDrive:inp.ay*G, axl=inp.ax*G; st.ay=ay/G;
-  const hrcF=lk1(T[0],T[0].rch,(sa[0]+sa[1])/2), hrcR=lk1(T[1],T[1].rch,(sa[2]+sa[3])/2);
+  const sF=(sa[0]+sa[1])/2, sR=(sa[2]+sa[3])/2, hrcF=lk1(T[0],T[0].rch,sF), hrcR=lk1(T[1],T[1].rch,sR), huF=lk1(T[0],T[0].hu,sF), huR=lk1(T[1],T[1].hu,sR);
+  const Rf=P.ax[0].g.R, Rr=P.ax[1].g.R;
   st.hrc[0]=hrcF; st.hrc[1]=hrcR;
   const hra=hrcF+(hrcR-hrcF)*m.a/v.L, hcg=v.h+st.z, hp=hcg-hra;   // CG height follows the body; hp = CG above the roll axis
   let Fz=-v.M*G-inp.Fp;
-  let Mth=v.M*axl*hcg+v.M*G*hcg*st.th-inp.xp*inp.Fp;              // pitching shifts the CG back over the wheels by h*theta
-  let Mph=v.M*ay*hp+v.M*G*hp*st.ph-inp.yp*inp.Fp;                 // rolling shifts the CG sideways by hp*phi
+  /* Pitch: the sprung and the unsprung masses' inertia both reach the tires through the springs (no anti-dive in the dynamics), and
+     pitching shifts the CG over the wheel centers by (h - R) * theta. Roll: the links carry part of the side force straight to the
+     tires (below); the rest of the unsprung masses' share goes through the springs, and rolling shifts the CG sideways by hp * phi. */
+  let Mth=(v.M*hcg+2*v.mu*(Rf+Rr))*axl+v.M*G*(hcg-m.Rm)*st.th-inp.xp*inp.Fp;
+  let Mph=(v.M*hp+2*v.mu*(Rf-huF+Rr-huR))*ay+v.M*G*hp*st.ph-inp.yp*inp.Fp;
   for(let i=0;i<4;i++){Fz+=Fw[i]; Mth+=m.xs[i]*Fw[i]; Mph+=m.ys[i]*Fw[i];}
   for(let i=0;i<4;i++){
     const ax=i<2?0:1, g=P.ax[ax].g, side=i%2===0?-1:1, tH=m.ys[ax*2+1];
-    const Max=v.M*(ax===0?v.wf:1-v.wf), hr=ax===0?hrcF:hrcR;
-    let dF=-side*(Max*ay*hr+2*v.mu*ay*g.R)/(2*tH);               // load transfer through the links, plus the unsprung part
-    dF+=(ax===0?-1:1)*(4*v.mu*axl*g.R/v.L)/2;
+    const Max=v.M*(ax===0?v.wf:1-v.wf), hr=ax===0?hrcF:hrcR, hu=ax===0?huF:huR;
+    const dF=-side*(Max*hr+2*v.mu*hu)*ay/(2*tH);                  // load transfer through the links: the body's side force at the roll center height, the unsprung masses' at hu
     const gr=groundAt(st,i);
     let Ft=g.kt*(m.d0[i]+gr[0]-st.zw[i]);
     if(Ft>0){Ft+=CT*(gr[1]-st.zwd[i]); if(Ft<0)Ft=0;} else Ft=0;
@@ -712,24 +719,23 @@ function sheet(m){
     const Fw=(j,x)=>Math.max(0,m.Fpre[j]+s.k*(T.L0-lk2(T,T.L,x,0)))*lk2(T,T.MR,x,0);
     const MR=lk2(T,T.MR,st,0), kw=(Fw(i,m.st[i]+e)-Fw(i,m.st[i]-e)+Fw(i+1,m.st[i+1]+e)-Fw(i+1,m.st[i+1]-e))/(4*e);   // tangent wheel rate (k*MR^2 plus the motion-ratio change term), mean of left and right
     const kr=kw*g.kt/(kw+g.kt), fr=Math.sqrt(kr/ms)/(2*Math.PI), cc=2*Math.sqrt(kw*ms);
-    const Ks=(kw/2+s.arb)*t*t, Kt=g.kt*t*t/2, Kax=1/(1/Ks+1/Kt), rch=lk1(T,T.rch,st);
-    const Mg=v.M*(ax===0?v.wf:1-v.wf)*rch+2*v.mu*g.R;                             // link + unsprung load-transfer moment per unit lateral acceleration
+    const Ks=(kw/2+s.arb)*t*t, Kt=g.kt*t*t/2, Kax=1/(1/Ks+1/Kt), rch=lk1(T,T.rch,st), hu=lk1(T,T.hu,st);
+    const Mg=v.M*(ax===0?v.wf:1-v.wf)*rch+2*v.mu*hu, Mu=2*v.mu*(g.R-hu);          // per unit lateral acceleration: the moment the links carry, and the unsprung masses' moment that goes through the springs
     Kr+=Kax; Kth+=2*kr*m.xs[i]*m.xs[i]; Kz+=2*kr; Kzx+=2*kr*m.xs[i];
     const pr=pose(ax?g:frontG(P),T.D,lk2(T,T.al,st,0),0)||T.P0, tk=(pr.CP[2]-pr.LBJ[2])/(pr.UBJ[2]-pr.LBJ[2]), I=instant(T.D,pr,0);      // the corner at ride height, and where its kingpin axis meets the ground
-    r.ax.push({MR,kw,kr,fr,zb:s.cbl*MR*MR/cc,zr:s.crl*MR*MR/cc,rch,t,Kax,Kt,Mg,cam:lk2(T,T.cam,st,0),toe:-lk2(T,T.steer,st,0),
+    r.ax.push({MR,kw,kr,fr,zb:s.cbl*MR*MR/cc,zr:s.crl*MR*MR/cc,rch,t,Kax,Kt,Mg,Mu,cam:lk2(T,T.cam,st,0),toe:-lk2(T,T.steer,st,0),
       camGain:(lk2(T,T.cam,st+e,0)-lk2(T,T.cam,st-e,0))/(2*e)*0.01, bumpSteer:-(lk2(T,T.steer,st+e,0)-lk2(T,T.steer,st-e,0))/(2*e)*0.01,
       kpi:Math.atan2(pr.LBJ[1]-pr.UBJ[1],pr.UBJ[2]-pr.LBJ[2])/D2R,caster:Math.atan2(-pr.ax[0],pr.ax[2])/D2R,scrub:pr.CP[1]-(pr.LBJ[1]+tk*(pr.UBJ[1]-pr.LBJ[1])),trail:pr.LBJ[0]+tk*(pr.UBJ[0]-pr.LBJ[0])-pr.CP[0],
       st,sideAngle:I?Math.atan(I.side)/D2R:NaN,antiDive:I?I.side*brakeShare(v,ax)*v.L/hs*100:NaN});
   }
-  const A=r.ax, hra=A[0].rch*v.wf+A[1].rch*(1-v.wf), hp=hs-hra, MgH=v.M*G*hp, MgHs=v.M*G*hs;
+  const A=r.ax, hra=A[0].rch*v.wf+A[1].rch*(1-v.wf), hp=hs-hra, MgH=v.M*G*hp, MgHs=v.M*G*(hs-m.Rm);
   Kth-=Kzx*Kzx/Kz;                                               // the body is free to heave, which softens pitch slightly
   r.hp=hp;
   const stable=Kr>MgH;
-  const phi=stable?(v.M*hp+A[0].Kax/A[0].Kt*A[0].Mg+A[1].Kax/A[1].Kt*A[1].Mg)/(Kr-MgH):Infinity;     // roll per unit lateral acceleration
+  const phi=stable?(v.M*hp+A[0].Mu+A[1].Mu+A[0].Kax/A[0].Kt*A[0].Mg+A[1].Kax/A[1].Kt*A[1].Mg)/(Kr-MgH):Infinity;     // roll per unit lateral acceleration
   r.rollGrad=phi*G/D2R;
   r.rollFreq=stable?Math.sqrt((Kr-MgH)/(v.Ixx+v.M*hp*hp))/(2*Math.PI):NaN;
-  const uns=4*v.mu*(P.ax[0].g.R*A[0].kr/P.ax[0].g.kt*m.a+P.ax[1].g.R*A[1].kr/P.ax[1].g.kt*m.b)/v.L;
-  r.pitchGrad=Kth>MgHs?(v.M*hs+uns)/(Kth-MgHs)*G/D2R:Infinity;
+  r.pitchGrad=Kth>MgHs?(v.M*hs+2*v.mu*(P.ax[0].g.R+P.ax[1].g.R))/(Kth-MgHs)*G/D2R:Infinity;
   const dW=a=>stable?(a.Kax*phi+a.Mg*(1-a.Kax/a.Kt))/a.t:a.Mg/a.t;
   r.lltd=dW(A[0])/(dW(A[0])+dW(A[1]));
   const T0=m.T[0], stF=(m.st[0]+m.st[1])/2, dr=T0.dR;
