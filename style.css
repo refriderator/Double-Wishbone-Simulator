@@ -108,9 +108,6 @@ legend{padding:0;margin-bottom:var(--space-2);color:var(--vinyl-dim);font:400 12
 .f .u{color:var(--vinyl-dim)}
 .f .wide{grid-column:2/4}
 .hint{margin:0;color:var(--vinyl-dim);max-width:65ch}
-/* a word the Guide's vocabulary explains: dotted underline, and a click opens the vocabulary at that word */
-a.vt{color:inherit;text-decoration:underline dotted var(--vinyl-ghost);text-underline-offset:3px;cursor:help}
-a.vt:hover{color:var(--vinyl);text-decoration-color:var(--ice)}
 .rowbtns{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
 .recbar .rd{font:400 20px/20px var(--font-osd);letter-spacing:.06em}
 .recbar .rd:empty{display:none}
@@ -145,7 +142,6 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--vinyl-ghost)}
 @media (pointer:coarse){.f input.tick,.t input.tick,input.tick{width:24px;height:24px}}
 .let{display:inline-block;min-width:18px;margin-right:6px;padding:0 3px;border:1px solid var(--edge);color:var(--vinyl);font:400 10px/16px var(--font-display);text-align:center;vertical-align:1px}
 .fhead{text-align:right;color:var(--vinyl-ghost);font:400 11px/16px var(--font-sans);letter-spacing:.1em;text-transform:uppercase}
-.fhead.l{text-align:left}                              /* over a list whose tick boxes are on the left: the solver's targets */
 .sub{color:var(--vinyl-ghost);font:400 11px/16px var(--font-sans);letter-spacing:.1em;text-transform:uppercase}
 .subrow{display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);margin-top:var(--space-2)}
 .holdrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:var(--space-2);color:var(--vinyl-dim)}
@@ -178,7 +174,6 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--vinyl-ghost)}
 .t .cur{grid-column:2/-1;margin-top:-4px;color:var(--vinyl-ghost);font-size:12px;line-height:16px}
 .t .v{justify-self:end;font-variant-numeric:tabular-nums}
 .hint.steps{padding-left:20px;display:grid;gap:var(--space-1)}
-.hint.steps b{color:var(--vinyl)}
 #moreF summary{color:var(--vinyl-dim);font:400 12px/16px var(--font-display);letter-spacing:.14em}
 #moreF[open] summary,#moreF .hint{margin-bottom:var(--space-2)}
 .result{display:grid;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--edge);border-left:2px solid var(--vinyl)}
@@ -271,23 +266,11 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
   .btn{transition:none}
 }
 
-/* ---- guide: one window with two pages. Quick start (three steps, shown on every load) and the vocabulary.
-   The head stays put; the page under it scrolls. ---- */
+/* ---- quick start: one window, three steps, opens on every load ---- */
 .intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:var(--space-4);background:rgba(0,0,0,0.72)}
 .intro[hidden]{display:none}
-.introBox{position:relative;width:min(1040px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;padding:var(--space-6);border:1px solid var(--edge);background:var(--void);box-shadow:var(--lift)}
-.introHead{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin:0 48px var(--space-4) 0}
-.introBox h2{margin:0;font:400 20px/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase}
-.introHead .seg button{white-space:nowrap}
-.introBody{min-height:0;overflow:auto}
-.vocab{columns:3 250px;column-gap:var(--space-6)}
-.vocab section{margin:0 0 var(--space-4);break-inside:avoid}      /* a group stays in one column, under its heading */
-.vocab h3{margin:0 0 var(--space-2);padding-left:var(--space-2);color:var(--vinyl-ghost);font:400 11px/16px var(--font-display);letter-spacing:.14em;text-transform:uppercase;break-after:avoid}
-.vocab dl{margin:0}
-.vocab dl>div{break-inside:avoid;margin:0 0 var(--space-1);padding:var(--space-1) var(--space-2);border-left:2px solid transparent}
-.vocab dt{color:var(--vinyl);font-weight:700}
-.vocab dd{margin:0;color:var(--vinyl-dim)}
-.vocab .hit{border-left-color:var(--ice);background:var(--glass-raised)}       /* the word that was clicked in a description */
+.introBox{position:relative;width:min(1040px,100%);max-height:100%;overflow:auto;padding:var(--space-6);border:1px solid var(--edge);background:var(--void);box-shadow:var(--lift)}
+.introBox h2{margin:0 48px var(--space-4) 0;font:400 20px/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase}
 .introX{position:absolute;top:var(--space-3);right:var(--space-3);width:40px;min-width:40px;height:40px;padding:0;font:400 20px/1 var(--font-sans);letter-spacing:0}
 .introSteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4)}
 .introSteps li{display:grid;gap:var(--space-2);align-content:start}
@@ -299,9 +282,6 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
 .introSteps img{display:block;width:100%;height:auto;border:1px solid var(--edge)}
 @media (max-width:760px){
   .introBox{padding:var(--space-4)}
-  .introHead{margin-right:0}
-  .introHead h2{flex:1 0 100%;min-height:36px;display:flex;align-items:center}      /* the title row clears the close button; the tabs get the full row under it */
-  .introHead .seg button{font-size:10px;letter-spacing:.1em;padding:0 var(--space-2)}
   .introSteps{grid-template-columns:1fr;gap:var(--space-3)}
   .introSteps li{grid-template-columns:44% minmax(0,1fr);align-items:start}
   .introSteps img{grid-column:1;grid-row:1}

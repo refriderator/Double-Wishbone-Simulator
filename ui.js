@@ -17,89 +17,11 @@ let camNote="", oldNote=false;
 function fromSaved(j){
   let p, cut=[]; oldNote=isLegacy(j);
   if(oldNote){const q=merge(legacyStock(),j); cut=fromOldCamberL(q,j); p=fromLegacy(q);} else p=merge(defaults(),j);
-  if(!LOOKS[p.look]) p.look=0; camNote=cut.length?" Its "+cut.join(" and ")+" camber was more than the hub angle allows and is held at its limit; shorten the upper arm for more.":""; return p;
+  if(!LOOKS[p.look]) p.look=0; camNote=cut.length?" Its "+cut.join(" and ")+" camber was more than the adjuster allows and is held at the adjuster's limit; shorten the upper arm for more.":""; return p;
 }
 function loadSaved(){try{const t=localStorage.getItem(KEY)||localStorage.getItem(OLDKEY); if(!t) return null; const p=fromSaved(JSON.parse(t)); makeModel(p); return p;}catch(e){return null;}}
 const CAR={stock:["Stock","stock"],coen:["Coen's","coens"],session:["Session","session"]};      // [name shown, name in file names]
 const stamp=(d,time)=>{const p2=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+(time?" "+p2(d.getHours())+":"+p2(d.getMinutes()):"");};
-/* ---- vocabulary: the words this page uses, in plain language. The Guide shows the list; a marked word in a description opens it there.
-   Groups of [id, word, meaning]. A description marks a word as {word} or {shown text|id}: see VT. ---- */
-const VOCAB=[
- ["Parts",[
-  ["wishbone","Wishbone","A V-shaped suspension arm: two pivots on the chassis, one ball joint at the wheel end. Each corner has an upper and a lower one."],
-  ["pivot-axis","Pivot axis","The line through an arm's two chassis pivots. The arm swings about it like a door on its hinges."],
-  ["pivot-midpoint","Pivot midpoint ◆","The point halfway between an arm's two chassis pivots. The arm's own numbers start there."],
-  ["ball-joint","Ball joint","The joint at the outer end of an arm. It carries the knuckle and lets it steer."],
-  ["reach","Reach","How far the ball joint sits from the pivot axis: the arm's working length."],
-  ["leg","Leg","One side of the V, from a chassis pivot to the ball joint."],
-  ["knuckle","Knuckle","The solid part between the two ball joints. It carries the hub, so the wheel goes where the knuckle goes. Also called the upright."],
-  ["kingpin","Kingpin","The line through the two ball joints. The wheel steers about it."],
-  ["hub","Hub","The part on the knuckle that the wheel bolts to."],
-  ["hub-angle","Hub angle on knuckle","How far the hub is tipped on the knuckle. It adds straight to camber. A real Miata adjusts camber with eccentric bolts at the lower arm's pivots; the model tips the hub instead, which leaves the kingpin where it is."],
-  ["mounting-face","Wheel mounting face","The flat face of the hub that the wheel bolts against."],
-  ["offset","Offset (ET)","How far the wheel's centerline sits inboard of the mounting face. A smaller offset moves the wheel out."],
-  ["spacer","Wheel spacer","A plate between hub and wheel. It moves the wheel out by its thickness."],
-  ["tie-rod","Tie rod","The link from the steering rack to the knuckle. It steers the wheel, and its length sets the toe."],
-  ["tie-rod-end","Tie rod end","Where the tie rod bolts to the knuckle."],
-  ["steering-arm","Steering arm","The lever on the knuckle from the kingpin to the tie rod end. A shorter one (cut knuckles) turns the wheel further for the same rack travel."],
-  ["rack","Rack","The bar that slides sideways when the steering wheel turns. It pushes and pulls the tie rods."],
-  ["coilover","Coilover","Spring and damper in one unit, between the lower arm and the body."],
-  ["perch","Spring perch","The collar the spring sits on. Moving it up or down sets the ride height."],
-  ["anti-roll-bar","Anti-roll bar","A bar that links the left and right wheel of an axle. It only works when one wheel moves more than the other, so it resists roll."],
-  ["bump-stop","Bump stop","The rubber stop that ends the wheel's upward travel."]]],
- ["Alignment",[
-  ["camber","Camber","The wheel's lean seen from behind. Negative means the top leans in toward the car."],
-  ["caster","Caster","The kingpin's lean seen from the side. Positive means the top leans back. It helps the steering self-center."],
-  ["toe","Toe","Where the wheels point seen from above. Toe-in means the fronts of the two wheels point toward each other. Static toe is the toe at design height with the steering centered."],
-  ["kingpin-inclination","Kingpin inclination","The kingpin's lean seen from behind, top toward the car."],
-  ["knuckle-angle","Knuckle angle","The angle built into the knuckle between the kingpin and the wheel. It equals kingpin inclination plus camber, so arms that add negative camber add the same kingpin inclination."],
-  ["scrub-radius","Scrub radius","On the ground, how far the middle of the tire sits outboard of the point the kingpin aims at."],
-  ["trail","Mechanical trail","On the ground, how far the middle of the tire sits behind the point the kingpin aims at. More trail means more self-centering."],
-  ["track","Track","The distance between the left and right tire of an axle, center to center on the ground."],
-  ["design-height","Design height","The height the car is drawn at: stock ride height. Every Geometry number is given there."],
-  ["ride-height","Ride height","Where the car sits now, after any lowering. The setup sheet reads the alignment there."],
-  ["cross-weight","Cross weight","The share of the car's weight on the front-left and rear-right tires. 50 % is balanced."]]],
- ["How it moves",[
-  ["wheel-travel","Wheel travel","Up and down movement of the wheel against the body. Up is bump, down is droop."],
-  ["camber-gain","Camber gain","How much the camber changes as the wheel moves up, per 10 mm. Negative means it leans in more in bump."],
-  ["bump-steer","Bump steer","How much the toe changes as the wheel moves up, per 10 mm. Near zero is usually the aim."],
-  ["instant-center","Instant center","The point the wheel is swinging about right now, seen from behind. With parallel pivot axes it is where the lines of the two arms cross."],
-  ["roll-center","Roll center","The point the body rolls about at one axle. Its height decides how much cornering load goes through the arms instead of the springs."],
-  ["roll-axis","Roll axis","The line through the front and rear roll centers."],
-  ["anti-dive","Anti-dive","How much of the nose dive under braking the front arms hold back, in %. It needs a pivot axis tilted in side view. At the rear the same number is anti-lift."],
-  ["motion-ratio","Motion ratio","How far the coilover moves for each millimeter the wheel moves."],
-  ["wheel-rate","Wheel rate","The spring's stiffness as felt at the wheel: about spring rate times motion ratio squared."],
-  ["ride-frequency","Ride frequency","How fast the body bounces on its springs, in Hz. Higher is stiffer."],
-  ["damping-ratio","Damping ratio","Damper strength compared with the amount that just stops a bounce without overshoot (1.0). LS means at low shaft speed. ζ = c·MR² ⁄ 2√(wheel rate · corner mass)."],
-  ["knee","Knee","The damper shaft speed where it changes from its low-speed slope to its high-speed slope."],
-  ["ackermann","Ackermann","How much less the outside front wheel steers than the inside one. 100 % is what a slow turn needs for both tires to roll cleanly; 0 % is both wheels steering the same."],
-  ["contact-patch","Contact patch","Where the tire touches the road."],
-  ["loaded-radius","Loaded radius","The height of the wheel center above the road with the car's weight on the tire."],
-  ["tire-rate","Tire rate","How stiff the tire is as a spring, straight up and down. The Estimate button works it out from size and pressure with Rhyne's formula."]]],
- ["Mass, balance and grip",[
-  ["sprung-mass","Sprung mass","Everything the springs carry: body, engine, people."],
-  ["unsprung-mass","Unsprung mass","What moves with the wheel: wheel, tire, knuckle, brake, and about half the arms and coilover."],
-  ["cg","CG","Center of gravity: the car's balance point."],
-  ["lateral-g","Lateral g","Cornering force as a multiple of the car's weight."],
-  ["roll-gradient","Roll gradient","Degrees of body roll per g of cornering. Pitch gradient is the same for braking and accelerating."],
-  ["load-transfer","Lateral load transfer","The load that moves from the inside tires to the outside tires in a corner. The front share is how much of it the front axle carries."],
-  ["slip-angle","Slip angle","The angle between where a tire points and where it actually goes. Tires make side force by slipping a few degrees."],
-  ["grip-in-use","Grip in use","The side force a tire is making, as a share of the most it could make right now."],
-  ["cornering-limit","Cornering limit","The lateral g at which an axle's tires run out of grip."],
-  ["understeer-gradient","Understeer gradient","How much more the front tires slip than the rear ones, per g. Positive is understeer: the car pushes wide."]]],
- ["This program",[
-  ["setup-sheet","Setup sheet","The summary of the car as it sits: alignment, rates, balance and geometry."],
-  ["solver","Solver","The box on the Geometry tab that works out a change for you. Give it targets and tick the fields to solve for."],
-  ["target","Target","A setup-sheet number you want, and the value you want it to be."],
-  ["solve-for","Solve for","The tick boxes beside the fields. Ticked fields will be solved for; unticked fields stay as they are."],
-  ["session","Session","Your own edits, kept in this browser."],
-  ["settle","Settle","Brings the car to rest as it is loaded now."],
-  ["drive","Drive","Runs the car at a steady speed, so the tires make the cornering force from the steering."],
-  ["step-steer","Step steer","A sudden turn of the steering wheel to a set angle, to see how the car reacts."]]]
-];
-const VOCAB_IDS=new Set([].concat(...VOCAB.map(([,items])=>items.map(q=>q[0]))));
-/* {word} or {shown text|id} in a description becomes a link that opens the vocabulary at that word. An id the vocabulary lacks stays plain text. */
-const VT=s=>s.replace(/\{([^{}|]+)(?:\|([^{}]+))?\}/g,(m,shown,id)=>{const k=id||shown.toLowerCase().replace(/\s+/g,"-"); return VOCAB_IDS.has(k)?`<a class="vt" href="#v-${k}" data-v="${k}">${shown}</a>`:shown;});
 let presetName=null, presetLock=false; try{presetName=localStorage.getItem("dws.preset")||null;}catch(e){}      // which car button is lit; any edit clears it
 function save(){try{const t=JSON.stringify(P); localStorage.setItem(KEY,t); if(!presetLock){presetName="session"; localStorage.setItem("dws.preset","session"); localStorage.setItem(SKEY,t);}}catch(e){} markPreset();}   // an edit makes the current setup the session setup
 function markPreset(){const h=document.getElementById("preset"); if(h) h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.p===presetName));}
@@ -161,16 +83,19 @@ const TIRE_KINDS=[["street","Street"],["sport","Sporty street"],["semi","Semi-sl
 function renderForms(){
   const who=editAxle?"Rear: ":"Front: ", gObj=()=>P.ax[editAxle].g;
   renderGeoPart(); buildTargets();
-  buildFields($("whlFields"),geoFor(editAxle,GEO_TABS.whl),gObj,"g",who,t=>t==="TIRE"?"Tire":t==="GRIP"?"Tire grip":t);
+  buildFields($("whlFields"),geoFor(editAxle,GEO_TABS.whl),gObj,"g",who,t=>t==="TIRE"?"Tire":t==="GRIP"?"Tire grip / typical, not measured":t);
   {const tf=$("whlFields").querySelector('fieldset[data-g="TIRE"]'), r2=document.createElement("div"), t=tireFromSize(P,editAxle);
    r2.className="rowbtns"; r2.innerHTML='<button class="btn" id="fitTire">Estimate from size</button>'; tf.appendChild(r2);
    const h2=document.createElement("p"); h2.className="hint";
-   h2.textContent="Free radius "+(t.free*1000).toFixed(0)+" mm.";
+   h2.textContent="Free radius "+(t.free*1000).toFixed(0)+" mm from the size. The button sets the rate from Rhyne's empirical formula and the loaded radius as free radius − static load ÷ rate. An estimate.";
    tf.appendChild(h2); $("fitTire").onclick=fitTire;}
   {const gf=$("whlFields").querySelector('fieldset[data-g="GRIP"]'), g=gObj(), row=document.createElement("div");
    const cur=TIRE_KINDS.find(([k])=>Object.keys(TIRE_PRESETS[k]).every(q=>Math.abs(TIRE_PRESETS[k][q]-g[q])<1e-9));
    row.className="f"; row.innerHTML='<label for="tireKind">Kind of tire</label><select id="tireKind" class="wide">'+(cur?"":'<option value="">Custom</option>')+TIRE_KINDS.map(([k,n])=>`<option value="${k}"${cur&&cur[0]===k?" selected":""}>${n}</option>`).join("")+'</select>';
    gf.insertBefore(row,gf.children[1]);
+   const h3=document.createElement("p"); h3.className="hint";
+   h3.textContent="Picking a kind fills the five numbers with typical values. Tire makers do not publish these, so the size of a result is a guess; the direction of a change is more reliable.";
+   gf.appendChild(h3);
    $("tireKind").onchange=()=>{const k=$("tireKind").value; if(k&&applyEdit(()=>{Object.assign(P.ax[editAxle].g,TIRE_PRESETS[k]);},"Tire grip set to typical "+TIRE_KINDS.find(q=>q[0]===k)[1].toLowerCase()+" values.")) renderForms();};}
   buildFields($("sprFields"),SPR,()=>P.ax[editAxle].s,"s",who);
   buildFields($("sprGeoFields"),geoFor(editAxle,GEO_TABS.spr),gObj,"g",who,t=>t==="Coilover"?"Coilover mount":t);
@@ -179,21 +104,21 @@ function renderForms(){
   const cf=$("strFields").querySelector('fieldset[data-g="Cut knuckles"]'), cc=document.createElement("label");
   cc.className="chk"; cc.innerHTML='<input type="checkbox" id="cut"> Cut knuckles'; cf.insertBefore(cc,cf.children[1]);
   const ch=document.createElement("p"); ch.className="hint";
-  ch.innerHTML=VT("More steering angle for the same {rack} travel.");
+  ch.textContent="Shortens the front steering arm: the tie rod's outer joint moves toward the kingpin axis by this much, and the tie rod is re-set so static toe holds. The wheels turn further for the same rack travel.";
   cf.appendChild(ch);
   $("cut").checked=!!P.steer.cut;
   $("cut").onchange=()=>{const on=$("cut").checked; if(!applyEdit(()=>{P.steer.cut=on?1:0;},on?"Cut knuckles on.":"Cut knuckles off.")) $("cut").checked=!!P.steer.cut;};
   buildFields($("tieFields"),GEO.filter(([t])=>t==="TIE"),()=>P.ax[0].g,"g","Front: ",()=>"Tie rod / rack end");
   {const tie=$("tieFields").querySelector("fieldset"), row=document.createElement("div");
    row.className="rowbtns"; row.innerHTML='<button class="btn" id="fitTie">Least bump steer</button>'; tie.appendChild(row);
-   const th=document.createElement("p"); th.className="hint"; th.innerHTML=VT("The {tie rod}'s other end: Geometry tab, Knuckle, F to H."); tie.appendChild(th);
+   const th=document.createElement("p"); th.className="hint"; th.textContent="The tie rod runs from this joint on the rack to the tie rod end on the knuckle (Geometry tab, Knuckle, fields F to H). Its length is whatever holds the static toe. The button moves this joint to the height with the least toe change over the travel range."; tie.appendChild(th);
    $("fitTie").onclick=fitTie;}
   buildFields($("linkFields"),[STEER[1]],()=>P.steer,"st","",()=>"*Drive",true);      // on the Forces tab, under the lateral slider that Drive takes over
   const lf=$("linkFields").querySelector("fieldset"), hint=document.createElement("p"); hint.className="hint";
   hint.textContent="Turns off the lateral slider above. Calculates reactions from steering and speed. Grip driving only: there is no throttle, so it cannot hold a drift."; lf.insertBefore(hint,lf.children[1]);
   buildHeights(); camNow();
 }
-function camNow(cam){if($("camNow")) $("camNow").innerHTML=VT("Small {camber} slider (rest adjusts from control arm lengths).");}
+function camNow(cam){if($("camNow")) $("camNow").textContent="Camber at ride height now: "+num(cam===undefined?sheet(model).ax[editAxle].cam:cam,2)+"°. The wheel is fixed on the knuckle, so the arms set the camber: a shorter upper arm adds negative camber and kingpin angle. The adjuster adds up to +1° or −3° on top.";}
 function syncLink(){
   const on=!!P.steer.link; $("ay").disabled=on; inp.U=on?P.steer.speed:0; if(!on) $("ay").value=ayManual;
   $("driveOn").setAttribute("aria-pressed",on);                     // the header button lights up
@@ -236,8 +161,8 @@ const specOf=key=>{for(const [,fs] of GEO) for(const f of fs) if(f[0]===key) ret
 const GROUP_NAME={UARM:"Upper arm",LARM:"Lower arm",KNUCKLE:"Knuckle",Alignment:"Alignment",TIE:"Rack",Coilover:"Coilover"};
 const fmtShown=(v,sc,u)=>String(+(v/sc).toFixed(u==="°"?2:u===""?3:1));
 const nf=v=>v.toFixed(1), armCol=k=>k==="l"?"var(--arm-lower)":"var(--arm-upper)";
-const FHEAD='<div class="fhead" title="Ticked fields will be solved for. Unticked fields stay as they are.">Solve for ↓</div>';
-const tickBox=(key,lab,ax)=>`<input type="checkbox" class="tick" id="fr-${key}" data-free="${key}" data-ax="${ax}" aria-label="Solve for ${lab}"${GB.free[ax].has(key)?" checked":""}>`;
+const FHEAD='<div class="fhead" title="Tick a box to let Solve for change that field. Unticked fields stay as they are.">Solve for may change ↓</div>';
+const tickBox=(key,lab,ax)=>`<input type="checkbox" class="tick" id="fr-${key}" data-free="${key}" data-ax="${ax}" aria-label="${lab}: Solve for may change this"${GB.free[ax].has(key)?" checked":""}>`;
 function gRow(key,label,unit,step,mn,mx,tick){
   const id="g-"+key, lt=letterOf(key);
   return `<div class="f tk"><label for="${id}">${lt?`<span class="let">${lt}</span>`:""}${label}</label><input id="${id}" type="number" step="${step}"${mn!==undefined?` min="${mn}" max="${mx}"`:""} data-gk="${key}"><span class="u">${unit}</span>`+(tick?tickBox(key,label,editAxle):"<span></span>")+"</div>";
@@ -253,7 +178,7 @@ function geoValue(key){
 function renderGeoPart(){
   const host=$("geoFields"), ax=editAxle, who=ax?"Rear":"Front", part=GB.part, fsOf=t=>(geoOf(ax).find(([n])=>n===t)||[0,[]])[1];
   document.querySelectorAll("#partSel button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.part===part));
-  const wheelBtn=`<button class="btn sm" type="button" data-wheel aria-pressed="${GB.wheel}">Wheel: ${GB.wheel?"on":"off"}</button>`, wheelNote=`<span data-wheelnote${GB.wheel?"":" hidden"}> · gray: tire</span>`;
+  const wheelBtn=`<button class="btn sm" type="button" data-wheel aria-pressed="${GB.wheel}">Wheel: ${GB.wheel?"on":"off"}</button>`, wheelNote=`<span data-wheelnote${GB.wheel?"":" hidden"}> The gray shape is the tire at design height.</span>`;
   let h="";
   if(part==="uarm"||part==="larm"){
     const k=part==="uarm"?"u":"l", fs=fsOf(k==="u"?"UARM":"LARM"), pick=s=>fs.filter(f=>s.includes(f[0].slice(1))&&f[0]!=="ee");
@@ -261,17 +186,18 @@ function renderGeoPart(){
       `<div class="subrow"><span class="sub">Where its pivot axis is</span>${wheelBtn}</div><svg class="sketch" id="axSk" viewBox="0 0 576 206" role="img" aria-label="The pivot axis in front, side and top view, with its fields marked by letter"></svg>`+
       `<div class="holdrow"><span>When the axis moves, keep</span><div class="seg" id="holdSel" role="group" aria-label="When the pivot axis moves, keep"><button type="button" data-h="bj" aria-pressed="${GB.hold}">Ball joint</button><button type="button" data-h="arm" aria-pressed="${!GB.hold}">Arm</button></div></div><p class="hint" id="holdNote"></p>`+FHEAD+
       pick(["ym","zm","xm","sv","pv"]).map(specRow).join("")+
-      `<p class="hint">${VT("◆ {pivot midpoint} · red dot: origin")}${wheelNote}</p>`+
+      `<p class="hint">◆ is the point midway between the arm's two inner pivots. A, B and C place it, measured from the red dot in each view: the centerline, the ground and the axle line. ${ax?"The rear's pivot axes stay parallel to the car's centerline, so it has no angle fields.":"D and E angle the axis through it."}${wheelNote}</p>`+
       `<div class="subrow"><span class="sub">The arm itself</span>${wheelBtn}</div><svg class="sketch" id="armSk" role="img" aria-label="The arm laid flat, with its fields marked by letter"></svg>`+FHEAD+
       pick(["w","R","t"]).map(specRow).join("")+
       gRow(k+"Lf","Front leg: front pivot to ball joint","mm",5)+gRow(k+"Lr",(ax&&k==="l"?"Rear pivot to ball joint (across the arm)":"Rear leg: rear pivot to ball joint"),"mm",5)+
       (ax&&k==="l"?specRow(fs.find(f=>f[0]==="ee")):"")+
-      `<p class="hint">${VT("Type a {leg} (I or J) and G and H follow.")}${ax&&k==="l"?VT(" K holds the rear {toe}."):""}</p></fieldset>`;
+      `<p class="hint">The red dot is the arm's own origin, the pivot midpoint ◆: G is measured from the axis through it, H along that axis. I and J follow from F, G and H. Type a leg length and G and H change to match.${ax&&k==="l"?" The rear lower arm holds the knuckle at two outer pivots: the ball joint and a second one K behind it, which holds the toe.":""}</p></fieldset>`;
   } else if(part==="kn"){
     h=`<fieldset data-g="kn"><legend>${who} knuckle</legend>`+
       `<div class="subrow"><span class="sub">The knuckle and where its wheel sits</span>${wheelBtn}</div><svg class="sketch" id="knSk" viewBox="0 0 576 280" role="img" aria-label="The knuckle seen from behind and from above, with its fields marked by letter"></svg>`+
       FHEAD+fsOf("KNUCKLE").map(specRow).join("")+
-      `<p class="hint">${VT("Red dot: origin, the lower {ball joint} · B: {knuckle angle}")}${wheelNote}</p></fieldset>`;
+      `<p class="hint">The knuckle is one part, so its numbers are measured on it, from the lower ball joint (the red dot): up the kingpin, outboard square to the kingpin (toward the wheel), and ahead square to both. B is the angle between the kingpin and the plane of the wheel; the arms split it into kingpin inclination and camber. The left drawing looks from behind with the wheel upright, the right one straight down the kingpin.${wheelNote}</p>`+
+      `<p class="hint">The wheel bolts to the mounting face; its offset and any spacer are on the Wheels &amp; tires tab.${ax?"":" The tie rod bolts to the tie rod end; its rack end is on the Steering tab."}</p></fieldset>`;
   } else {
     h=`<div id="alignHost" class="groups"></div>`;
   }
@@ -282,7 +208,7 @@ function renderGeoPart(){
     hd.innerHTML=FHEAD; al.insertBefore(hd.firstChild,al.children[1]);                    // the heading over the tick boxes
     p.className="hint"; p.id="camNow"; al.insertBefore(p,al.children[3]);                 // under the adjuster; filled by camNow
     const box=document.createElement("div"); box.innerHTML=gRow("caster","Caster at design height","°",0.25,-5,20)+
-      `<p class="hint">${VT("Typing a {caster} slides both ball joints (H on each arm).")}</p>`;
+      `<p class="hint">Caster is not a part's dimension: it comes from where the two ball joints sit along their arms (field H of each arm). Typing a value here slides both joints along their arms until the kingpin leans by that much, with the wheel staying where it is fore-aft. Static toe is set by the tie rod's length${ax?" (on the rear, by the lower arm's second outer pivot)":""}. The setup sheet shows all three at ride height.</p>`;
     while(box.firstChild) al.appendChild(box.firstChild);
   }
   syncGeoPart();
@@ -296,7 +222,7 @@ function syncGeoPart(){
     if(t&&t!==document.activeElement) t.value=fmtIn(g.toe,1);
     if(c&&c!==document.activeElement){c.value=fmtIn(g.cadj,1); $("g-cadjO").textContent=sgnTxt(g.cadj,2)+"°";}
   }
-  const hn=$("holdNote"); if(hn) hn.textContent=GB.hold?"Arm is re-measured (G to J). Alignment holds.":"Ball joint moves with the axis. Alignment changes.";
+  const hn=$("holdNote"); if(hn) hn.textContent=GB.hold?"The arm is re-measured to fit (G, H and the legs change), so the alignment at design height stays.":"The arm stays the same part, so its ball joint moves with the pivots and the alignment changes.";
   drawSketches();
 }
 function drawSketches(){
@@ -310,20 +236,20 @@ function geoEdit(el){
     if(x<-5||x>20) return bad(who+"Caster must be between −5 and 20°.");
     let r; try{r=setCaster(g,name,x);}catch(e){return bad(e.message);}
     const dl=(r.lt-g.lt)*1000, du=(r.ut-g.ut)*1000;
-    if(!applyEdit(()=>{const q=P.ax[ax].g; q.lt=r.lt; q.ut=r.ut;},"Caster "+num(x,2)+"°: ball joints moved "+sgnTxt(dl,1)+" mm (lower) and "+sgnTxt(du,1)+" mm (upper).")) back();
+    if(!applyEdit(()=>{const q=P.ax[ax].g; q.lt=r.lt; q.ut=r.ut;},"Caster set to "+num(x,2)+"° at design height: the lower ball joint moved "+sgnTxt(dl,1)+" mm and the upper "+sgnTxt(du,1)+" mm along their arms (+ = forward).")) back();
     return;
   }
   if((k==="u"||k==="l")&&(suf==="Lf"||suf==="Lr")){
     const l=legsOf(g,k); l[suf]=x/1000; const r=fromLegs(g,k,l.Lf,l.Lr);
     if(!r) return bad(who+"legs that short can't meet with the inner pivots "+(g[k+"w"]*1000).toFixed(0)+" mm apart.");
-    if(!applyEdit(()=>{const q=P.ax[ax].g; q[k+"R"]=r.R; q[k+"t"]=r.t;},"Leg "+x.toFixed(1)+" mm: reach "+(r.R*1000).toFixed(1)+" mm, ball joint "+sgnTxt(r.t*1000,1)+" mm.")) back();
+    if(!applyEdit(()=>{const q=P.ax[ax].g; q[k+"R"]=r.R; q[k+"t"]=r.t;},"Leg set to "+x.toFixed(1)+" mm: reach "+(r.R*1000).toFixed(1)+" mm, ball joint "+sgnTxt(r.t*1000,1)+" mm from the pivot midpoint.")) back();
     return;
   }
   const f=specOf(key), lab=f[1], u=f[2], sc=f[3], mn=f[5], mx=f[6];
   if(x<mn||x>mx) return bad(who+lab+" must be between "+mn+" and "+mx+(u?" "+u:"")+".");
   const held=(k==="u"||k==="l")&&["xm","ym","zm","sv","pv"].includes(suf)&&GB.hold, p0=model.T[ax].P0, bj=k==="l"?p0.LBJ:p0.UBJ;
   if(!applyEdit(()=>{const q=P.ax[ax].g; if(held) reseat(q,k,{[key]:x*sc},bj); else q[key]=x*sc;})) return back();
-  if(held) setStatus("Ball joint kept: reach "+(P.ax[ax].g[k+"R"]*1000).toFixed(1)+" mm, ball joint "+sgnTxt(P.ax[ax].g[k+"t"]*1000,1)+" mm.",false);
+  if(held) setStatus("Pivot axis moved, ball joint kept: the "+(k==="u"?"upper":"lower")+" arm's reach is now "+(P.ax[ax].g[k+"R"]*1000).toFixed(1)+" mm and its ball joint sits "+sgnTxt(P.ax[ax].g[k+"t"]*1000,1)+" mm from the pivot midpoint.",false);
 }
 { const host=$("geoFields");
   host.addEventListener("input",e=>{if(e.target.dataset.gk) e.target.dataset.dirty="1";});
@@ -488,7 +414,7 @@ const MORE=[["et","Wheel offset (ET)"],["sp","Wheel spacer"],["xti","Rack joint,
 function buildTargets(){
   const ax=editAxle, has=new Set([].concat(...geoOf(ax).map(([,fs])=>fs.map(f=>f[0])))); let h="";
   for(const t of TARGETS){const id="tg-"+t[0], pin=GB.pin[ax].has(t[0]), w=GB.want[ax][t[0]];
-    h+=`<div class="t"><input type="checkbox" class="tick" id="pin-${t[0]}" data-pin="${t[0]}" aria-label="Target: ${t[1]}"${pin?" checked":""}><label for="${id}">${t[1]}</label><input type="number" id="${id}" data-want="${t[0]}" step="${t[2]==="mm"||t[2]==="%"?1:0.1}"${pin&&Number.isFinite(w)?` value="${w}"`:""}><span class="u">${t[2]}</span><span class="cur" id="cur-${t[0]}" hidden></span></div>`;}
+    h+=`<div class="t"><input type="checkbox" class="tick" id="pin-${t[0]}" data-pin="${t[0]}" aria-label="Solve for ${t[1]}"${pin?" checked":""}><label for="${id}">${t[1]}</label><input type="number" id="${id}" data-want="${t[0]}" step="${t[2]==="mm"||t[2]==="%"?1:0.1}"${pin&&Number.isFinite(w)?` value="${w}"`:""}><span class="u">${t[2]}</span><span class="cur" id="cur-${t[0]}" hidden></span></div>`;}
   $("solveT").innerHTML=h;
   $("moreT").innerHTML=MORE.filter(([k])=>has.has(k)).map(([k,lab])=>`<div class="t"><input type="checkbox" class="tick" id="mf-${k}" data-free="${k}" data-ax="${ax}"${GB.free[ax].has(k)?" checked":""}><label for="mf-${k}">${lab}</label><span class="v" id="mv-${k}"></span><span class="u">${specOf(k)[2]}</span></div>`).join("");
   if(MORE.some(([k])=>GB.free[ax].has(k))) $("moreF").open=true;
@@ -505,17 +431,13 @@ function solveNow(A){
 const fieldName=k=>{const m=MORE.find(q=>q[0]===k); if(m) return m[1]; const f=specOf(k), grp=GEO.find(([,fs])=>fs.includes(f))[0]; return (GROUP_NAME[grp]||grp)+" · "+(letterOf(k)?letterOf(k)+" ":"")+f[1].split(":")[0].split("(")[0].trim();};
 function freeText(){
   const el=$("freeList"); if(!el) return; const ks=[...GB.free[editAxle]];
-  el.textContent=ks.length?"Solving for: "+ks.map(fieldName).join("; ")+".":"No field ticked yet.";
+  el.textContent=ks.length?"May change: "+ks.map(fieldName).join("; ")+".":"No field is ticked yet. Tick the box beside a field: the column marked “Solve for may change”.";
 }
 function solveRun(){
   const ax=editAxle, tg={};
   for(const k of GB.pin[ax]){const v=parseFloat($("tg-"+k).value); if(!Number.isFinite(v)){GB.prop={ax,r:{ok:false,why:"Type a value for "+TARGETS.find(t=>t[0]===k)[1]+"."}}; drawSolve(); $("solveOut").scrollIntoView({block:"nearest"}); return;} tg[k]=v;}
   const a=sheet(model).ax[ax], c={s:a.st,L:P.veh.L,h:P.veh.h+model.zs,share:brakeShare(P.veh,ax)};
   let r; try{r=solveFor(ax?P.ax[1].g:frontG(P),ax?"Rear":"Front",c,tg,[...GB.free[ax]]);}catch(e){r={ok:false,why:e.message};}
-  if(r.ok&&r.changes.length){                                        // an answer must also be a car that can be built over its whole travel, or Apply would only refuse it
-    const q=JSON.parse(JSON.stringify(P)); for(const ch of r.changes) q.ax[ax].g[ch.key]=ch.si;
-    try{makeModel(q);}catch(e){r={ok:false,why:"The numbers can be reached at ride height, but the car can't be built that way. "+e.message};}
-  }
   GB.prop={ax,r}; drawSolve(); $("solveOut").scrollIntoView({block:"nearest"});      // the answer may be below the edge of the pane
 }
 function drawSolve(note){
@@ -526,14 +448,14 @@ function drawSolve(note){
   let h='<div class="result"><div class="rowbtns"><span class="tag">Answer found</span><span>'+(r.changes.length?r.changes.length+" field"+(r.changes.length>1?"s":"")+" would change":"Already there: nothing has to change")+"</span></div><div class=\"chg\">";
   for(const c of r.changes){const d=c.unit==="°"?2:c.unit===""?3:1; h+="<div><span>"+(GROUP_NAME[c.group]||c.group)+" · "+(letterOf(c.key)?'<span class="let">'+letterOf(c.key)+"</span> ":"")+c.label+"</span><span><b>"+num(c.from,d)+" → "+num(c.to,d)+"</b>"+unitTxt(c.unit)+' <span class="u">('+sgnTxt(c.to-c.from,d)+")</span></span></div>";}
   h+="</div>";
-  if(r.spare>0) h+='<p class="hint">Many answers fit. This one changes the fields least.</p>';
+  if(r.spare>0) h+='<p class="hint">'+r.spare+" more ticked field"+(r.spare>1?"s":"")+" than targets, so many answers exist. This is the one that changes the fields least, counting 1 mm the same as 0.25°.</p>";
   h+='<div class="tw"><table class="wrap"><tr><th>What moves</th><th>Now</th><th>After</th><th></th></tr>';
   for(const t of TARGETS){const x=r.start[t[0]]*t[3], y=r.end[t[0]]*t[3], d=tDec(t[2]); if(!Number.isFinite(x)||Math.abs(x-y)<0.5*Math.pow(10,-d)) continue;
     h+="<tr><td>"+t[1]+(GB.pin[q.ax].has(t[0])?' <span class="tag sm">target</span>':"")+"</td><td>"+num(x,d)+"</td><td>"+num(y,d)+'</td><td class="u">'+t[2]+"</td></tr>";}
   h+='</table></div><div class="rowbtns"><button class="btn primary" id="solveApply" type="button">Apply</button><button class="btn" id="solveDrop" type="button">Discard</button></div></div>';
   el.innerHTML=h;
   $("solveApply").onclick=()=>{const n=r.changes.length, ax=q.ax; GB.prop=null;
-    if(applyEdit(()=>{const g=P.ax[ax].g; for(const c of r.changes) g[c.key]=c.si;},"Applied "+n+" change"+(n===1?"":"s")+" from the solver.")){renderForms(); drawSolve("Applied.");} else drawSolve();};      // renderForms: the changed fields may be on any tab
+    if(applyEdit(()=>{const g=P.ax[ax].g; for(const c of r.changes) g[c.key]=c.si;},"Applied "+n+" change"+(n===1?"":"s")+" from Solve for.")){renderForms(); drawSolve("Applied. The fields, the drawings and the setup sheet now show the new geometry.");} else drawSolve();};      // renderForms: the changed fields may be on any tab
   $("solveDrop").onclick=()=>{GB.prop=null; drawSolve();};
 }
 $("solveT").addEventListener("change",e=>{const el=e.target, ax=editAxle;
@@ -700,7 +622,7 @@ function refreshStatic(){
     row("Scrub radius",a=>num(mm(a.scrub),1),"mm")+
     row("Mechanical trail",a=>num(mm(a.trail),1),"mm")+
     row("Anti-dive (front), anti-lift (rear) under braking",a=>Number.isFinite(a.antiDive)?num(a.antiDive,1):"–","%");
-  $("zeta").innerHTML=`<span>ζ bump LS, front <b>${A[0].zb.toFixed(2)}</b></span><span>rear <b>${A[1].zb.toFixed(2)}</b></span><span>ζ rebound LS, front <b>${A[0].zr.toFixed(2)}</b></span><span>rear <b>${A[1].zr.toFixed(2)}</b></span>`;
+  $("zeta").innerHTML=`<span>ζ bump LS, front <b>${A[0].zb.toFixed(2)}</b></span><span>rear <b>${A[1].zb.toFixed(2)}</b></span><span>ζ rebound LS, front <b>${A[0].zr.toFixed(2)}</b></span><span>rear <b>${A[1].zr.toFixed(2)}</b></span><span style="grid-column:1/-1">ζ = c·MR² ⁄ 2√(wheel rate · corner mass)</span>`;
   let ph=`<tr><th>Corner</th><th>Perch vs design</th><th>Spring force at design length</th></tr>`;
   for(let i=0;i<4;i++){
     const k=P.ax[i<2?0:1].s.k, dp=(model.Fpre[i]-model.FpreDesign[i])/k*1000;
@@ -1068,14 +990,14 @@ function drawRear(){
 const CURVES={
   cam:{x:"s",name:"Camber",unit:"°",dec:2,note:"Camber is relative to the body here.",f:(T,s)=>lk2(T,T.cam,s,0)},
   toe:{x:"s",name:"Toe",unit:"°",dec:3,note:"+ = toe-in.",f:(T,s)=>-lk2(T,T.steer,s,0)},
-  cas:{x:"s",name:"Caster",unit:"°",dec:2,note:"Moves only when a pivot axis is tilted in side view.",f:(T,s)=>lk2(T,T.cas,s,0)},
+  cas:{x:"s",name:"Caster",unit:"°",dec:2,note:"With the pivot axes parallel to the centerline caster hardly moves with travel. An axis angled in side view makes it move, and gives anti-dive.",f:(T,s)=>lk2(T,T.cas,s,0)},
   dtr:{x:"s",name:"Track change",unit:"mm",dec:1,note:"+ = contact patch moves outboard.",f:(T,s)=>lk1(T,T.dtr,s)*1000},
-  MR:{x:"s",name:"Motion ratio",unit:"",dec:3,note:"",f:(T,s)=>lk2(T,T.MR,s,0)},
+  MR:{x:"s",name:"Motion ratio",unit:"",dec:3,note:"Coilover travel per unit of wheel travel.",f:(T,s)=>lk2(T,T.MR,s,0)},
   rch:{x:"s",name:"Roll center height",unit:"mm",dec:0,note:"For equal travel on both sides.",f:(T,s)=>lk1(T,T.rch,s)*1000},
   rw:{x:"sw",name:"Road-wheel angle",unit:"°",dec:1,note:"+ = steered right.",f:(T,st,r,side)=>side*lk2(T,T.steer,st,side*r)},
   camS:{x:"sw",name:"Camber",unit:"°",dec:2,note:"Camber is relative to the body here.",f:(T,st,r,side)=>lk2(T,T.cam,st,side*r)},
-  lift:{x:"sw",name:"Body lift",unit:"mm",dec:1,note:"+ = that corner of the body lifts.",f:(T,st,r,side)=>(lk2(T,T.sa,st,side*r)-st)*1000},
-  grip:{x:"ay",name:"Grip in use",unit:"%",dec:0,note:"The axle that reaches 100 % first sets the limit."}
+  lift:{x:"sw",name:"Body lift",unit:"mm",dec:1,note:"+ = steering pushes that corner of the body up (caster and kingpin inclination).",f:(T,st,r,side)=>(lk2(T,T.sa,st,side*r)-st)*1000},
+  grip:{x:"ay",name:"Grip in use",unit:"%",dec:0,note:"The axle whose line reaches 100 % first sets the limit. Front first is understeer, rear first is oversteer. Tire grip numbers are typical values."}
 };
 const SERIES={sw:["Left wheel","Right wheel","L ","R "],ay:["Front axle","Rear axle","F ","R "]};
 const ayNow=()=>Math.abs(P.steer.link?S.ay:inp.ay);
@@ -1104,7 +1026,7 @@ function curveStatic(){
   if(kind==="ay"&&!BAL) t+=`<tr><td>Working it out</td><td>…</td><td>…</td></tr>`;
   else for(const [lab,xv] of pos) t+=two?`<tr><td>${lab}</td><td>${v(xv,-1)}</td><td>${v(xv,1)}</td></tr>`:`<tr><td>${lab}</td><td>${v(xv,1)}</td></tr>`;
   $("curveTbl").innerHTML=t;
-  $("curveHint").textContent=(kind==="sw"?"Markers: the steering angle now. ":kind==="ay"?"Markers: the lateral g now. ":"Markers: where each wheel is now. ")+C.note;
+  $("curveHint").textContent=(kind==="sw"?"Front axle at its static ride height. The markers show the current steering angle. ":kind==="ay"?"The car is settled at each lateral g and each axle's side force is compared with the most its tires can make. The markers show the lateral g now. ":"Same axle as the rear view. Travel is measured at the contact patch. The markers show where each wheel is now. ")+C.note;
 }
 $("curveQ").addEventListener("change",curveStatic);
 function drawCurve(){
@@ -1378,26 +1300,12 @@ $("expBtn").onclick=exportSetup;
 $("impBtn").onclick=()=>$("impFile").click();
 $("impFile").onchange=()=>{const f=$("impFile").files[0]; $("impFile").value=""; if(f) importSetup(f);};
 
-/* ---- guide: the quick start (opens every time the page loads, and from the Guide button) and the vocabulary.
-   A marked word in a description (class vt) opens the vocabulary at that word; closing puts the focus back on it. ---- */
-{const box=$("intro"), voc=$("vocab"); let from=null;
- voc.innerHTML=VOCAB.map(([grp,items])=>"<section><h3>"+grp+"</h3><dl>"+items.map(([id,word,meaning])=>`<div id="v-${id}"><dt>${word}</dt><dd>${meaning}</dd></div>`).join("")+"</dl></section>").join("");
- for(const el of document.querySelectorAll("[data-vt]")) el.innerHTML=VT(el.innerHTML);      // the descriptions written in index.html
- const page=name=>{$("introSteps").hidden=name!=="start"; voc.hidden=name!=="vocab";
-   for(const b of $("introTabs").children) b.setAttribute("aria-pressed",b.dataset.g===name);
-   for(const e of voc.querySelectorAll(".hit")) e.classList.remove("hit"); $("introBody").scrollTop=0;};
- const show=(on,name,word)=>{
-   if(!on){box.hidden=true; if(from&&from.isConnected) from.focus(); from=null; return;}
-   if(box.hidden) from=document.activeElement;
-   box.hidden=false; page(name||"start"); $("introX").focus();
-   const hit=word&&$("v-"+word); if(hit){hit.classList.add("hit"); hit.scrollIntoView({block:"center"});}
- };
+/* ---- quick start: opens every time the page loads, and again from the Guide button ---- */
+{const box=$("intro"), show=on=>{box.hidden=!on; if(on) $("introX").focus();};
  $("introX").onclick=()=>show(false); $("introBtn").onclick=()=>show(true);
- $("introTabs").addEventListener("click",e=>{const b=e.target.closest("button"); if(b) page(b.dataset.g);});
  box.addEventListener("click",e=>{if(e.target===box) show(false);});
- document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a.vt"); if(a){e.preventDefault(); show(true,"vocab",a.dataset.v);}});
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!box.hidden) show(false);});
- show(true); from=null;}
+ show(true);}
 
 /* boot */
 settle(model,S,inp,3); S.t=0;
