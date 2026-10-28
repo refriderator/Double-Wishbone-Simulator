@@ -658,15 +658,18 @@ function solveFor(g0,name,c,targets,free){
 
    Stock
      verified     wheelbase, mass, wheel and tire size, springs, rack stroke and turns lock to lock, shock tower spacing.
-                  The model is fitted to Mazda's track, camber, caster, kingpin, trail, toe, roll centers, wheel stroke, damper
-                  forces and full lock.
-     measured     front arm lengths and inner pivot spacing, front knuckle (ball joints from the axle and from the wheel face),
-                  rear chassis pivots from the centerline and their height difference, rear arm lengths, rear shock mount on the
-                  arm, CG height of the whole car. Spring motion ratios (0.686 / 0.721) are measured too; the model's follow from
-                  its geometry.
+                  The model is fitted to Mazda's track, camber, caster, kingpin, trail, toe, roll centers, wheel stroke and
+                  damper forces. Full lock follows from the measured steering geometry (below).
+     measured     front arm lengths and inner pivot spacing, front knuckle (ball joints from the axle and from the wheel face,
+                  tie rod end 105 mm ahead of and 25 mm outboard of the lower ball joint, 10 mm above it), rack 100 mm ahead of
+                  the lower arm's front pivot, rear chassis pivots from the centerline and their height difference, rear arm
+                  lengths, rear shock mount on the arm, CG height of the whole car. Spring motion ratios (0.686 / 0.721) are
+                  measured too; the model's follow from its geometry.
      interpreted  front pivots from the centerline, pivot heights above ground, pivot axis angles (0), rear knuckle, hub face
-                  positions, tie rod end, rack position, front shock mount, shock top heights, anti-roll bar rates, unsprung
-                  mass, inertias, weight share, tire rate and radius, tire grip
+                  positions, rack inner joint spacing, rack height (bestTieHeight: least toe change over the travel), front
+                  shock mount, shock top heights, anti-roll bar rates, unsprung mass, inertias, weight share, tire rate and
+                  radius, tire grip. With the measured steering arm and rack the model gives 38.8 / 32.4 deg of full lock
+                  against Mazda's 38 / 33.
    Coen's
      verified     wheels, tires, spacers, spring rates
      interpreted  ride height, lower arm extension, upper arm length, camber, caster, toe, dampers, travel limits, tire rate and
@@ -681,7 +684,7 @@ function legacyStock(){
     steer:{c:0.0465,rmax:0.0605,speed:60/3.6,link:0,cut:0,cutL:0.020},
     ax:[
       {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:11.712479,cadj:0,caster:5.6667,toe:0.15,kt:185000,
-          xto:0.1027,yto:0.6595,zto:0.2,xti:0.0242,yti:0.325,zti:0.1873,fMount:0.707,ydm:0.4905,zdm:0.6403,bump:0.082,droop:0.093},
+          xto:0.1042,yto:0.6846,zto:0.1919,xti:0.0742,yti:0.325,zti:0.1804,fMount:0.707,ydm:0.4905,zdm:0.6403,bump:0.082,droop:0.093},
        s:{k:28440,arb:14670,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:8.046475,cadj:0,caster:0,toe:0.15,kt:185000,
           fMount:0.7897,ydm:0.492,zdm:0.5368,bump:0.080,droop:0.096},
@@ -698,7 +701,7 @@ function stockCar(){return fromLegacy(legacyStock());}
 function coensCar(){
   const P=stockCar(), f=P.ax[0].g, r=P.ax[1].g;
   for(const g of [f,r]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.195,ar:0.45,pk:240000,R:0.2675,kt:234000},TIRE_PRESETS.sport);
-  Object.assign(f,{lR:0.3416,lt:0.18372,fMount:0.6967,uR:0.2403,ut:0.0063,cadj:0,toe:-0.3306,sp:0.030,bump:0.0885,droop:0.041});
+  Object.assign(f,{lR:0.3416,lt:0.18372,fMount:0.6967,uR:0.2403,ut:0.0063,cadj:0,toe:-0.3695,sp:0.030,bump:0.0885,droop:0.041});
   Object.assign(r,{cadj:0.388,toe:0,sp:0.012,bump:0.0865,droop:0.031});
   Object.assign(P.ax[0].s,{k:78450,arb:14240,cbl:5820,cbh:1750,vkb:0.075,crl:9060,crh:2720,vkr:0.075});
   Object.assign(P.ax[1].s,{k:58840,cbl:4400,cbh:1320,vkb:0.075,crl:6840,crh:2050,vkr:0.075});
