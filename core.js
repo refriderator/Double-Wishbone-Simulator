@@ -695,17 +695,19 @@ function legacyStock(){
   };
 }
 function stockCar(){return fromLegacy(legacyStock());}
-/* Stock plus: 15x7 ET35 wheels on 30 / 12 mm spacers, 195/45R15 tires, 8 / 6 kgf/mm springs, a 5 mm front lower arm extension
-   (lR; the shock and the bar stay where they were, so fMount and arb drop), front upper arms cut to 240.3 mm (uR) for -4.2 deg of camber, caster 3 deg
-   (lt, ut), toe -0.5 deg front and 0 rear at ride height, rear camber -1.5 deg from the hub angle, ride height -26 / -38 mm. */
+/* Stock plus: 16x7 ET35 wheels on 30 / 12 mm spacers, 195/50R16 tires (hub 285 mm above ground), 8 / 6 kgf/mm springs, a 5 mm
+   front lower arm extension (lR; the shock and the bar stay where they were, so fMount and arb drop), front upper arms at 237.3 mm (uR)
+   for the measured -6 deg of camber, caster 3 deg (lt, ut), toe -0.5 deg front and 0 rear at ride height, rear camber -1.5 deg from the
+   hub angle. Ride height -58 / -38 mm from stock; the front comes from the measured rack, lower arm pivot and tie rod end heights
+   against the hub. dh, bump and droop include the 17.5 mm larger tire radius, as the page's tire fit does. */
 function coensCar(){
   const P=stockCar(), f=P.ax[0].g, r=P.ax[1].g;
-  for(const g of [f,r]) Object.assign(g,{rimD:0.381,rimW:0.1778,et:0.035,tw:0.195,ar:0.45,pk:240000,R:0.2675,kt:234000},TIRE_PRESETS.sport);
-  Object.assign(f,{lR:0.3416,lt:0.18372,fMount:0.6967,uR:0.2403,ut:0.0063,cadj:0,toe:-0.3695,sp:0.030,bump:0.0885,droop:0.041});
-  Object.assign(r,{cadj:0.388,toe:0,sp:0.012,bump:0.0865,droop:0.031});
+  for(const g of [f,r]) Object.assign(g,{rimD:0.4064,rimW:0.1778,et:0.035,tw:0.195,ar:0.50,pk:240000,R:0.285,kt:239000},TIRE_PRESETS.sport);
+  Object.assign(f,{lR:0.3416,lt:0.18372,fMount:0.6967,uR:0.2373,ut:0.0063,cadj:0,toe:-0.2445,sp:0.030,bump:0.071,droop:0.0585});
+  Object.assign(r,{cadj:0.388,toe:0,sp:0.012,bump:0.069,droop:0.0485});
   Object.assign(P.ax[0].s,{k:78450,arb:14240,cbl:5820,cbh:1750,vkb:0.075,crl:9060,crh:2720,vkr:0.075});
   Object.assign(P.ax[1].s,{k:58840,cbl:4400,cbh:1320,vkb:0.075,crl:6840,crh:2050,vkr:0.075});
-  P.dh=[-0.026,-0.026,-0.038,-0.038]; P.look=1; return P;
+  P.dh=[-0.0405,-0.0405,-0.0205,-0.0205]; P.look=1; return P;
 }
 const PRESETS={stock:stockCar,coen:coensCar};
 function defaults(){return stockCar();}      // what the page opens with
