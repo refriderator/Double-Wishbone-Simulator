@@ -48,7 +48,7 @@ Both scripts open with a numbered list of their sections.
 
 ## The two cars
 
-**Stock** is the Mazda MX-5 NB 1.8 (NB8C) as built. **Coen's** is Stock with his parts: wheels, tires, spacers, springs, dampers, ride height, a front lower arm extension, shorter front upper arms and his alignment. Any edit becomes the **Session** setup, kept in the browser.
+**Stock** is the Mazda MX-5 NB 1.8 (NB8C) as built. **Coen's** is Stock with his parts: wheels, tires, spacers, springs, dampers, ride height, a front lower arm extension, shorter front upper arms, cut knuckles, front helper springs and his alignment. Any edit becomes the **Session** setup, kept in the browser.
 
 Each number is one of:
 
@@ -69,6 +69,7 @@ The stock car is written in front-view fields (arm lengths, pivot positions, a c
 - Caster follows from where the ball joints sit along their arms. The tie rod's length sets static toe.
 - The rear has no toe link. Its lower arm holds the toe at a second outer pivot, and its pivot axes stay parallel to the centerline.
 - Dynamics: body heave, pitch and roll, four wheel hops, and slide and yaw while driven (Drive: constant speed, flat road, no drive or brake force at the tires).
+- A helper spring can sit in series with each main spring. Preload is set with it coil-bound, so it does nothing until the main spring would leave its perch in droop; then the two act in series and keep the stack seated for the helper's stroke.
 - Cornering load transfer goes partly straight through the links (the body's share at the roll center height) and the rest through springs and bars. Braking and accelerating load transfer goes through the springs. No jacking, no anti-dive in the dynamics.
 - Tires: a Magic Formula side-force curve with typical grip numbers, not test data.
 - A tire radius change raises or lowers the car and leaves the suspension where it was.

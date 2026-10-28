@@ -53,6 +53,7 @@ const geoOf=a=>GEO.map(([t,fs])=>[t,fs.filter(f=>!(a?FRONT_ONLY:REAR_ONLY).inclu
 const SPR=[
   ["Rates",[["k","Spring rate","N/mm",1e3,5,5,500],["arb","Anti-roll bar rate at wheel","N/mm",1e3,1,0,200]]],
   ["Damper / bump",[["cbl","Low-speed slope","N·s/m",1,100,0,20000],["cbh","High-speed slope","N·s/m",1,100,0,20000],["vkb","Knee speed","mm/s",1e-3,10,5,1000]]],
+  ["Helper spring",[["kh","Helper rate (0 = none)","N/mm",1e3,0.5,0,100],["hst","Helper stroke to coil bind","mm",1e-3,1,0,150]]],
   ["Damper / rebound",[["crl","Low-speed slope","N·s/m",1,100,0,20000],["crh","High-speed slope","N·s/m",1,100,0,20000],["vkr","Knee speed","mm/s",1e-3,10,5,1000]]]
 ];
 const VEH=[
@@ -376,7 +377,7 @@ function makeModel(P){
     const Wn=v.M*G*(ax===0?v.wf:1-v.wf)/2, W=(ax===0?WF:WR)*(0.5+side*ycg/(2*(ax===0?yF:yR)));
     const st=(Wn-W)/g.kt-zt[i];      // wheel travel at the target, with the change in tire deflection
     m.W[i]=Wn; m.d0[i]=(Wn+v.mu*G)/g.kt; m.st[i]=st;
-    m.Fpre[i]=W/lk2(Tx,Tx.MR,st,0)-s.k*(Tx.L0-lk2(Tx,Tx.L,st,0));
+    m.Fpre[i]=mainForF(s,W/lk2(Tx,Tx.MR,st,0))-s.k*(Tx.L0-lk2(Tx,Tx.L,st,0));
     m.FpreDesign[i]=Wn/Tx.MR0;
   }
   m.arbOff=[m.st[0]-m.st[1],m.st[2]-m.st[3]];
@@ -384,6 +385,20 @@ function makeModel(P){
 }
 function newState(){return {t:0,z:0,zd:0,th:0,thd:0,ph:0,phd:0,zw:[0,0,0,0],zwd:[0,0,0,0],vy:0,r:0,ay:0,al:[0,0,0,0],spun:false,ev:[],out:[{},{},{},{}],hrc:[0,0]};}
 
+/* Spring stack force from the main spring's own force Fm = Fpre + k (L0 - L), which goes below zero once the main spring would
+   come off its perch. A helper spring (rate kh, stroke hst) sits in series with it. Preload and ride height are set with the helper
+   coil-bound, so above the bind force kh*hst the stack is just the main spring. Below it the helper opens and the two act in series,
+   k kh / (k + kh), so the stack stays seated through hst more of droop before it goes loose. */
+function springF(s,Fm){
+  if(!(s.kh>0&&s.hst>0)) return Math.max(0,Fm);
+  const Fb=s.kh*s.hst; if(Fm>=Fb) return Fm;
+  const x=Fm/s.k+s.hst; return x>0?x*s.k*s.kh/(s.k+s.kh):0;      // x: stack compression from free
+}
+/* The main spring's own force that gives stack force F: springF's inverse, for F > 0. */
+function mainForF(s,F){
+  if(!(s.kh>0&&s.hst>0)||F>=s.kh*s.hst) return F;
+  return s.k*(F*(s.k+s.kh)/(s.k*s.kh)-s.hst);
+}
 /* Damper force at shaft speed v (+ = bump): two slopes joined at the knee, per direction. */
 function damperF(s,v){
   if(v>=0) return v<=s.vkb?s.cbl*v:s.cbl*s.vkb+s.cbh*(v-s.vkb);
@@ -412,7 +427,7 @@ function step(m,st,inp,dt,extraDamp){
     s[i]=st.zw[i]-zc; sd[i]=st.zwd[i]-zcd;
     cell(Tx,s[i],ax===0?(i===0?-rack:rack):0);
     const L=cv(Tx.L), MR=cv(Tx.MR); sa[i]=cv(Tx.sa);      // sa: travel of the arm itself; steering lifts the tire without moving the arm
-    const Fs=Math.max(0,m.Fpre[i]+ss.k*(Tx.L0-L)), vd=MR*sd[i], Fd=damperF(ss,vd);
+    const Fs=springF(ss,m.Fpre[i]+ss.k*(Tx.L0-L)), vd=MR*sd[i], Fd=damperF(ss,vd);
     let F=(Fs+Fd)*MR;
     if(sa[i]>g.bump){const e=sa[i]-g.bump; F+=KBS*e+KBS2*e*e+CBS*sd[i];}
     if(sa[i]<-g.droop){const e=-g.droop-sa[i]; F+=-KTOP*e+CBS*sd[i];}
@@ -536,7 +551,7 @@ function sheet(m){
   const P=m.P, v=P.veh, r={ax:[]}, hs=v.h+m.zs; let Kr=0, Kth=0, Kz=0, Kzx=0;
   for(let ax=0;ax<2;ax++){
     const T=m.T[ax], s=P.ax[ax].s, g=P.ax[ax].g, t=2*T.tHalf, ms=m.W[ax*2]/G, i=ax*2, st=(m.st[i]+m.st[i+1])/2, e=0.002;
-    const Fw=(j,x)=>Math.max(0,m.Fpre[j]+s.k*(T.L0-lk2(T,T.L,x,0)))*lk2(T,T.MR,x,0);
+    const Fw=(j,x)=>springF(s,m.Fpre[j]+s.k*(T.L0-lk2(T,T.L,x,0)))*lk2(T,T.MR,x,0);
     const MR=lk2(T,T.MR,st,0), kw=(Fw(i,m.st[i]+e)-Fw(i,m.st[i]-e)+Fw(i+1,m.st[i+1]+e)-Fw(i+1,m.st[i+1]-e))/(4*e);      // tangent wheel rate, mean of left and right
     const kr=kw*g.kt/(kw+g.kt), fr=Math.sqrt(kr/ms)/(2*Math.PI), cc=2*Math.sqrt(kw*ms);
     const Ks=(kw/2+s.arb)*t*t, Kt=g.kt*t*t/2, Kax=1/(1/Ks+1/Kt), rch=lk1(T,T.rch,st), hu=lk1(T,T.hu,st);
@@ -671,8 +686,8 @@ function solveFor(g0,name,c,targets,free){
                   radius, tire grip. With the measured steering arm and rack the model gives 38.8 / 32.4 deg of full lock
                   against Mazda's 38 / 33.
    Coen's
-     verified     wheels, tires, spacers, spring rates
-     interpreted  ride height, lower arm extension, upper arm length, camber, caster, toe, dampers, travel limits, tire rate and
+     verified     wheels, tires, spacers, spring rates, front helper springs (Swift H65-070-008: rate and stroke from Swift's listing)
+     interpreted  ride height, lower arm extension, upper arm length, knuckle cut length, camber, caster, toe, dampers, travel limits, tire rate and
                   radius, tire grip
 
    The stock car is written in the front-view fields its numbers were fitted in and converted on load (section 11).
@@ -685,10 +700,10 @@ function legacyStock(){
     ax:[
       {g:{Ll:0.3366,Lu:0.25,Lk:0.2172,yli:0.3232,zli:0.1718,yui:0.368,zui:0.3606,xlf:-0.0258,xlr:-0.3508,xuf:0.0881,xur:-0.1319,ee:0.13,hsp:0.0805,hf:0.1057,xk:0.0086,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:11.712479,cadj:0,caster:5.6667,toe:0.15,kt:185000,
           xto:0.1042,yto:0.6846,zto:0.1919,xti:0.0742,yti:0.325,zti:0.1804,fMount:0.707,ydm:0.4905,zdm:0.6403,bump:0.082,droop:0.093},
-       s:{k:28440,arb:14670,cbl:3430,cbh:1080,vkb:0.1,crl:6080,crh:2600,vkr:0.1}},
+       s:{k:28440,arb:14670,cbl:3430,cbh:1080,vkb:0.1,kh:0,hst:0,crl:6080,crh:2600,vkr:0.1}},
       {g:{Ll:0.3937,Lu:0.2127,Lk:0.24,yli:0.2439,zli:0.1864,yui:0.3873,zui:0.3785,xlf:0.0982,xlr:-0.2222,xuf:0.0657,xur:-0.0989,ee:0.132,hsp:0.1074,hf:0.1379,xk:0,rimD:0.381,rimW:0.1524,et:0.040,sp:0,tw:0.195,ar:0.50,pk:180000,R:0.274,tmu:0.95,tls:6e-5,tca:0.20,tcg:0.012,tgo:2,inc:8.046475,cadj:0,caster:0,toe:0.15,kt:185000,
           fMount:0.7897,ydm:0.492,zdm:0.5368,bump:0.080,droop:0.096},
-       s:{k:20590,arb:3310,cbl:3430,cbh:2060,vkb:0.1,crl:6080,crh:2600,vkr:0.1}}
+       s:{k:20590,arb:3310,cbl:3430,cbh:2060,vkb:0.1,kh:0,hst:0,crl:6080,crh:2600,vkr:0.1}}
     ],
     dh:[0,0,0,0],
     look:0
@@ -698,15 +713,17 @@ function stockCar(){return fromLegacy(legacyStock());}
 /* Stock plus: 16x7 ET35 wheels on 30 / 12 mm spacers, 195/50R16 tires (hub 285 mm above ground), 8 / 6 kgf/mm springs, a 5 mm
    front lower arm extension (lR; the shock and the bar stay where they were, so fMount and arb drop), front upper arms at 237.3 mm (uR)
    for the measured -6 deg of camber, caster 3 deg (lt, ut), toe -0.5 deg front and 0 rear at ride height, rear camber -1.5 deg from the
-   hub angle. Ride height -58 / -38 mm from stock; the front comes from the measured rack, lower arm pivot and tie rod end heights
+   hub angle, Swift H65-070-008 helper springs on the front only (0.8 kgf/mm, 46 mm stroke, coil-bound at ride height), knuckles cut
+   (steering arm shortened by steer.cutL, 20 mm). Ride height -58 / -38 mm from stock; the front comes from the measured rack, lower arm pivot and tie rod end heights
    against the hub. dh, bump and droop include the 17.5 mm larger tire radius, as the page's tire fit does. */
 function coensCar(){
   const P=stockCar(), f=P.ax[0].g, r=P.ax[1].g;
   for(const g of [f,r]) Object.assign(g,{rimD:0.4064,rimW:0.1778,et:0.035,tw:0.195,ar:0.50,pk:240000,R:0.285,kt:239000},TIRE_PRESETS.sport);
   Object.assign(f,{lR:0.3416,lt:0.18372,fMount:0.6967,uR:0.2373,ut:0.0063,cadj:0,toe:-0.2445,sp:0.030,bump:0.071,droop:0.0585});
   Object.assign(r,{cadj:0.388,toe:0,sp:0.012,bump:0.069,droop:0.0485});
-  Object.assign(P.ax[0].s,{k:78450,arb:14240,cbl:5820,cbh:1750,vkb:0.075,crl:9060,crh:2720,vkr:0.075});
+  Object.assign(P.ax[0].s,{k:78450,arb:14240,cbl:5820,cbh:1750,vkb:0.075,kh:7845,hst:0.046,crl:9060,crh:2720,vkr:0.075});
   Object.assign(P.ax[1].s,{k:58840,cbl:4400,cbh:1320,vkb:0.075,crl:6840,crh:2050,vkr:0.075});
+  P.steer.cut=1;
   P.dh=[-0.0405,-0.0405,-0.0205,-0.0205]; P.look=1; return P;
 }
 const PRESETS={stock:stockCar,coen:coensCar};

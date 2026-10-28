@@ -670,7 +670,7 @@ function refreshStatic(){
   let ph=`<tr><th>Corner</th><th>Perch vs design</th><th>Spring force at design length</th></tr>`;
   for(let i=0;i<4;i++){
     const k=P.ax[i<2?0:1].s.k, dp=(model.Fpre[i]-model.FpreDesign[i])/k*1000;
-    ph+=`<tr><td>${CN[i]}</td><td>${sgnTxt(dp,1)} mm</td><td>${num(model.Fpre[i],0)} N${model.Fpre[i]<0?" / LOOSE":""}</td></tr>`;
+    ph+=`<tr><td>${CN[i]}</td><td>${sgnTxt(dp,1)} mm</td><td>${num(model.Fpre[i],0)} N${model.Fpre[i]<0?(P.ax[i<2?0:1].s.kh>0?" / ON HELPER":" / LOOSE"):""}</td></tr>`;
   }
   $("perch").innerHTML=ph;
   const T=model.T[editAxle], p=T.P0, f=v=>num(v*1000,1);
