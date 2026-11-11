@@ -35,7 +35,7 @@ img{max-width:100%}
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px;
   --arm-lower:#2f62ff;     /* the two control arm colors: deep blue and pale blue, both glow in 3D */
   --arm-upper:#9fb6ff;
-  --rim:#7b8494;           /* wheel faces (rims and spokes) in 3D: dark silver */
+  --rim:#565e6d;           /* wheel faces (rims and spokes) in 3D: dark silver */
   --font-display:Michroma,"Eurostile Extended","Arial Black",sans-serif;   /* uppercase, tracked: the title and card headings only */
   --font-sans:"Chakra Petch","Helvetica Neue",Arial,sans-serif;            /* reading text */
   --font-osd:VT323,"Courier New",monospace;                                /* read-outs, never below 18px */
