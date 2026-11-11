@@ -15,15 +15,15 @@ img{max-width:100%}
   color-scheme:dark;
   /* Palette: near-black, deep blue, and red used sparingly (live state, the selected tab, tire loads, errors). Glow, not outlines.
      The canvases and the 3D view read these same tokens, so change colors here only. */
-  --void:#070a12;          /* backdrop */
-  --glass:#0d121e;         /* panels and cards */
-  --glass-raised:#141b2b;  /* inputs, buttons, anything sitting on glass */
-  --gunmetal:#1f2a45;      /* pressed segments, floor grid, tires */
-  --hairline:#161e31;      /* dividers: barely there */
-  --edge:#2a3655;          /* the few borders left on interactive things */
+  --void:#0b0f1a;          /* backdrop */
+  --glass:#131a29;         /* panels and cards */
+  --glass-raised:#1b2438;  /* inputs, buttons, anything sitting on glass */
+  --gunmetal:#2a3655;      /* pressed segments, floor grid, tires */
+  --hairline:#1f283d;      /* dividers: barely there */
+  --edge:#36446a;          /* the few borders left on interactive things */
   --vinyl:#e8edf7;         /* primary text */
-  --vinyl-dim:#8a94a9;     /* secondary text */
-  --vinyl-ghost:#535d74;   /* tertiary text, hints */
+  --vinyl-dim:#a0aabd;     /* secondary text */
+  --vinyl-ghost:#6c7690;   /* tertiary text, hints */
   --midnight:#081335;      /* the 3D field: deep blue */
   --ice:#4f7bff;           /* signal blue: primary button, links, focus, second series */
   --on-ice:#ffffff;
@@ -35,7 +35,7 @@ img{max-width:100%}
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px;
   --arm-lower:#2f62ff;     /* the two control arm colors: deep blue and pale blue, both glow in 3D */
   --arm-upper:#9fb6ff;
-  --rim:#a7afbd;           /* wheel faces (rims and spokes) in 3D: light grey */
+  --rim:#7b8494;           /* wheel faces (rims and spokes) in 3D: dark silver */
   --font-display:Michroma,"Eurostile Extended","Arial Black",sans-serif;   /* uppercase, tracked: the title and card headings only */
   --font-sans:"Chakra Petch","Helvetica Neue",Arial,sans-serif;            /* reading text */
   --font-osd:VT323,"Courier New",monospace;                                /* read-outs, never below 18px */
@@ -59,7 +59,12 @@ aside{background:var(--glass);display:flex;flex-direction:column;min-height:0;ov
 h1{margin:0;font:400 22px/1.15 var(--font-display);letter-spacing:.06em;text-transform:uppercase;text-shadow:var(--glow-text)}
 .osdline{margin:0;color:var(--vinyl-ghost);font:400 18px/18px var(--font-osd);letter-spacing:.06em;text-transform:uppercase}
 .simbar{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
-.simbar.files .btn{flex:1 1 0;min-width:0;padding:0 var(--space-2)}
+.simbar.split{justify-content:space-between}
+.simbar.split .seg.rd button{padding:0 10px}
+.simbar.files{gap:0;margin:0 calc(-1 * var(--space-2)) calc(-1 * var(--space-2))}
+.simbar.files .btn{min-width:0;padding:0 var(--space-2)}
+.btn.ghost[aria-pressed="true"]{color:var(--vinyl)}
+.btn.ghost[aria-pressed="true"]::before{content:"";width:5px;height:5px;margin-right:6px;background:var(--ice);box-shadow:var(--glow-ice)}   /* a view switch that is on */
 
 /* ---- buttons: quiet filled blocks, one glowing primary with the cut corner, red only when a mode is on ---- */
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 var(--space-4);border:1px solid transparent;border-radius:0;background:var(--glass-raised);color:var(--vinyl-dim);
@@ -198,7 +203,7 @@ main{min-width:0;min-height:0;overflow:auto;display:grid;gap:var(--space-4);alig
 .view{position:sticky;top:0;z-index:3;height:var(--viewh);background:var(--midnight);overflow:hidden;box-shadow:0 0 0 1px rgba(79,123,255,.10),0 0 48px rgba(30,70,230,.10);animation:ol-fade 400ms ease-out 1}
 .view canvas{display:block}
 .view .nogl{position:absolute;inset:0;display:grid;place-items:center start;padding:var(--space-8);color:var(--vinyl-dim)}
-.scan{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(2,5,16,.55) 100%);pointer-events:none}   /* vignette */
+.scan{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(2,5,16,.55) 100%),repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.32) 2px 3px);pointer-events:none}   /* vignette + scanlines */
 .frame{position:absolute;inset:var(--space-3) var(--space-4);display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-2);pointer-events:none}
 .osd{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);font:400 20px/20px var(--font-osd);letter-spacing:.06em;text-transform:uppercase;color:var(--vinyl-dim);white-space:nowrap}
 .osd #oState{color:var(--rec);text-shadow:var(--glow-rec)}      /* run state: the one red read-out */
@@ -333,4 +338,63 @@ details ul,.card ul{margin:var(--space-3) 0 0;padding-left:18px;display:grid;gap
   .osd .grp{gap:var(--space-2)}
   .osd .tag{height:20px;padding:0 var(--space-1);font-size:14px;line-height:20px}
   .tag.edit input,.tag.edit input:focus-visible{height:18px}
+}
+
+/* ---- decluttering: help text and solver columns only when asked for ---- */
+body:not(.hints) .hint:not(#freeList):not(.result .hint):not(#solveOut .hint){display:none}
+body:not(.hints) .fhead{display:none}
+.pane:has(#solveFold:not([open])) :is(.f.tk,.sl.tk) input.tick{visibility:hidden}      /* Solve-for ticks show while the solver is open */
+details.fold{border-top:1px solid var(--hairline);padding-top:var(--space-3)}
+details.fold>summary{color:var(--vinyl-dim);font:400 11px/16px var(--font-sans);letter-spacing:.14em;text-transform:uppercase;list-style:none;display:flex;align-items:center;gap:var(--space-2)}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"+";width:12px;color:var(--vinyl-ghost);font:400 16px/16px var(--font-sans)}
+details.fold[open]>summary::before{content:"−"}
+details.fold[open]>summary{margin-bottom:var(--space-3)}
+details.fold>summary:hover{color:var(--vinyl)}
+
+/* ---- corners: four tiles placed as on the car, front at the top ---- */
+.card.tele{position:relative;padding-bottom:var(--space-4)}
+.teleMore{position:absolute;bottom:var(--space-2);right:var(--space-3)}   /* sits on the summary row */
+.corners{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2) var(--space-4)}
+.cn{display:grid;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--glass-raised);border-left:2px solid transparent}
+.cn.hot{border-left-color:var(--rec)}
+.cnh{display:flex;align-items:baseline;gap:var(--space-2)}
+.cid{color:var(--vinyl-ghost);font:400 11px/16px var(--font-sans);letter-spacing:.14em;min-width:24px}
+.cnh .big{font:400 28px/28px var(--font-osd);letter-spacing:.04em;color:var(--vinyl);text-shadow:var(--glow-text)}
+.cn.hot .big{color:#fff}
+.cnh .u{color:var(--vinyl-ghost)}
+.gb{display:grid;grid-template-columns:auto minmax(0,1fr) 52px;gap:var(--space-2);align-items:center;color:var(--vinyl-ghost);font-size:12px}
+.gb .bar{height:3px;background:var(--gunmetal);overflow:hidden}
+.gb .bar i{display:block;height:100%;background:var(--ice);box-shadow:var(--glow-ice)}
+.cn.hot .gb .bar i{background:var(--rec);box-shadow:var(--glow-rec)}
+.gb b{text-align:right;color:var(--vinyl-dim);font:400 18px/18px var(--font-osd)}
+.cn dl{display:none;margin:0;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-1) var(--space-3)}
+body.teleMore .cn dl{display:grid}
+.cn dl div{display:grid}
+.cn dt{color:var(--vinyl-ghost);font-size:11px;line-height:14px;letter-spacing:.06em;text-transform:uppercase}
+.cn dd{margin:0;font:400 17px/18px var(--font-osd);letter-spacing:.03em;color:var(--vinyl-dim)}
+.cnsum{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-1) var(--space-8);color:var(--vinyl-ghost);font-size:12px}
+.cnsum div{display:flex;gap:var(--space-2);align-items:baseline}
+.cnsum b{color:var(--vinyl-dim);font:400 18px/18px var(--font-osd)}
+
+/* ---- analysis: one panel, one view at a time ---- */
+.dash{gap:var(--space-4)}
+.dtabs{display:flex;flex-wrap:wrap;gap:0 var(--space-4);border-bottom:1px solid var(--hairline);margin:calc(-1 * var(--space-2)) 0 0}
+.dtab{min-height:36px;padding:0 2px;border:0;border-bottom:2px solid transparent;background:none;color:var(--vinyl-ghost);font:400 12px/16px var(--font-sans);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color 120ms}
+.dtab:hover{color:var(--vinyl-dim)}
+.dtab[aria-selected="true"]{color:var(--vinyl);border-bottom-color:var(--ice);box-shadow:0 6px 12px -10px var(--ice)}
+.dpane{display:grid;gap:var(--space-3);min-width:0}
+.tool{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3)}
+.tool select{width:auto;max-width:100%;height:34px;padding:0 var(--space-2);border:1px solid transparent;border-radius:0;background:var(--glass-raised);color:var(--vinyl);font:400 14px/20px var(--font-sans)}
+.tool select:hover{border-color:var(--edge)}
+.dpane .plot canvas{height:320px}
+.dpane .plot canvas.tall{height:480px}
+.dpane[data-d="data"],.dpane[data-d="notes"]{max-width:980px}
+ul.notes{margin:0;padding-left:18px;display:grid;gap:var(--space-2);color:var(--vinyl-dim);max-width:80ch}
+@media (max-width:560px){
+  .corners{gap:var(--space-2)}
+  .cn{padding:var(--space-2)}
+  .cnh .big{font-size:24px}
+  .cn dl{grid-template-columns:1fr 1fr}
+  .dtabs{gap:0 var(--space-3)}
 }

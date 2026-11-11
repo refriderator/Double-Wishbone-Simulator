@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Double Wishbone Simulator</title>
-<link rel="stylesheet" href="style.css?v=651a0c6a">
+<link rel="stylesheet" href="style.css?v=3e2a2486">
 </head>
 <body>
 <div class="app">
@@ -21,17 +21,18 @@
       <button class="btn primary" id="play" title="Run or pause (space bar)">Pause</button>
       <button class="btn" id="reset">Settle</button>
       <button class="btn tog" id="driveOn" aria-pressed="false" title="Drive the car at a steady speed: the tires make the lateral g. Its controls are on the Forces tab.">Drive</button>
-      <div class="seg rd" id="preset" role="group" aria-label="Car"><button aria-pressed="false" data-p="stock">Stock</button><button aria-pressed="false" data-p="coen">Coen's</button><button aria-pressed="false" data-p="session" title="Your edits, kept in this browser">Session</button></div>
     </div>
-    <div class="simbar">
+    <div class="simbar split">
+      <div class="seg rd" id="preset" role="group" aria-label="Car"><button aria-pressed="false" data-p="stock">Stock</button><button aria-pressed="false" data-p="coen">Coen's</button><button aria-pressed="false" data-p="session" title="Your edits, kept in this browser">Session</button></div>
       <div class="seg rd" id="speed" role="group" aria-label="Simulation speed">
         <button aria-pressed="true" data-v="1">1x</button><button aria-pressed="false" data-v="0.25">1/4x</button><button aria-pressed="false" data-v="0.1">1/10x</button>
       </div>
     </div>
     <div class="simbar files">
-      <button class="btn" id="introBtn" title="Open the guide: quick start and vocabulary">Guide</button>
-      <button class="btn" id="expBtn" title="Save the setup on screen as a file">Export</button>
-      <button class="btn" id="impBtn" title="Load a setup file as the session setup">Import</button>
+      <button class="btn sm ghost" id="introBtn" title="Open the guide: quick start and vocabulary">Guide</button>
+      <button class="btn sm ghost" id="expBtn" title="Save the setup on screen as a file">Export</button>
+      <button class="btn sm ghost" id="impBtn" title="Load a setup file as the session setup">Import</button>
+      <button class="btn sm ghost" id="hintBtn" aria-pressed="false" title="Show or hide the help text under the controls">Hints</button>
       <input type="file" id="impFile" accept=".json,application/json" hidden>
     </div>
   </div>
@@ -48,7 +49,8 @@
     <div class="rowbtns"><div class="seg axleSel" role="group" aria-label="Axle"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></div><button class="btn" id="copyGeo">Copy to rear</button></div>
     <div class="seg part" id="partSel" role="group" aria-label="Part to adjust"><button type="button" aria-pressed="true" data-part="uarm">Upper arm</button><button type="button" aria-pressed="false" data-part="larm">Lower arm</button><button type="button" aria-pressed="false" data-part="kn">Knuckle</button><button type="button" aria-pressed="false" data-part="align">Alignment</button></div>
     <div id="geoFields" class="groups"></div>
-    <fieldset id="solveBox"><legend>Solver</legend>
+    <details class="fold" id="solveFold"><summary>Solver</summary>
+    <fieldset id="solveBox">
       <ol class="hint steps">
         <li><b>Targets.</b> Tick the numbers you want and type their values.</li>
         <li><b>Fields.</b> Ticked boxes will be solved for, while unticked boxes will remain unchanged.</li>
@@ -61,9 +63,10 @@
       <p class="hint" id="freeList"></p>
       <div id="solveOut"></div>
     </fieldset>
-    <fieldset><legend>Solved points</legend>
+    </details>
+    <details class="fold"><summary>Solved points</summary>
       <div class="tw"><table class="pts wrap" id="pts"></table></div>
-    </fieldset>
+    </details>
     <p class="hint" data-vt>All at {design height}. Click a letter in a drawing to jump to its field. Dotted words open the vocabulary.</p>
   </div>
 
@@ -157,18 +160,22 @@
   </div>
 
   <div class="grid">
-    <section class="card wide">
-      <h2>Telemetry</h2>
-      <div class="tw"><table id="tele"></table></div>
+    <section class="card wide tele">
+      <button class="btn sm ghost teleMore" id="teleMore" aria-pressed="false" title="Show camber, slip, steer, travel, body height and damper speed at each corner">Details</button>
+      <div id="tele" class="corners" aria-label="Each corner, laid out as on the car: front at the top"></div>
       <p class="hint" id="teleNote"></p>
     </section>
-    <section class="card">
-      <h2>Rear view <span class="seg" id="viewAxle" role="group" aria-label="Axle shown"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></span></h2>
+    <section class="card wide dash">
+      <div class="dtabs" id="dtabs" role="tablist" aria-label="Analysis">
+        <button class="dtab" role="tab" data-d="rear" aria-selected="true">Rear view</button><button class="dtab" role="tab" data-d="curve" aria-selected="false">Curves</button><button class="dtab" role="tab" data-d="hist" aria-selected="false">History</button><button class="dtab" role="tab" data-d="sheet" aria-selected="false">Setup sheet</button><button class="dtab" role="tab" data-d="data" aria-selected="false">Car data</button><button class="dtab" role="tab" data-d="notes" aria-selected="false">Model notes</button>
+      </div>
+      <div class="dpane" data-d="rear" role="tabpanel">
+      <div class="tool"><span class="seg" id="viewAxle" role="group" aria-label="Axle shown"><button aria-pressed="true" data-a="0">Front</button><button aria-pressed="false" data-a="1">Rear</button></span></div>
       <div class="plot"><canvas id="rear" role="img" aria-label="Rear view of the selected axle with wishbones, instant centers and roll center"></canvas></div>
       <p class="hint" data-vt>Dashed: to each {instant center}. Solid: to the {roll center}. Camber is relative to the road.</p>
-    </section>
-    <section class="card">
-      <h2>Curve <select id="curveQ" aria-label="Curve">
+      </div>
+      <div class="dpane" data-d="curve" role="tabpanel" hidden>
+      <div class="tool"><select id="curveQ" aria-label="Curve">
         <option value="cam">Camber vs wheel travel</option>
         <option value="toe">Toe (bump steer) vs wheel travel</option>
         <option value="cas">Caster vs wheel travel</option>
@@ -179,15 +186,14 @@
         <option value="camS">Camber vs steering</option>
         <option value="lift">Body lift at the wheel vs steering</option>
         <option value="grip">Grip in use vs lateral g</option>
-      </select></h2>
+      </select></div>
       <div class="lg" id="curveLg"></div>
       <div class="plot"><canvas id="curve" aria-label="Kinematic curve. Use the left and right arrow keys to read values."></canvas><div class="tip" id="curveTip" hidden></div></div>
       <div class="tw"><table id="curveTbl" class="wrap"></table></div>
       <p class="hint" id="curveHint"></p>
-    </section>
-    <section class="card">
-      <h2>History / <span id="histT">10 s</span></h2>
-      <div class="rowbtns recbar">
+      </div>
+      <div class="dpane" data-d="hist" role="tabpanel" hidden>
+      <div class="tool rowbtns recbar"><span class="sub">Last <span id="histT">10 s</span></span>
         <button class="btn sm tog" id="recBtn" aria-pressed="false">Record</button><output class="rd" id="recO"></output>
         <button class="btn sm" id="recPng" title="Save the recording as a picture of the graph (PNG)" hidden>Export graph</button>
         <button class="btn sm" id="recCsv" title="Save the recording as a table of numbers (CSV), for a spreadsheet" hidden>Export numbers</button>
@@ -195,14 +201,12 @@
       </div>
       <div class="lg"><span><i class="k1"></i>Left wheel</span><span><i class="k2"></i>Right wheel</span></div>
       <div class="plot"><canvas id="hist" class="tall" aria-label="History of lateral g, yaw rate, roll, pitch, heave and tire loads over the last 10 seconds of simulated time, or over a finished recording. Use the left and right arrow keys to read values."></canvas><div class="tip" id="histTip" hidden></div></div>
-      <div class="tw"><table id="histTbl" class="wrap"></table></div>
-    </section>
-    <section class="card">
-      <h2>Setup sheet</h2>
+      <details class="fold"><summary>Min and max</summary><div class="tw"><table id="histTbl" class="wrap"></table></div></details>
+      </div>
+      <div class="dpane" data-d="sheet" role="tabpanel" hidden>
       <div class="tw"><table id="sheet" class="wrap"></table></div>
-    </section>
-    <section class="card wide">
-      <h2>Data / MX-5 NB8C</h2>
+      </div>
+      <div class="dpane" data-d="data" role="tabpanel" hidden>
       <p class="hint">Stock is the Mazda MX-5 NB 1.8 (NB8C) as built. Coen's is mine. Session is whatever you last edited.</p>
       <p class="hint"><b>Verified</b>: published by Mazda or printed on the part. <b>Measured</b>: taken off the car, a part or a drawing. <b>Interpreted</b>: fitted to the verified numbers, worked out or estimated.</p>
       <div class="tw"><table class="wrap src">
@@ -291,10 +295,9 @@
         <li>3D library: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> r128, MIT license.</li>
         <li>Typefaces: Michroma, Chakra Petch and VT323, SIL Open Font License 1.1.</li>
       </ul>
-    </section>
-    <section class="card wide">
-      <details open><summary>Model notes</summary>
-      <ul>
+      </div>
+      <div class="dpane" data-d="notes" role="tabpanel" hidden>
+      <ul class="notes">
         <li>Each corner is a rigid knuckle on two wishbones and a tie rod, solved in 3D. Each wishbone swings about its own pivot axis, which can be angled in side view and in top view. Camber, caster, kingpin inclination, toe, bump steer, Ackermann, track, motion ratio and roll center all come from that one solve.</li>
         <li>The wheel is fixed on the knuckle, so the arms set the camber. The hub angle adds +1° to −3°: it stands in for the car's eccentric bolts. Caster follows from where the two ball joints sit along their arms. The tie rod's length sets static toe. Offset and spacers slide the wheel along the spindle. A tire radius change moves the car, not the suspension.</li>
         <li>The solver finds the smallest change to the ticked fields that puts the targets on the setup sheet at ride height. It gives no answer when there are more targets than ticked fields, when those fields cannot move the targets independently, when nothing within the fields' limits gets there, or when the car could not be built with the answer.</li>
@@ -309,7 +312,8 @@
         <li>Springs cannot pull: they unseat at full droop. Bump stops start at the bump travel limit. Anti-roll bars carry no preload at the target heights.</li>
         <li>The Miata has no rear toe link: its rear lower arm holds the knuckle at two outer pivots. The model treats that arm as two legs on one axis, so the rear has no toe change. The rear's pivot axes stay parallel to the centerline.</li>
         <li>Left and right share one geometry, and the CG is on the centerline.</li>
-      </ul></details>
+      </ul>
+      </div>
     </section>
   </div>
 </main>
@@ -338,6 +342,6 @@
 <script src="OrbitControls.js"></script>
 <script src="body-model.js?v=3635bb84"></script>
 <script src="core.js?v=28fd9603"></script>
-<script src="ui.js?v=7e53e6ad"></script>
+<script src="ui.js?v=b809da7d"></script>
 </body>
 </html>

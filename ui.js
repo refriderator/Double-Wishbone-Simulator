@@ -430,6 +430,7 @@ function buildTargets(){
   $("solveT").innerHTML=h;
   $("moreT").innerHTML=MORE.filter(([k])=>has.has(k)).map(([k,lab])=>`<div class="t"><input type="checkbox" class="tick" id="mf-${k}" data-free="${k}" data-ax="${ax}"${GB.free[ax].has(k)?" checked":""}><label for="mf-${k}">${lab}</label><span class="v" id="mv-${k}"></span><span class="u">${specOf(k)[2]}</span></div>`).join("");
   if(MORE.some(([k])=>GB.free[ax].has(k))) $("moreF").open=true;
+  if(GB.pin[ax].size||GB.free[ax].size) $("solveFold").open=true;      // ticked fields or targets: keep the solver in view
   GB.prop=null; drawSolve(); solveNow(); freeText();
 }
 /* A target that is not ticked shows the sheet's present value. A ticked one keeps what was typed and shows the present value under it. */
@@ -1229,15 +1230,20 @@ recSync();
 
 /* ---- telemetry ---- */
 function drawTele(){
-  let t=`<tr><th>Corner</th><th>Body Δh</th><th>Travel</th><th>Tire load</th><th>Camber to road</th><th>Steer, + right</th><th>Slip angle</th><th>Grip in use</th><th>Damper</th></tr>`, tot=0; const F=[];
+  /* One tile per corner, laid out as on the car (front at the top). Tire load and grip in use lead; the rest is small print. */
+  let t="", tot=0; const F=[];
   const drive=!!P.steer.link, q=drive?null:gripNow(model,S,inp.ay);
   for(let i=0;i<4;i++){
     const o=S.out[i], zc=S.z+model.xs[i]*S.th+model.ys[i]*S.ph; F[i]=o.Ft||0; tot+=F[i];
     const slip=drive?(o.slip||0):q.tire[i].slip, used=drive?(o.used||0):q.tire[i].used;
-    t+=`<tr><td>${CN[i]}</td><td>${num(zc*1000,1)} mm</td><td>${num((o.s||0)*1000,1)} mm</td><td>${F[i]<1?"LIFTED":F[i].toFixed(0)+" N"}</td><td>${num(FR.cam[i],2)}°</td><td>${num(FR.steer[i],2)}°</td><td>${F[i]<1||!Number.isFinite(slip)?"–":num(slip,1)+"°"}</td><td>${F[i]<1?"–":(used*100).toFixed(0)+" %"}</td><td>${num((o.vd||0)*1000,0)} mm/s</td></tr>`;
+    const up=F[i]<1, pc=up?0:Math.max(0,used*100), hot=up||pc>=90;
+    t+=`<div class="cn${hot?" hot":""}"><div class="cnh"><span class="cid">${CN[i]}</span><b class="big">${up?"LIFTED":F[i].toFixed(0)}</b><span class="u">${up?"":"N"}</span></div>`+
+       `<div class="gb"><span>Grip</span><span class="bar"><i style="width:${Math.min(100,pc).toFixed(0)}%"></i></span><b>${up?"–":pc.toFixed(0)+" %"}</b></div>`+
+       `<dl><div><dt>Camber</dt><dd>${num(FR.cam[i],2)}°</dd></div><div><dt>Slip</dt><dd>${up||!Number.isFinite(slip)?"–":num(slip,1)+"°"}</dd></div><div><dt>Steer</dt><dd>${num(FR.steer[i],2)}°</dd></div>`+
+       `<div><dt>Travel</dt><dd>${num((o.s||0)*1000,1)} mm</dd></div><div><dt>Body Δh</dt><dd>${num(zc*1000,1)} mm</dd></div><div><dt>Damper</dt><dd>${num((o.vd||0)*1000,0)} mm/s</dd></div></dl></div>`;
   }
   const si=FR.si, turning=Math.abs(si.kra)>1e-4;
-  t+=`<tr><td colspan="3">Cross weight (FL + RR)</td><td>${tot>0?((F[0]+F[3])/tot*100).toFixed(1):"–"} %</td><td colspan="5">TOTAL ${tot.toFixed(0)} N</td></tr>`;
+  t+=`<div class="cnsum"><div><span>Cross weight, FL + RR</span><b>${tot>0?((F[0]+F[3])/tot*100).toFixed(1):"–"} %</b></div><div><span>Total load</span><b>${tot.toFixed(0)} N</b></div></div>`;
   let note=turning?"Steering "+(si.kra>0?"right":"left")+": inner wheel "+si.di.toFixed(1)+"°, outer "+si.dout.toFixed(1)+"°"+(Number.isFinite(si.ack)?", Ackermann "+si.ack.toFixed(0)+" %":"")+", low-speed turn radius "+si.R.toFixed(1)+" m.":"Steering straight ahead.";
   if(!drive&&Math.abs(inp.ay)>0.005){const over=["Front","Rear"].filter((n,k)=>q.ax[k].used>1); if(over.length) note+=" "+over.join(" and ")+" tires cannot make "+Math.abs(inp.ay).toFixed(2)+" g: past the grip limit.";
     else note+=" Slip angle and grip in use are what the tires need to hold "+Math.abs(inp.ay).toFixed(2)+" g, steering centered.";}
@@ -1407,6 +1413,21 @@ function computeFrame(){
 function applyTheme(){readColors(); if(R3) R3.theme();}
 const clock=t=>{const d=Math.round(t*10), m=Math.floor(d/600); return String(m).padStart(2,"0")+":"+((d-600*m)/10).toFixed(1).padStart(4,"0");};      // rounded to tenths first, so 59.96 s reads 01:00.0
 function resize(){if(R3) R3.resize(); sizeCanvases();}
+/* Two view switches, kept in this browser: help text under the controls, and the small print on the corner tiles. */
+function viewFlag(btn,cls,key,def){
+  let on=def; try{const v=localStorage.getItem(key); if(v!==null) on=v==="1";}catch(e){}
+  const set=v=>{on=v; document.body.classList.toggle(cls,v); $(btn).setAttribute("aria-pressed",v); try{localStorage.setItem(key,v?"1":"0");}catch(e){}};
+  $(btn).onclick=()=>set(!on); set(on);
+}
+viewFlag("hintBtn","hints","dws.hints",false); viewFlag("teleMore","teleMore","dws.teleMore",false);
+function dashTab(d){
+  for(const b of $("dtabs").children) b.setAttribute("aria-selected",b.dataset.d===d);
+  for(const p of document.querySelectorAll(".dpane")) p.hidden=p.dataset.d!==d;
+  try{localStorage.setItem("dws.dash",d);}catch(e){}
+  sizeCanvases(); if(d==="curve") curveStatic();
+}
+$("dtabs").addEventListener("click",e=>{const b=e.target.closest(".dtab"); if(b) dashTab(b.dataset.d);});
+{let d="rear"; try{d=localStorage.getItem("dws.dash")||"rear";}catch(e){} if(!document.querySelector(`.dtab[data-d="${d}"]`)) d="rear"; dashTab(d);}
 new ResizeObserver(resize).observe(view);
 new ResizeObserver(sizeCanvases).observe(document.querySelector(".grid"));
 
