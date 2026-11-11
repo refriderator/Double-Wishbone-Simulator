@@ -54,7 +54,7 @@ let COL={};
 function readColors(){
   const cs=getComputedStyle(document.documentElement), g=n=>cs.getPropertyValue(n).trim();
   COL={vinyl:g("--vinyl"),dim:g("--vinyl-dim"),ghost:g("--vinyl-ghost"),edge:g("--edge"),hairline:g("--hairline"),gunmetal:g("--gunmetal"),glass:g("--glass"),
-       midnight:g("--midnight"),ice:g("--ice"),rec:g("--rec"),armL:g("--arm-lower"),armU:g("--arm-upper"),osd:g("--font-osd")};
+       midnight:g("--midnight"),ice:g("--ice"),rec:g("--rec"),rim:g("--rim"),armL:g("--arm-lower"),armU:g("--arm-upper"),osd:g("--font-osd")};
 }
 readColors();
 const OSD=px=>px+"px "+COL.osd, DASH=[7,5];      // canvas text is set in the read-out face; the right wheel's line is dashed
@@ -847,7 +847,7 @@ function init3D(){
     M.lower.color=c("armL").multiplyScalar(0.3); M.upper.color=c("armU").multiplyScalar(0.3); M.upright.color=c("dim");
     M.lower.emissive=c("armL"); M.lower.emissiveIntensity=0.9; M.upper.emissive=c("armU"); M.upper.emissiveIntensity=0.8;      // the arms glow in their own color
     M.coil.color=c("ice"); M.tie.color=c("ice"); M.rackH.color=c("edge");
-    M.tire.color=c("gunmetal"); M.rim.color=c("edge"); M.body.color=c("gunmetal"); M.cg.color=c("vinyl"); M.bumpm.color=c("edge");
+    M.tire.color=c("gunmetal"); M.rim.color=c("rim"); M.body.color=c("gunmetal"); M.cg.color=c("vinyl"); M.bumpm.color=c("edge");
     LM.edge.color=c("edge"); LM.coil.color=c("vinyl"); LM.axis.color=c("dim"); M.car.color=c("armU"); LM.car.color=c("armU");
     corners.forEach(k=>k.arrow.setColor(c("rec")));      // tire loads: the red accent in the 3D view
     TRK.mat.color=c("ice").multiplyScalar(0.2);
