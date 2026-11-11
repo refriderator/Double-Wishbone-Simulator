@@ -92,7 +92,7 @@ Descriptions under the controls stay short. The Guide's Vocabulary page explains
 
 ## Look
 
-The OL! design system: night only, a closed palette (black, grays, midnight blue, ice), square corners. Change colors through the tokens at the top of `style.css`.
+Night only: near-black panels, a deep blue 3D field and signal blue, with red kept for a few accents (run state, the selected tab, a mode that is on, tire-load arrows, errors). Soft glow instead of outlines, square corners. Change colors through the tokens at the top of `style.css`; the canvases and the 3D view read the same tokens.
 
 ## Credits
 
